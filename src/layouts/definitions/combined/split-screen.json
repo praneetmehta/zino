@@ -1,0 +1,76 @@
+{
+  "id": "split-screen",
+  "name": "Split Screen",
+  "icon": "◧",
+  "category": "combined",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 50,
+      "height": 100,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "split-number",
+      "x": 52,
+      "y": 20,
+      "width": 45,
+      "height": 25,
+      "content": "02",
+      "style": {
+        "fontSize": 180,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#000000",
+        "textAlign": "center",
+        "lineHeight": 0.9
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "split-title",
+      "x": 55,
+      "y": 50,
+      "width": 40,
+      "height": 15,
+      "content": "BOLD STATEMENT",
+      "style": {
+        "fontSize": 32,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#FF4444",
+        "textAlign": "left",
+        "lineHeight": 1
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "split-body",
+      "x": 55,
+      "y": 68,
+      "width": 38,
+      "height": 22,
+      "content": "Supporting text that explains the concept. Keep it concise and impactful. Every word matters in zine design.",
+      "style": {
+        "fontSize": 12,
+        "fontWeight": 400,
+        "fontFamily": "Georgia",
+        "color": "#333333",
+        "textAlign": "left",
+        "lineHeight": 1.6
+      },
+      "zIndex": 100,
+      "locked": false
+    }
+  ],
+  "metadata": {
+    "author": "Zine Editor",
+    "tags": ["split", "numbered", "feature"],
+    "description": "Split screen layout with image on left and numbered feature text on right"
+  }
+}

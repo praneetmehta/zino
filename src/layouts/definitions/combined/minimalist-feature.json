@@ -1,0 +1,59 @@
+{
+  "id": "minimalist-feature",
+  "name": "Minimalist Feature",
+  "icon": "□",
+  "category": "combined",
+  "slots": [
+    {
+      "x": 25,
+      "y": 35,
+      "width": 50,
+      "height": 50,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "minimal-title",
+      "x": 5,
+      "y": 8,
+      "width": 90,
+      "height": 15,
+      "content": "MINIMALIST",
+      "style": {
+        "fontSize": 56,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#000000",
+        "textAlign": "center",
+        "lineHeight": 1,
+        "letterSpacing": "0.1em"
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "minimal-subtitle",
+      "x": 15,
+      "y": 88,
+      "width": 70,
+      "height": 8,
+      "content": "Less is more. A centered approach to visual storytelling.",
+      "style": {
+        "fontSize": 13,
+        "fontWeight": 400,
+        "fontFamily": "Georgia",
+        "color": "#666666",
+        "textAlign": "center",
+        "lineHeight": 1.4
+      },
+      "zIndex": 100,
+      "locked": false
+    }
+  ],
+  "metadata": {
+    "author": "Zine Editor",
+    "tags": ["minimalist", "centered", "clean"],
+    "description": "Minimalist layout with centered image and title/subtitle text"
+  }
+}

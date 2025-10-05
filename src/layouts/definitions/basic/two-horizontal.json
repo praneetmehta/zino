@@ -1,0 +1,22 @@
+{
+  "id": "two-horizontal",
+  "name": "Two Horizontal",
+  "icon": "⬜|⬜",
+  "category": "basic",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 50,
+      "height": 100,
+      "type": "image"
+    },
+    {
+      "x": 50,
+      "y": 0,
+      "width": 50,
+      "height": 100,
+      "type": "image"
+    }
+  ]
+}

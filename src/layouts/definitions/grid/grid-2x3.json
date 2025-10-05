@@ -1,0 +1,14 @@
+{
+  "id": "grid-2x3",
+  "name": "Grid 2x3",
+  "icon": "⬜⬜",
+  "category": "grid",
+  "slots": [
+    { "x": 0, "y": 0, "width": 50, "height": 33.33, "type": "image" },
+    { "x": 50, "y": 0, "width": 50, "height": 33.33, "type": "image" },
+    { "x": 0, "y": 33.33, "width": 50, "height": 33.33, "type": "image" },
+    { "x": 50, "y": 33.33, "width": 50, "height": 33.33, "type": "image" },
+    { "x": 0, "y": 66.66, "width": 50, "height": 33.34, "type": "image" },
+    { "x": 50, "y": 66.66, "width": 50, "height": 33.34, "type": "image" }
+  ]
+}

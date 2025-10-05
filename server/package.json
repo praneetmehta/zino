@@ -1,0 +1,14 @@
+{
+  "name": "ziner-backend",
+  "version": "0.1.0",
+  "description": "Lightweight backend for storing Zine Editor book metadata",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "dev": "node src/index.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  }
+}

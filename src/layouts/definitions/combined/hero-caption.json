@@ -1,0 +1,61 @@
+{
+  "id": "hero-caption",
+  "name": "Hero + Caption",
+  "icon": "🖼️",
+  "category": "combined",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "hero-title",
+      "x": 8,
+      "y": 65,
+      "width": 84,
+      "height": 12,
+      "content": "POWERFUL HEADLINE",
+      "style": {
+        "fontSize": 48,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#FFFFFF",
+        "textAlign": "left",
+        "lineHeight": 1.1,
+        "textShadow": "2px 2px 8px rgba(0,0,0,0.8)"
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "hero-caption",
+      "x": 8,
+      "y": 78,
+      "width": 50,
+      "height": 8,
+      "content": "A compelling caption that draws readers into the story and provides essential context.",
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "fontFamily": "Georgia",
+        "color": "#FFFFFF",
+        "textAlign": "left",
+        "lineHeight": 1.5,
+        "backgroundColor": "rgba(0,0,0,0.6)",
+        "padding": "12px"
+      },
+      "zIndex": 100,
+      "locked": false
+    }
+  ],
+  "metadata": {
+    "author": "Zine Editor",
+    "tags": ["hero", "caption", "overlay"],
+    "description": "Full-page hero image with title and caption overlay at the bottom"
+  }
+}

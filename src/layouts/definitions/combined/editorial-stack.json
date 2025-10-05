@@ -1,0 +1,77 @@
+{
+  "id": "editorial-stack",
+  "name": "Editorial Stack",
+  "icon": "⬜",
+  "category": "combined",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 55,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "stack-kicker",
+      "x": 5,
+      "y": 60,
+      "width": 30,
+      "height": 5,
+      "content": "FEATURE STORY",
+      "style": {
+        "fontSize": 12,
+        "fontWeight": 700,
+        "fontFamily": "Arial",
+        "color": "#FF4444",
+        "textAlign": "left",
+        "lineHeight": 1,
+        "letterSpacing": "0.15em"
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "stack-headline",
+      "x": 5,
+      "y": 66,
+      "width": 90,
+      "height": 14,
+      "content": "The Story Behind the Image",
+      "style": {
+        "fontSize": 36,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#000000",
+        "textAlign": "left",
+        "lineHeight": 1.1
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "stack-body",
+      "x": 5,
+      "y": 82,
+      "width": 90,
+      "height": 14,
+      "content": "Editorial text goes here. This layout is perfect for magazine-style spreads where the image leads and the text follows. You can tell a complete story with this structured approach.",
+      "style": {
+        "fontSize": 11,
+        "fontWeight": 400,
+        "fontFamily": "Georgia",
+        "color": "#333333",
+        "textAlign": "left",
+        "lineHeight": 1.6
+      },
+      "zIndex": 100,
+      "locked": false
+    }
+  ],
+  "metadata": {
+    "author": "Zine Editor",
+    "tags": ["editorial", "magazine", "stacked"],
+    "description": "Editorial layout with hero image on top and stacked text elements below"
+  }
+}

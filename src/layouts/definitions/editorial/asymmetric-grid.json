@@ -1,0 +1,36 @@
+{
+  "id": "asymmetric-grid",
+  "name": "Asymmetric Grid",
+  "icon": "⚡",
+  "category": "editorial",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 35,
+      "height": 50,
+      "type": "image"
+    },
+    {
+      "x": 35,
+      "y": 0,
+      "width": 65,
+      "height": 50,
+      "type": "image"
+    },
+    {
+      "x": 0,
+      "y": 50,
+      "width": 70,
+      "height": 50,
+      "type": "image"
+    },
+    {
+      "x": 70,
+      "y": 50,
+      "width": 30,
+      "height": 50,
+      "type": "image"
+    }
+  ]
+}

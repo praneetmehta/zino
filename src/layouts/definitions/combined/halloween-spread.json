@@ -1,0 +1,98 @@
+{
+  "id": "halloween-spread",
+  "name": "Magazine Spread",
+  "icon": "📖",
+  "category": "combined",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 100,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "title-number",
+      "x": 5,
+      "y": 15,
+      "width": 35,
+      "height": 45,
+      "content": "1",
+      "style": {
+        "fontSize": 300,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#000000",
+        "textAlign": "center",
+        "lineHeight": 0.9
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "title-text",
+      "x": 12,
+      "y": 62,
+      "width": 20,
+      "height": 8,
+      "content": "HALLOWEEN",
+      "style": {
+        "fontSize": 24,
+        "fontWeight": 700,
+        "fontFamily": "Arial",
+        "color": "#FFFFFF",
+        "backgroundColor": "#D32F2F",
+        "textAlign": "center",
+        "lineHeight": 1.2,
+        "padding": "8px"
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "vertical-title",
+      "x": 52,
+      "y": 8,
+      "width": 10,
+      "height": 85,
+      "content": "IN THE NAME OF JESU",
+      "style": {
+        "fontSize": 36,
+        "fontWeight": 900,
+        "fontFamily": "Arial Black",
+        "color": "#1A1A1A",
+        "textAlign": "left",
+        "lineHeight": 1,
+        "writingMode": "vertical-rl",
+        "letterSpacing": "0.05em"
+      },
+      "zIndex": 100,
+      "locked": false
+    },
+    {
+      "id": "body-text",
+      "x": 64,
+      "y": 12,
+      "width": 32,
+      "height": 25,
+      "content": "Love him love them the Hell out your lover and with his soul does any military past book. This is the principles creation, consecrated. God established my heart upon the Catholic Church replacing in replacement of the Theocracy.",
+      "style": {
+        "fontSize": 11,
+        "fontWeight": 400,
+        "fontFamily": "Georgia",
+        "color": "#FFFFFF",
+        "textAlign": "left",
+        "lineHeight": 1.4
+      },
+      "zIndex": 100,
+      "locked": false
+    }
+  ],
+  "metadata": {
+    "author": "Zine Editor",
+    "tags": ["magazine", "editorial", "overlay", "creative"],
+    "description": "Magazine-style layout with full background image and multiple text overlays including large number, title, vertical text, and body copy."
+  }
+}

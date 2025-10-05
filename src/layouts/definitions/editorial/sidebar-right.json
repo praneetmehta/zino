@@ -1,0 +1,22 @@
+{
+  "id": "sidebar-right",
+  "name": "Sidebar Right",
+  "icon": "⬜|⬜",
+  "category": "editorial",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 66.66,
+      "height": 100,
+      "type": "image"
+    },
+    {
+      "x": 66.66,
+      "y": 0,
+      "width": 33.34,
+      "height": 100,
+      "type": "image"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "hero-bottom",
+  "name": "Hero + Bottom",
+  "icon": "⬜―⬜⬜",
+  "category": "grid",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 100,
+      "height": 66.67,
+      "type": "image"
+    },
+    {
+      "x": 0,
+      "y": 66.67,
+      "width": 50,
+      "height": 33.33,
+      "type": "image"
+    },
+    {
+      "x": 50,
+      "y": 66.67,
+      "width": 50,
+      "height": 33.33,
+      "type": "image"
+    }
+  ]
+}

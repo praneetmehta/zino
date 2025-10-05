@@ -1,0 +1,22 @@
+{
+  "id": "two-thirds-left",
+  "name": "Two Thirds Left",
+  "icon": "⬜|⬜",
+  "category": "editorial",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 66.67,
+      "height": 100,
+      "type": "image"
+    },
+    {
+      "x": 66.67,
+      "y": 0,
+      "width": 33.33,
+      "height": 100,
+      "type": "image"
+    }
+  ]
+}

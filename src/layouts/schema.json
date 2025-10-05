@@ -1,0 +1,219 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Zine Layout Definition Schema",
+  "description": "Schema for defining page layouts in the Zine Editor",
+  "version": "1.0.0",
+  "type": "object",
+  "required": ["id", "name", "icon", "slots"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier for the layout",
+      "pattern": "^[a-z0-9-]+$"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable name of the layout"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji or icon to represent the layout"
+    },
+    "category": {
+      "type": "string",
+      "description": "Category for organizing layouts",
+      "enum": ["basic", "editorial", "grid", "combined"]
+    },
+    "aspectRatio": {
+      "type": "object",
+      "description": "Optional aspect ratio constraints",
+      "properties": {
+        "min": {
+          "type": "number",
+          "description": "Minimum aspect ratio (width/height)"
+        },
+        "max": {
+          "type": "number",
+          "description": "Maximum aspect ratio (width/height)"
+        }
+      }
+    },
+    "slots": {
+      "type": "array",
+      "description": "Image/content slots in the layout",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["x", "y", "width", "height", "type"],
+        "properties": {
+          "x": {
+            "type": "number",
+            "description": "X position as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "width": {
+            "type": "number",
+            "description": "Width as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "height": {
+            "type": "number",
+            "description": "Height as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "type": {
+            "type": "string",
+            "description": "Type of content slot",
+            "enum": ["image", "text"]
+          },
+          "zIndex": {
+            "type": "integer",
+            "description": "Stack order of the slot"
+          },
+          "backgroundColor": {
+            "type": "string",
+            "description": "Default background color (hex format)",
+            "pattern": "^#[0-9A-Fa-f]{6}$"
+          }
+        }
+      }
+    },
+    "textElements": {
+      "type": "array",
+      "description": "Pre-positioned text overlays",
+      "items": {
+        "type": "object",
+        "required": ["id", "x", "y", "width", "height", "content", "style"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the text element"
+          },
+          "x": {
+            "type": "number",
+            "description": "X position as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "y": {
+            "type": "number",
+            "description": "Y position as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "width": {
+            "type": "number",
+            "description": "Width as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "height": {
+            "type": "number",
+            "description": "Height as percentage (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "content": {
+            "type": "string",
+            "description": "Default text content"
+          },
+          "style": {
+            "type": "object",
+            "description": "Text styling properties",
+            "properties": {
+              "fontSize": {
+                "type": "number",
+                "description": "Font size in pixels"
+              },
+              "fontWeight": {
+                "type": "number",
+                "description": "Font weight (100-900)"
+              },
+              "fontFamily": {
+                "type": "string",
+                "description": "Font family name"
+              },
+              "color": {
+                "type": "string",
+                "description": "Text color (hex or named)"
+              },
+              "backgroundColor": {
+                "type": "string",
+                "description": "Background color (hex, rgba, or named)"
+              },
+              "textAlign": {
+                "type": "string",
+                "enum": ["left", "center", "right", "justify"]
+              },
+              "lineHeight": {
+                "type": "number",
+                "description": "Line height multiplier"
+              },
+              "letterSpacing": {
+                "type": "string",
+                "description": "Letter spacing (e.g., '0.1em')"
+              },
+              "writingMode": {
+                "type": "string",
+                "enum": ["horizontal-tb", "vertical-rl", "vertical-lr"],
+                "description": "Text writing direction"
+              },
+              "textShadow": {
+                "type": "string",
+                "description": "CSS text-shadow value"
+              },
+              "padding": {
+                "type": ["string", "number"],
+                "description": "Padding (px or string)"
+              }
+            }
+          },
+          "zIndex": {
+            "type": "integer",
+            "description": "Stack order of the text element"
+          },
+          "locked": {
+            "type": "boolean",
+            "description": "Whether the element is locked from editing",
+            "default": false
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Additional metadata about the layout",
+      "properties": {
+        "author": {
+          "type": "string",
+          "description": "Creator of the layout"
+        },
+        "created": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation date"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags for searching/filtering"
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the layout"
+        }
+      }
+    }
+  }
+}
