@@ -10,6 +10,16 @@
       @open-docs="navigateToDocs"
     />
     <InitModal v-else-if="view === 'init' && !zineStore.isInitialized" @initialize="handleInitialize" />
+    <LayoutLibrary
+      v-else-if="view === 'layout-library'"
+      @close="view = 'editor'"
+      @open-builder="view = 'layout-builder'"
+    />
+    <LayoutBuilder 
+      v-else-if="view === 'layout-builder'"
+      @close="view = 'layout-library'"
+      @save="handleSaveLayout"
+    />
     <template v-else>
       <Header
         :saving="isSaving"
@@ -76,6 +86,8 @@ import CommandBar from './components/CommandBar.vue'
 import FlipBook from './components/FlipBook.vue'
 import LandingPage from './components/LandingPage.vue'
 import LibraryModal from './components/LibraryModal.vue'
+import LayoutBuilder from './components/LayoutBuilder.vue'
+import LayoutLibrary from './components/LayoutLibrary.vue'
 import { exportToPDF } from './utils/pdfExport'
 import { listBooks, saveBook, getBook } from './api/books'
 
@@ -205,7 +217,41 @@ const goHome = () => {
 }
 
 const navigateToLayoutBuilder = () => {
-  window.open('https://github.com/praneetmehta/ziner#layout-builder', '_blank')
+  view.value = 'layout-library'
+}
+
+const handleSaveLayout = async (layout) => {
+  try {
+    // Save layout to server
+    const response = await fetch('http://localhost:4876/layouts/custom', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(layout),
+    })
+
+    if (!response.ok) {
+      const error = await response.json()
+      throw new Error(error.error || 'Failed to save layout')
+    }
+
+    // Auto-enable the new layout
+    const enabledLayouts = JSON.parse(localStorage.getItem('enabledLayouts') || '[]')
+    if (!enabledLayouts.includes(layout.id)) {
+      enabledLayouts.push(layout.id)
+      localStorage.setItem('enabledLayouts', JSON.stringify(enabledLayouts))
+    }
+
+    // Go back to layout library
+    view.value = 'layout-library'
+
+    // Show success message
+    alert(`Layout "${layout.name}" saved successfully!`)
+  } catch (error) {
+    console.error('Failed to save layout:', error)
+    alert(`Failed to save layout: ${error.message}`)
+  }
 }
 
 const navigateToDocs = () => {

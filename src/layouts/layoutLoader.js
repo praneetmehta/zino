@@ -21,6 +21,7 @@
 
 // Import all JSON layout files using Vite's glob import
 // This automatically reads all .json files from the definitions directory
+// Including custom layouts from the custom folder
 const layoutModules = import.meta.glob('./definitions/**/*.json', { eager: true })
 
 // Layout categories configuration
@@ -43,6 +44,11 @@ export const layoutCategories = {
   combined: {
     name: 'Image + Text',
     icon: '🖼️',
+    layouts: []
+  },
+  custom: {
+    name: 'Custom',
+    icon: '⭐',
     layouts: []
   }
 }

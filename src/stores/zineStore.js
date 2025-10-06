@@ -42,13 +42,19 @@ export const useZineStore = defineStore('zine', {
   
   actions: {
     initializeZine(config) {
+      const bleedValue = config.bleed || 0
       this.zineConfig = {
         width: config.width,
         height: config.height,
         unit: config.unit,
-        bleed: config.bleed || 0,
+        bleed: bleedValue,
+        bleedTop: config.bleedTop ?? bleedValue,
+        bleedRight: config.bleedRight ?? bleedValue,
+        bleedBottom: config.bleedBottom ?? bleedValue,
+        bleedLeft: config.bleedLeft ?? bleedValue,
         margin: config.margin || 0,
         slotInnerMarginPercent: config.slotInnerMarginPercent ?? 0,
+        bindingType: config.bindingType || 'folded',
       }
       this.isInitialized = true
       this.pages = []

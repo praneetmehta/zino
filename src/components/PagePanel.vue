@@ -28,7 +28,7 @@
             :ref="el => pageCanvasRefs[page.id] = el"
             class="preview-canvas"
             :width="150"
-            :height="150 * (zineStore.zineConfig.height / zineStore.zineConfig.width)"
+            :height="150 * ((zineStore.zineConfig?.height || 210) / (zineStore.zineConfig?.width || 148))"
           ></canvas>
         </div>
         <button class="delete-page-btn" @click.stop="deletePage(page.id)">×</button>
@@ -166,6 +166,17 @@ const renderPagePreview = async (pageId) => {
       guidesElement.style.display = originalDisplay
     }
     pageElement.classList.remove('export-mode')
+    
+    // Check if canvas has valid dimensions before drawing
+    if (capturedCanvas.width === 0 || capturedCanvas.height === 0) {
+      console.warn('Captured canvas has invalid dimensions, skipping render')
+      return
+    }
+    
+    if (canvasEl.width === 0 || canvasEl.height === 0) {
+      console.warn('Target canvas has invalid dimensions, skipping render')
+      return
+    }
     
     const ctx = canvasEl.getContext('2d')
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height)

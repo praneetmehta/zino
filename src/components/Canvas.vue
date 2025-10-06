@@ -2,40 +2,93 @@
   <div class="canvas-container">
     <div class="toolbar" :class="{ collapsed: toolbarCollapsed }">
       <div class="toolbar-header">
-        <span class="toolbar-title">Page Layouts</span>
-        <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
-          {{ toolbarCollapsed ? '▼' : '▲' }}
-        </button>
+        <div class="toolbar-mode-tabs">
+          <button 
+            class="mode-tab" 
+            :class="{ active: toolbarMode === 'layouts' }"
+            @click="toolbarMode = 'layouts'"
+          >
+            <span class="mode-icon">📐</span>
+            <span>Page Layouts</span>
+          </button>
+          <button 
+            class="mode-tab" 
+            :class="{ active: toolbarMode === 'settings' }"
+            @click="toolbarMode = 'settings'"
+          >
+            <span class="mode-icon">⚙️</span>
+            <span>Page Settings</span>
+          </button>
+        </div>
+        <div class="toolbar-actions">
+          <label class="toggle-guides">
+            <input type="checkbox" v-model="showGuides" />
+            <span>Show Guides</span>
+          </label>
+          <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
+            {{ toolbarCollapsed ? '▼' : '▲' }}
+          </button>
+        </div>
       </div>
       <transition name="toolbar-expand">
         <div v-if="!toolbarCollapsed" class="toolbar-content">
-          <div class="toolbar-tabs">
-            <button
-              v-for="(category, key) in categories"
-              :key="key"
-              class="category-tab"
-              :class="{ active: activeCategory === key }"
-              @click="activeCategory = key"
-            >
-              <span class="category-icon">{{ category.icon }}</span>
-              <span class="category-name">{{ category.name }}</span>
-            </button>
+          <!-- Page Layouts Mode -->
+          <div v-if="toolbarMode === 'layouts'" class="toolbar-mode-content">
+            <div class="toolbar-tabs">
+              <button
+                v-for="(category, key) in categories"
+                :key="key"
+                class="category-tab"
+                :class="{ active: activeCategory === key }"
+                @click="activeCategory = key"
+              >
+                <span class="category-icon">{{ category.icon }}</span>
+                <span class="category-name">{{ category.name }}</span>
+              </button>
+            </div>
+            <div class="toolbar-layouts">
+              <transition name="layouts-fade" mode="out-in">
+                <div :key="activeCategory" class="layouts-grid">
+                  <button
+                    v-for="layout in categories[activeCategory].layouts"
+                    :key="layout.id"
+                    class="layout-btn"
+                    @click="addPageWithLayout(layout)"
+                    :title="layout.name"
+                  >
+                    <div class="layout-preview-mini">
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+                        <rect
+                          v-for="(slot, index) in (layout.slots || []).filter(s => !s.shape || s.shape === 'rectangle')"
+                          :key="`rect-${index}`"
+                          :x="slot.x || 0"
+                          :y="slot.y || 0"
+                          :width="slot.width || 100"
+                          :height="slot.height || 100"
+                          fill="rgba(99, 102, 241, 0.3)"
+                          stroke="#6366f1"
+                          stroke-width="1"
+                        />
+                        <polygon
+                          v-for="(slot, index) in (layout.slots || []).filter(s => s.shape === 'polygon')"
+                          :key="`poly-${index}`"
+                          :points="slot.points.map(p => `${p.x},${p.y}`).join(' ')"
+                          fill="rgba(99, 102, 241, 0.3)"
+                          stroke="#6366f1"
+                          stroke-width="1"
+                        />
+                      </svg>
+                    </div>
+                    <span class="layout-name">{{ layout.name }}</span>
+                  </button>
+                </div>
+              </transition>
+            </div>
           </div>
-          <div class="toolbar-layouts">
-            <transition name="layouts-fade" mode="out-in">
-              <div :key="activeCategory" class="layouts-grid">
-                <button
-                  v-for="layoutId in categories[activeCategory].layouts"
-                  :key="layoutId"
-                  class="layout-btn"
-                  @click="addPageWithLayout(getLayoutById(layoutId))"
-                  :title="getLayoutById(layoutId)?.name"
-                >
-                  <span class="layout-icon">{{ getLayoutById(layoutId)?.icon }}</span>
-                  <span class="layout-name">{{ getLayoutById(layoutId)?.name }}</span>
-                </button>
-              </div>
-            </transition>
+
+          <!-- Page Settings Mode -->
+          <div v-else-if="toolbarMode === 'settings'" class="toolbar-mode-content">
+            <PageSettings />
           </div>
         </div>
       </transition>
@@ -77,7 +130,10 @@
                 v-for="(slot, index) in page.slots"
                 :key="index"
                 class="slot"
-                :class="{ selected: selectedSlot?.pageId === page.id && selectedSlot?.index === index }"
+                :class="{ 
+                  selected: selectedSlot?.pageId === page.id && selectedSlot?.index === index,
+                  'hide-guides': !showGuides
+                }"
                 :style="getSlotStyle(slot)"
                 @dragover.prevent="handleDragOver"
                 @drop="handleDrop($event, page.id, index)"
@@ -150,7 +206,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 
 const props = defineProps({
@@ -180,14 +236,56 @@ import { layoutDefinitions, layoutCategories, getLayoutById } from '../layouts/l
 import TextToolbar from '../components/TextToolbar.vue'
 import FloatingTextBox from '../components/FloatingTextBox.vue'
 import ElementContextMenu from '../components/ElementContextMenu.vue'
+import PageSettings from '../components/PageSettings.vue'
 import { createElementFromSpec } from '../utils/elementSpecs.js'
 
 const zineStore = useZineStore()
-const categories = layoutCategories
 const activeCategory = ref('basic')
+const toolbarMode = ref('layouts')
 const toolbarCollapsed = ref(false)
 const isTextBeingEdited = ref(false)
 const selectedSlot = ref(null)
+const showGuides = computed({
+  get: () => zineStore.ui.showGuides,
+  set: (value) => { zineStore.ui.showGuides = value }
+})
+
+// Filter layouts by enabled status
+const enabledLayoutIds = ref(new Set())
+
+const loadEnabledLayouts = () => {
+  const stored = localStorage.getItem('enabledLayouts')
+  if (stored) {
+    enabledLayoutIds.value = new Set(JSON.parse(stored))
+  } else {
+    // By default, all built-in layouts are enabled
+    layoutDefinitions.forEach(layout => {
+      enabledLayoutIds.value.add(layout.id)
+    })
+  }
+}
+
+loadEnabledLayouts()
+
+// Filter categories to only show enabled layouts
+const categories = computed(() => {
+  const filtered = {}
+  Object.keys(layoutCategories).forEach(key => {
+    const enabledLayouts = layoutCategories[key].layouts
+      .map(layoutId => getLayoutById(layoutId))
+      .filter(layout => layout && enabledLayoutIds.value.has(layout.id))
+    
+    filtered[key] = {
+      ...layoutCategories[key],
+      layouts: enabledLayouts
+    }
+  })
+  
+  // Custom layouts are now loaded via layoutLoader from the custom folder
+  // They will be automatically included in the layoutDefinitions
+  
+  return filtered
+})
 
 // getLayoutById is imported from layoutLoader
 
@@ -230,6 +328,46 @@ const pageInnerStyle = computed(() => {
   return {
     position: 'absolute',
     inset: `${topBottom}% ${leftRight}%`,
+  }
+})
+
+const bleedGuideStyle = computed(() => {
+  const cfg = zineStore.zineConfig
+  if (!cfg) return {}
+  
+  // Support individual bleed values per side
+  const bleedTop = cfg.bleedTop ?? cfg.bleed ?? 0
+  const bleedRight = cfg.bleedRight ?? cfg.bleed ?? 0
+  const bleedBottom = cfg.bleedBottom ?? cfg.bleed ?? 0
+  const bleedLeft = cfg.bleedLeft ?? cfg.bleed ?? 0
+  
+  if (bleedTop === 0 && bleedRight === 0 && bleedBottom === 0 && bleedLeft === 0) {
+    return {}
+  }
+  
+  const topPercent = (bleedTop / cfg.height) * 100
+  const rightPercent = (bleedRight / cfg.width) * 100
+  const bottomPercent = (bleedBottom / cfg.height) * 100
+  const leftPercent = (bleedLeft / cfg.width) * 100
+  
+  return {
+    position: 'absolute',
+    top: `${topPercent}%`,
+    right: `${rightPercent}%`,
+    bottom: `${bottomPercent}%`,
+    left: `${leftPercent}%`,
+  }
+})
+
+const marginGuideStyle = computed(() => {
+  const cfg = zineStore.zineConfig
+  if (!cfg || !cfg.margin) return {}
+  
+  const marginLeftRight = (cfg.margin / cfg.width) * 100
+  const marginTopBottom = (cfg.margin / cfg.height) * 100
+  return {
+    position: 'absolute',
+    inset: `${marginTopBottom}% ${marginLeftRight}%`,
   }
 })
 
@@ -669,6 +807,65 @@ const handleContextDelete = () => {
   border-bottom: 1px solid var(--border);
 }
 
+.toolbar-mode-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.mode-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  transition: all 0.2s;
+  border-radius: 8px 8px 0 0;
+}
+
+.mode-tab:hover {
+  color: var(--text);
+  background: var(--muted);
+}
+
+.mode-tab.active {
+  color: var(--accent);
+  background: var(--muted);
+  border-bottom-color: var(--accent);
+}
+
+.mode-tab .mode-icon {
+  font-size: 16px;
+}
+
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toggle-guides {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.toggle-guides input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--accent);
+}
+
 .toolbar-title {
   font-size: 13px;
   font-weight: 700;
@@ -696,6 +893,11 @@ const handleContextDelete = () => {
 }
 
 .toolbar-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.toolbar-mode-content {
   display: flex;
   flex-direction: column;
 }
@@ -781,47 +983,52 @@ const handleContextDelete = () => {
 .layouts-fade-leave-to {
   opacity: 0;
 }
-
 .layout-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 6px;
-  padding: 12px 14px;
-  background: var(--muted);
-  border: 1px solid var(--border);
+  gap: 8px;
+  padding: 12px;
+  background: var(--panel-bg-solid);
+  border: 2px solid var(--border);
   border-radius: 12px;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 80px;
-  box-shadow: var(--shadow-sm);
+  min-width: 0;
 }
 
 .layout-btn:hover {
-  background: var(--accent);
   border-color: var(--accent);
+  background: var(--muted);
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-.layout-btn:hover .layout-icon,
-.layout-btn:hover .layout-name {
-  color: white;
+.layout-preview-mini {
+  width: 60px;
+  height: 60px;
+  background: white;
+  border-radius: 6px;
+  padding: 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.layout-preview-mini svg {
+  width: 100%;
+  height: 100%;
 }
 
 .layout-icon {
-  font-size: 24px;
-  line-height: 1;
-  transition: color var(--transition);
+  font-size: 32px;
 }
 
 .layout-name {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 12px;
   font-weight: 600;
   transition: color var(--transition);
   text-align: center;
   line-height: 1.2;
+  color: var(--text-muted);
 }
 
 .canvas-workspace {
@@ -910,6 +1117,10 @@ const handleContextDelete = () => {
   position: absolute;
   border-radius: 4px;
   cursor: pointer;
+}
+
+.slot.hide-guides {
+  border-color: transparent;
 }
 
 .slot:hover {
