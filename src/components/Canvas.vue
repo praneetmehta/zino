@@ -25,6 +25,10 @@
             <input type="checkbox" v-model="showGuides" />
             <span>Show Guides</span>
           </label>
+          <label class="toggle-guides">
+            <input type="checkbox" v-model="showCrease" />
+            <span>Show Crease</span>
+          </label>
           <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
             {{ toolbarCollapsed ? '▼' : '▲' }}
           </button>
@@ -124,6 +128,8 @@
               <div class="guide guide-margin" :style="marginGuideStyle"></div>
               <div class="guide guide-fold"></div>
             </div>
+            <!-- Center crease effect -->
+            <div class="page-crease" v-if="showCrease && zineStore.zineConfig?.bindingType === 'folded'"></div>
             <div class="page-inner" :style="pageInnerStyle">
               <!-- Image slots -->
               <div
@@ -249,6 +255,10 @@ const showGuides = computed({
   get: () => zineStore.ui.showGuides,
   set: (value) => { zineStore.ui.showGuides = value }
 })
+const showCrease = ref(true)
+
+// Restore deeper crease effect
+
 
 // Filter layouts by enabled status
 const enabledLayoutIds = ref(new Set())
@@ -322,12 +332,26 @@ const pageStyle = computed(() => {
 const pageInnerStyle = computed(() => {
   const cfg = zineStore.zineConfig
   if (!cfg) return {}
-  // Express page margin as percentage of page width/height so it scales with page
-  const leftRight = (cfg.margin / cfg.width) * 100
-  const topBottom = (cfg.margin / cfg.height) * 100
+  
+  // Get bleed values (can be different per side)
+  const bleedTop = cfg.bleedTop ?? cfg.bleed ?? 0
+  const bleedRight = cfg.bleedRight ?? cfg.bleed ?? 0
+  const bleedBottom = cfg.bleedBottom ?? cfg.bleed ?? 0
+  const bleedLeft = cfg.bleedLeft ?? cfg.bleed ?? 0
+  
+  // Margin starts from the bleed line, not the page edge
+  // Total inset = bleed + margin
+  const topInset = ((bleedTop + cfg.margin) / cfg.height) * 100
+  const rightInset = ((bleedRight + cfg.margin) / cfg.width) * 100
+  const bottomInset = ((bleedBottom + cfg.margin) / cfg.height) * 100
+  const leftInset = ((bleedLeft + cfg.margin) / cfg.width) * 100
+  
   return {
     position: 'absolute',
-    inset: `${topBottom}% ${leftRight}%`,
+    top: `${topInset}%`,
+    right: `${rightInset}%`,
+    bottom: `${bottomInset}%`,
+    left: `${leftInset}%`,
   }
 })
 
@@ -363,11 +387,24 @@ const marginGuideStyle = computed(() => {
   const cfg = zineStore.zineConfig
   if (!cfg || !cfg.margin) return {}
   
-  const marginLeftRight = (cfg.margin / cfg.width) * 100
-  const marginTopBottom = (cfg.margin / cfg.height) * 100
+  // Get bleed values (can be different per side)
+  const bleedTop = cfg.bleedTop ?? cfg.bleed ?? 0
+  const bleedRight = cfg.bleedRight ?? cfg.bleed ?? 0
+  const bleedBottom = cfg.bleedBottom ?? cfg.bleed ?? 0
+  const bleedLeft = cfg.bleedLeft ?? cfg.bleed ?? 0
+  
+  // Margin guide shows the safe area, which is bleed + margin from edge
+  const topInset = ((bleedTop + cfg.margin) / cfg.height) * 100
+  const rightInset = ((bleedRight + cfg.margin) / cfg.width) * 100
+  const bottomInset = ((bleedBottom + cfg.margin) / cfg.height) * 100
+  const leftInset = ((bleedLeft + cfg.margin) / cfg.width) * 100
+  
   return {
     position: 'absolute',
-    inset: `${marginTopBottom}% ${marginLeftRight}%`,
+    top: `${topInset}%`,
+    right: `${rightInset}%`,
+    bottom: `${bottomInset}%`,
+    left: `${leftInset}%`,
   }
 })
 
@@ -1526,6 +1563,73 @@ const handleContextDelete = () => {
   right: 0;
   height: 1px;
   transform: translateY(-0.5px);
+}
+
+/* Page crease effect - simulates a deep fold in the center */
+.page-crease {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 100;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(0, 0, 0, 0.05) 10%,
+    rgba(0, 0, 0, 0.15) 30%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.15) 70%,
+    rgba(0, 0, 0, 0.05) 90%,
+    transparent 100%
+  );
+  box-shadow: 
+    -2px 0 4px rgba(0, 0, 0, 0.15),
+    2px 0 4px rgba(255, 255, 255, 0.4),
+    inset -2px 0 3px rgba(0, 0, 0, 0.25),
+    inset 2px 0 3px rgba(255, 255, 255, 0.3),
+    0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Strong highlight on the left side of the crease */
+.page-crease::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.2) 100%
+  );
+  box-shadow: -1px 0 3px rgba(255, 255, 255, 0.3);
+}
+
+/* Strong shadow on the right side of the crease */
+.page-crease::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    rgba(0, 0, 0, 0.25) 50%,
+    rgba(0, 0, 0, 0.1) 100%
+  );
+  box-shadow: 1px 0 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Hide crease during export */
+.export-mode .page-crease {
+  display: none !important;
 }
 
 /* Slot margin guide */
