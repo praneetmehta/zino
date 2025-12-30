@@ -62,13 +62,15 @@ export const useZineStore = defineStore('zine', {
     },
     
     addMediaAsset(asset) {
-      const id = String(Date.now() + Math.random())
+      const id = asset.id || String(Date.now() + Math.random())
       this.mediaAssets.push({
         id,
         name: asset.name,
         url: asset.url,
         type: asset.type,
         thumbnail: asset.thumbnail || asset.url,
+        originalUrl: asset.originalUrl || asset.url, // High-res version for PDF export
+        imageId: asset.imageId || id, // Backend image identifier
       })
     },
     

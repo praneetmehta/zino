@@ -6,6 +6,7 @@ const path = require('path')
 // Import middleware and routes
 const { authenticateJWT, optionalAuth } = require('../middleware/auth')
 const authRoutes = require('../routes/auth')
+const imageRoutes = require('../routes/images')
 const { storageService } = require('../services/storage')
 
 const PORT = process.env.PORT || 4876
@@ -17,7 +18,7 @@ const JSON_LIMIT = process.env.JSON_BODY_LIMIT || '150mb'
 // CORS Configuration
 const ALLOWED_ORIGINS = process.env.CORS_ORIGIN 
   ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
-  : ['http://localhost:5173', 'http://localhost:4173']
+  : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3000', 'http://localhost:3001']
 
 const corsOptions = {
   origin: function (origin, callback) {
@@ -26,14 +27,18 @@ const corsOptions = {
     
     // In development, allow all
     if (process.env.NODE_ENV === 'development') {
+      console.log(`✅ CORS allowed (dev mode): ${origin}`)
       return callback(null, true)
     }
     
     // In production, check whitelist
     if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      console.log(`✅ CORS allowed: ${origin}`)
       callback(null, true)
     } else {
-      console.warn(`CORS blocked origin: ${origin}`)
+      console.warn(`❌ CORS blocked: ${origin}`)
+      console.warn(`   Allowed origins: ${ALLOWED_ORIGINS.join(', ')}`)
+      console.warn(`   Tip: Set NODE_ENV=development for dev mode`)
       callback(new Error('Not allowed by CORS'))
     }
   },
@@ -56,6 +61,9 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')
 
 // Auth routes (no auth required for these)
 app.use('/auth', authRoutes)
+
+// Image upload routes
+app.use('/api/images', imageRoutes)
 
 async function ensureDataDir() {
   await fs.mkdir(DATA_DIR, { recursive: true })

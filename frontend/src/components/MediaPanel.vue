@@ -16,10 +16,13 @@
         <svg class="chevron" :class="{ expanded: imagesExpanded }" width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
-        <h4>Images</h4>
-        <button class="btn-icon" @click.stop="triggerUpload" title="Add Image">
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+        <h4>Images {{ isUploading ? '(Uploading...)' : '' }}</h4>
+        <button class="btn-icon" @click.stop="triggerUpload" :disabled="isUploading" :title="isUploading ? 'Uploading...' : 'Add Image'">
+          <svg v-if="!isUploading" width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          <svg v-else class="spinner" width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2" stroke-dasharray="15 10" opacity="0.5"/>
           </svg>
         </button>
       </div>
@@ -138,12 +141,14 @@
 import { ref, computed, watch } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import { getElementSpecsByCategory } from '../utils/elementSpecs'
+import { uploadMultipleImages } from '../api/images'
 
 const zineStore = useZineStore()
 const fileInput = ref(null)
 const isCollapsed = ref(false)
 const imagesExpanded = ref(true)
 const elementsExpanded = ref(true)
+const isUploading = ref(false)
 
 const emit = defineEmits(['collapsed-change'])
 
@@ -179,26 +184,54 @@ const triggerUpload = () => {
   fileInput.value?.click()
 }
 
-const handleFileUpload = (event) => {
+const handleFileUpload = async (event) => {
   const files = Array.from(event.target.files)
   
-  files.forEach(file => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        zineStore.addMediaAsset({
-          name: file.name,
-          url: e.target.result,
-          type: file.type,
-          thumbnail: e.target.result,
-        })
-      }
-      reader.readAsDataURL(file)
-    }
-  })
+  if (files.length === 0) return
   
-  // Reset input
-  event.target.value = ''
+  // Filter for images only
+  const imageFiles = files.filter(file => file.type.startsWith('image/'))
+  
+  if (imageFiles.length === 0) {
+    alert('Please select image files only')
+    event.target.value = ''
+    return
+  }
+  
+  isUploading.value = true
+  
+  try {
+    const result = await uploadMultipleImages(imageFiles, {
+      bookId: zineStore.projectMeta?.id || null
+    })
+    
+    // Add uploaded images to media pool
+    result.images.forEach(imageMetadata => {
+      zineStore.addMediaAsset({
+        id: imageMetadata.id,
+        name: imageMetadata.originalName,
+        url: imageMetadata.variants.display.url,
+        thumbnail: imageMetadata.variants.thumbnail.url,
+        type: imageMetadata.mimeType,
+        originalUrl: imageMetadata.variants.original.url,
+        // Store the image ID for future reference
+        imageId: imageMetadata.id
+      })
+    })
+    
+    // Show summary if there were any errors
+    if (result.errors && result.errors.length > 0) {
+      console.warn('Some images failed to upload:', result.errors)
+      alert(`Uploaded ${result.summary.uploaded}/${result.summary.total} images. ${result.summary.failed} failed.`)
+    }
+  } catch (error) {
+    console.error('Failed to upload images:', error)
+    alert(`Failed to upload images: ${error.message}`)
+  } finally {
+    isUploading.value = false
+    // Reset input
+    event.target.value = ''
+  }
 }
 
 const handleDragStart = (event, asset) => {
@@ -643,5 +676,24 @@ const deleteAsset = (id) => {
   font-weight: 500;
   color: var(--text-muted);
   text-align: center;
+}
+
+/* Upload spinner animation */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 </style>
