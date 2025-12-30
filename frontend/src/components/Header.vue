@@ -36,22 +36,11 @@
           <span class="slider"></span>
           <span class="label">Dark</span>
         </label>
-        <label class="switch" title="Show guides (margin/trim)">
-          <input type="checkbox" :checked="zineStore.ui.showGuides" @change="zineStore.toggleGuides()" />
-          <span class="slider"></span>
-          <span class="label">Guides</span>
-        </label>
+
       </div>
-      <button class="btn btn-outline" @click="openDocs">
-        📘 Docs
-      </button>
       <button class="btn btn-outline" @click="$emit('save')" data-action="save" :disabled="!zineStore.isInitialized || saving">
         <span v-if="saving">⏳ Saving…</span>
         <span v-else>💾 Save</span>
-      </button>
-      <button class="btn btn-outline" @click="$emit('load')" data-action="load" :disabled="loading">
-        <span v-if="loading">🔍 Loading…</span>
-        <span v-else>📂 Load</span>
       </button>
       <button class="btn btn-primary" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
         📥 Export PDF
@@ -93,9 +82,6 @@ const lastSaved = computed(() => {
   return `${days} day${days === 1 ? '' : 's'} ago`
 })
 
-const openDocs = () => {
-  window.open('https://github.com/praneetmehta/zino#usage', '_blank')
-}
 </script>
 
 <style scoped>

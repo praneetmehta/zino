@@ -8,6 +8,8 @@
       @load-book="handleLoad"
       @open-layout-builder="navigateToLayoutBuilder"
       @open-docs="navigateToDocs"
+      @try-demo="startDemoMode"
+      @require-login="handleRequireLogin"
     />
     <InitModal v-else-if="view === 'init' && !zineStore.isInitialized" @initialize="handleInitialize" />
     <LayoutLibrary
@@ -78,6 +80,7 @@
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useZineStore } from './stores/zineStore'
+import { useAuthStore } from './stores/authStore'
 import InitModal from './components/InitModal.vue'
 import Header from './components/Header.vue'
 import MediaPanel from './components/MediaPanel.vue'
@@ -93,6 +96,7 @@ import { exportToPDF } from './utils/pdfExport'
 import { listBooks, saveBook, getBook } from './api/books'
 
 const zineStore = useZineStore()
+const authStore = useAuthStore()
 const commandBar = ref(null)
 const showFlipbook = ref(false)
 const isSaving = ref(false)
@@ -203,9 +207,23 @@ const handleReset = () => {
   }
 }
 
-const handleSave = () => {
+const handleSave = async () => {
   if (!zineStore.isInitialized) {
-    alert('Initialize your zine before saving.')
+    alert('No project to save')
+    return
+  }
+  
+  // Check if user is authenticated
+  if (!authStore.isAuthenticated) {
+    alert('Please sign in to save your project. You can continue working in demo mode, but changes won\'t be saved.')
+    return
+  }
+  
+  // Prevent saving demo projects
+  if (zineStore.projectMeta.id === 'demo') {
+    if (confirm('This is a demo project. Would you like to sign in to save it as your own?')) {
+      handleRequireLogin('save')
+    }
     return
   }
 
@@ -277,6 +295,71 @@ const startNewProject = () => {
   }
   hasUnsavedChanges.value = false
   view.value = 'init'
+}
+
+const startDemoMode = () => {
+  if (hasUnsavedChanges.value && zineStore.isInitialized) {
+    if (!confirm('You have unsaved changes. Start demo anyway?')) {
+      return
+    }
+  }
+  
+  // Load demo photobook
+  const demoConfig = {
+    format: 'A5-Landscape',
+    width: 210,
+    height: 148,
+    unit: 'mm',
+    margin: 5,
+    gutter: 0
+  }
+  
+  zineStore.initializeProject(demoConfig, {
+    id: 'demo',
+    title: 'Demo Photobook',
+    updatedAt: new Date().toISOString()
+  })
+  
+  // Add some sample pages with layouts
+  zineStore.addPage({
+    type: 'full-page',
+    slots: [{ x: 0, y: 0, width: 100, height: 100, type: 'image' }],
+    textElements: []
+  })
+  
+  zineStore.addPage({
+    type: 'two-horizontal',
+    slots: [
+      { x: 0, y: 0, width: 50, height: 100, type: 'image' },
+      { x: 50, y: 0, width: 50, height: 100, type: 'image' }
+    ],
+    textElements: []
+  })
+  
+  zineStore.addPage({
+    type: 'three-vertical',
+    slots: [
+      { x: 0, y: 0, width: 100, height: 33.33, type: 'image' },
+      { x: 0, y: 33.33, width: 100, height: 33.33, type: 'image' },
+      { x: 0, y: 66.67, width: 100, height: 33.33, type: 'image' }
+    ],
+    textElements: []
+  })
+  
+  hasUnsavedChanges.value = false
+  view.value = 'editor'
+}
+
+const handleRequireLogin = (context) => {
+  const messages = {
+    create: 'Sign in to create and save your own projects.',
+    library: 'Sign in to access your saved projects.',
+    layouts: 'Sign in to create custom layouts.',
+    save: 'Sign in to save your work.'
+  }
+  
+  alert(messages[context] || 'Please sign in to continue.')
+  // TODO: Show proper login modal/redirect instead of alert
 }
 
 const goHome = () => {

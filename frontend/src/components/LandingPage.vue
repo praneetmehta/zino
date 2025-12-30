@@ -24,14 +24,32 @@
           <h2>Design the stories you want to tell.</h2>
           <p>
             Craft zines, postcards, and editorial spreads with a canvas that celebrates experimentation.
-            Start fresh, remix your library, or fine-tune layouts in the builder.
+            <template v-if="!authStore.isAuthenticated">
+              Try the demo with a preloaded photobook, or sign in to save and manage your projects.
+            </template>
+            <template v-else>
+              Start fresh, remix your library, or fine-tune layouts in the builder.
+            </template>
           </p>
           <div class="hero-cta">
-            <button class="btn btn-primary" @click="$emit('create-new')">Create a Book</button>
-            <button class="btn btn-ghost" :disabled="loading" @click="$emit('load-book')">
-              <span v-if="loading">🔍 Loading…</span>
-              <span v-else>📂 Open from Library</span>
-            </button>
+            <!-- Non-logged in users -->
+            <template v-if="!authStore.isAuthenticated">
+              <button class="btn btn-primary" @click="$emit('try-demo')">
+                🎨 Try Demo
+              </button>
+              <button class="btn btn-ghost" @click="$emit('require-login', 'create')">
+                Sign In to Create
+              </button>
+            </template>
+            
+            <!-- Logged in users -->
+            <template v-else>
+              <button class="btn btn-primary" @click="$emit('create-new')">Create a Book</button>
+              <button class="btn btn-ghost" :disabled="loading" @click="$emit('load-book')">
+                <span v-if="loading">🔍 Loading…</span>
+                <span v-else>📂 Open from Library</span>
+              </button>
+            </template>
           </div>
           <div class="meta" v-if="lastSavedSummary">
             <span>Last saved project:</span>
@@ -50,27 +68,55 @@
       </section>
 
       <section class="grid">
-        <article class="card" @click="$emit('create-new')">
-          <div class="card-icon">🪄</div>
-          <h3>Blank Canvas</h3>
-          <p>Start a new book with postcard presets, guides, and curated layouts ready to drop into place.</p>
-          <span class="card-link">Create now →</span>
-        </article>
+        <!-- Logged in users: Full feature access -->
+        <template v-if="authStore.isAuthenticated">
+          <article class="card" @click="$emit('create-new')">
+            <div class="card-icon">🪄</div>
+            <h3>Blank Canvas</h3>
+            <p>Start a new book with postcard presets, guides, and curated layouts ready to drop into place.</p>
+            <span class="card-link">Create now →</span>
+          </article>
 
-        <article class="card" @click="$emit('load-book')">
-          <div class="card-icon">📚</div>
-          <h3>Library</h3>
-          <p>Reopen any saved project from the backend library and pick up right where you left off.</p>
-          <span class="card-link">Browse saved books →</span>
-        </article>
+          <article class="card" @click="$emit('load-book')">
+            <div class="card-icon">📚</div>
+            <h3>Library</h3>
+            <p>Reopen any saved project from the backend library and pick up right where you left off.</p>
+            <span class="card-link">Browse saved books →</span>
+          </article>
 
-        <article class="card" @click="$emit('open-layout-builder')">
-          <div class="card-icon">🧱</div>
-          <h3>Layout Builder</h3>
-          <p>Compose custom grids, overlays, and text treatments—then export them as reusable layouts.</p>
-          <span class="card-link">Launch builder →</span>
-        </article>
+          <article class="card" @click="$emit('open-layout-builder')">
+            <div class="card-icon">🧱</div>
+            <h3>Layout Builder</h3>
+            <p>Compose custom grids, overlays, and text treatments—then export them as reusable layouts.</p>
+            <span class="card-link">Launch builder →</span>
+          </article>
+        </template>
+        
+        <!-- Non-logged in users: Limited features with login prompts -->
+        <template v-else>
+          <article class="card" @click="$emit('try-demo')">
+            <div class="card-icon">🎨</div>
+            <h3>Try Demo</h3>
+            <p>Explore the editor with a preloaded photobook. Experiment with layouts and designs risk-free.</p>
+            <span class="card-link">Launch demo →</span>
+          </article>
 
+          <article class="card" @click="$emit('require-login', 'library')">
+            <div class="card-icon">📚</div>
+            <h3>Save Your Work</h3>
+            <p>Sign in to save projects, access your library, and sync across devices.</p>
+            <span class="card-link">Sign in to unlock →</span>
+          </article>
+
+          <article class="card" @click="$emit('require-login', 'layouts')">
+            <div class="card-icon">🧱</div>
+            <h3>Custom Layouts</h3>
+            <p>Create and save your own reusable layouts. Requires a free account.</p>
+            <span class="card-link">Sign in to build →</span>
+          </article>
+        </template>
+        
+        <!-- Always visible -->
         <article class="card" @click="$emit('open-docs')">
           <div class="card-icon">📘</div>
           <h3>Guides & Examples</h3>
@@ -90,13 +136,16 @@
 <script setup>
 import { computed } from 'vue'
 import { useZineStore } from '../stores/zineStore'
+import { useAuthStore } from '../stores/authStore'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
   lastSavedSummary: { type: String, default: '' },
 })
 
-const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs'])
+const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login'])
+
+const authStore = useAuthStore()
 
 const zineStore = useZineStore()
 

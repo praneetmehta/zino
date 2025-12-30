@@ -8,6 +8,7 @@ export default defineConfig(({ mode }) => {
   
   return {
     plugins: [vue()],
+    base: '/zino/', // Serve app from /zino path
     resolve: {
       alias: {
         '@': fileURLToPath(new URL('./src', import.meta.url))
