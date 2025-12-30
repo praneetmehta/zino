@@ -183,7 +183,7 @@ const handleInitialize = async (config) => {
     // Still proceed to editor, but without saved ID
     zineStore.setProjectMeta({ id: bookId, title, updatedAt: null })
     view.value = 'editor'
-    alert('Zine created, but auto-save failed. Please save manually.')
+    alert('Book created, but auto-save failed. Please save manually.')
   } finally {
     isSaving.value = false
   }

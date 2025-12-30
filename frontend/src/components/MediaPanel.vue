@@ -45,11 +45,11 @@
         :draggable="!asset.isUploading"
         @dragstart="handleDragStart($event, asset)"
       >
-        <!-- Show image with blur while uploading -->
+        <!-- Show image (or placeholder if uploading) -->
         <img 
+          v-if="!asset.isUploading && (asset.thumbnail || asset.url)"
           :src="asset.thumbnail || asset.url" 
           :alt="asset.name"
-          :class="{ 'uploading-blur': asset.isUploading }"
         />
         
         <!-- Spinner overlay while uploading -->
@@ -203,35 +203,6 @@ const findExistingAsset = (file) => {
   )
 }
 
-const generateBlurPreview = (file) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      const img = new Image()
-      img.onload = () => {
-        // Create tiny canvas (50px max)
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const maxSize = 50
-        const scale = Math.min(maxSize / img.width, maxSize / img.height)
-        
-        canvas.width = img.width * scale
-        canvas.height = img.height * scale
-        
-        // Draw tiny version
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        
-        // Convert to data URL (will be blurred with CSS)
-        resolve(canvas.toDataURL('image/jpeg', 0.5))
-      }
-      img.onerror = () => resolve('') // Fallback to no preview
-      img.src = e.target.result
-    }
-    reader.onerror = () => resolve('') // Fallback
-    reader.readAsDataURL(file)
-  })
-}
-
 const handleFileUpload = async (event) => {
   const files = Array.from(event.target.files)
   
@@ -248,33 +219,30 @@ const handleFileUpload = async (event) => {
   
   isUploading.value = true
   
-  // Generate blur previews and create placeholders
-  const placeholders = await Promise.all(imageFiles.map(async (file) => {
+  // Create placeholders for each file immediately
+  const placeholders = imageFiles.map(file => {
     const existingAsset = findExistingAsset(file)
-    const blurPreview = await generateBlurPreview(file)
     
     if (existingAsset) {
       // Mark existing asset as re-uploading (overwrite mode)
       existingAsset.isUploading = true
-      existingAsset.blurPreview = blurPreview
       return { file, placeholderId: existingAsset.id, isOverwrite: true }
     } else {
-      // Create new placeholder with blur preview
+      // Create new placeholder
       const placeholderId = `placeholder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
       zineStore.addMediaAsset({
         id: placeholderId,
         name: file.name,
-        url: blurPreview, // Blur preview initially
-        thumbnail: blurPreview,
+        url: '', // Will be replaced
+        thumbnail: '',
         type: file.type,
-        isUploading: true,
-        blurPreview // Store for CSS
+        isUploading: true
       })
       
       return { file, placeholderId, isOverwrite: false }
     }
-  }))
+  })
   
   // Upload images one by one
   let newCount = 0
@@ -297,8 +265,7 @@ const handleFileUpload = async (event) => {
           type: imageMetadata.mimeType,
           originalUrl: imageMetadata.variants.original.url,
           imageId: imageMetadata.id,
-          isUploading: false,
-          blurPreview: null // Clear blur preview
+          isUploading: false
         })
         overwriteCount++
       } else {
@@ -311,8 +278,7 @@ const handleFileUpload = async (event) => {
           type: imageMetadata.mimeType,
           originalUrl: imageMetadata.variants.original.url,
           imageId: imageMetadata.id,
-          isUploading: false,
-          blurPreview: null // Clear blur preview
+          isUploading: false
         })
         newCount++
       }
@@ -809,12 +775,6 @@ const deleteAsset = (id) => {
   position: relative;
 }
 
-/* Blur effect while uploading */
-.uploading-blur {
-  filter: blur(8px);
-  transform: scale(1.05);
-  transition: filter 0.3s ease, transform 0.3s ease;
-}
 
 /* Overlay with spinner */
 .upload-overlay {

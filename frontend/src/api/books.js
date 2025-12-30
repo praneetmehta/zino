@@ -1,12 +1,10 @@
 /**
  * Books API
- * Simple frontend API client - all storage logic is on backend
+ * Handles saving/loading book projects - all storage logic is on backend
  */
 import env from '@/config/env.js'
 
 const API_BASE_URL = env.apiUrl
-
-// Get auth token if available
 function getAuthHeaders() {
   const authData = localStorage.getItem('ziner_auth')
   if (authData) {

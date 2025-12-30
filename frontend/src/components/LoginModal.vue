@@ -3,7 +3,7 @@
     <div class="modal">
       <button class="close-btn" @click="$emit('close')">✕</button>
       
-      <h2>Welcome to Ziner</h2>
+      <h2>Welcome to Zino</h2>
       <p class="subtitle">Sign in to save your work and access it anywhere</p>
 
       <div class="login-options">

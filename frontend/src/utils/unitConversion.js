@@ -1,5 +1,5 @@
 /**
- * Unit conversion utilities for the Ziner application
+ * Unit conversion utilities for the Zino application
  * Provides consistent conversion between millimeters and pixels
  */
 

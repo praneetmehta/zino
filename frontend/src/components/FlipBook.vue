@@ -256,7 +256,7 @@ const generatePageContents = () => {
         <div class="cover-page back-cover">
           <div class="cover-content">
             <div class="cover-title">The End</div>
-            <div class="cover-meta">Created with Ziner</div>
+            <div class="cover-meta">Created with Zino</div>
           </div>
         </div>
       `

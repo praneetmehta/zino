@@ -2,7 +2,7 @@
 
 ## Overview
 
-The `unitConversion.js` utility provides standardized conversion between millimeters and pixels throughout the Ziner application. This ensures consistency across all components and prevents hardcoded conversion factors.
+The `unitConversion.js` utility provides standardized conversion between millimeters and pixels throughout the Zino application. This ensures consistency across all components and prevents hardcoded conversion factors.
 
 ## Conversion Factor
 

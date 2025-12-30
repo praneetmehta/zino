@@ -6,7 +6,7 @@
 export const env = {
   // App
   appEnv: import.meta.env.VITE_APP_ENV || 'development',
-  appName: import.meta.env.VITE_APP_NAME || 'Ziner',
+  appName: import.meta.env.VITE_APP_NAME || 'Zino',
   appVersion: import.meta.env.VITE_APP_VERSION || '1.0.0',
   appUrl: import.meta.env.VITE_APP_URL || 'http://localhost:5173',
 

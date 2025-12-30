@@ -72,7 +72,6 @@ export const useZineStore = defineStore('zine', {
         originalUrl: asset.originalUrl || asset.url, // High-res version for PDF export
         imageId: asset.imageId || id, // Backend image identifier
         isUploading: asset.isUploading || false, // Upload status
-        blurPreview: asset.blurPreview || null, // Blur preview while uploading
       })
     },
     

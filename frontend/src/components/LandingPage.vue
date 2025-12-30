@@ -5,7 +5,7 @@
       <div class="brand">
         <span class="logo">📚</span>
         <div class="title">
-          <h1>Ziner Studio</h1>
+          <h1>Zino Studio</h1>
           <p>Create bold, expressive publications in minutes.</p>
         </div>
       </div>

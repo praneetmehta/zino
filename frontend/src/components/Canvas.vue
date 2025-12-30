@@ -151,15 +151,15 @@
                 <div v-if="zineStore.ui.showGuides && slot.innerMarginPx > 0" class="slot-inner-margin-guide" :style="{ inset: `${slot.innerMarginPx}px` }"></div>
                 <div class="slot-inner" :style="getSlotInnerStyle(slot)">
                   <div v-if="slot.assetId" class="slot-image-wrapper" :class="slot.fit">
-                    <LazyImage
+                    <img
                       class="slot-image"
-                      :src="getAssetUrls(slot.assetId).display"
-                      :thumbnail-url="getAssetUrls(slot.assetId).thumbnail"
+                      :src="getAssetUrl(slot.assetId)"
                       :style="getImageStyle(slot)"
                       :data-slot-id="`${page.id}-${index}`"
                       :data-fit="slot.fit"
                       @load="handleImageLoad($event, slot)"
                       alt="Slot image"
+                      draggable="false"
                     />
                   </div>
                   <div v-else class="slot-placeholder export-hide">
@@ -249,7 +249,6 @@ import TextToolbar from '../components/TextToolbar.vue'
 import FloatingTextBox from '../components/FloatingTextBox.vue'
 import ElementContextMenu from '../components/ElementContextMenu.vue'
 import PageSettings from '../components/PageSettings.vue'
-import LazyImage from '../components/LazyImage.vue'
 import { createElementFromSpec } from '../utils/elementSpecs.js'
 
 const zineStore = useZineStore()
@@ -464,16 +463,6 @@ const getSlotInnerStyle = (slot) => {
 const getAssetUrl = (assetId) => {
   const asset = zineStore.mediaAssets.find(a => a.id === assetId)
   return asset?.url || ''
-}
-
-const getAssetUrls = (assetId) => {
-  const asset = zineStore.mediaAssets.find(a => a.id === assetId)
-  if (!asset) return { display: '', thumbnail: '' }
-  
-  return {
-    display: asset.url || '',  // Display version (WebP)
-    thumbnail: asset.thumbnail || asset.url || ''  // Thumbnail for blur placeholder
-  }
 }
 
 const getImageStyle = (slot) => {

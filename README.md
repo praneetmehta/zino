@@ -1,4 +1,4 @@
-# Ziner - Visual Zine Creation Tool
+# Zino - Visual Zine Creation Tool
 
 **Version**: 2.0.0 (Production Ready)  
 **Status**: ✅ Ready to Deploy

@@ -9,7 +9,7 @@
       >
         ← Menu
       </button>
-      <h1>📚 Ziner</h1>
+      <h1>📚 Zino</h1>
       <div class="zine-info" v-if="zineStore.zineConfig">
         <span>{{ zineStore.zineConfig.width }} × {{ zineStore.zineConfig.height }} {{ zineStore.zineConfig.unit }}</span>
         <span class="separator">•</span>
@@ -94,7 +94,7 @@ const lastSaved = computed(() => {
 })
 
 const openDocs = () => {
-  window.open('https://github.com/praneetmehta/ziner#usage', '_blank')
+  window.open('https://github.com/praneetmehta/zino#usage', '_blank')
 }
 </script>
 
