@@ -1,0 +1,28 @@
+{
+  "id": "book-1761250180836",
+  "title": "Pride",
+  "data": {
+    "version": 1,
+    "zineConfig": {
+      "width": 148,
+      "height": 100,
+      "unit": "mm",
+      "bleed": 3,
+      "bleedTop": 3,
+      "bleedRight": 3,
+      "bleedBottom": 3,
+      "bleedLeft": 3,
+      "margin": 10,
+      "slotInnerMarginPercent": 0,
+      "bindingType": "folded"
+    },
+    "mediaAssets": [],
+    "pages": []
+  },
+  "metadata": {
+    "pageCount": 0,
+    "mediaCount": 0
+  },
+  "createdAt": "2025-10-23T20:09:49.696Z",
+  "updatedAt": "2025-10-23T20:09:49.696Z"
+}

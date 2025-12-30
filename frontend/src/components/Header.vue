@@ -9,19 +9,23 @@
       >
         ← Menu
       </button>
-      <h1>📚 Zino Maker</h1>
+      <h1>📚 Ziner</h1>
       <div class="zine-info" v-if="zineStore.zineConfig">
         <span>{{ zineStore.zineConfig.width }} × {{ zineStore.zineConfig.height }} {{ zineStore.zineConfig.unit }}</span>
         <span class="separator">•</span>
         <span>{{ zineStore.pageCount }} pages</span>
         <template v-if="projectTitle">
           <span class="separator">•</span>
-          <span>“{{ projectTitle }}”</span>
+          <span>"{{ projectTitle }}"</span>
         </template>
         <template v-if="lastSaved">
           <span class="separator">•</span>
           <span>Saved {{ lastSaved }}</span>
         </template>
+        <span v-if="hasUnsavedChanges" class="unsaved-indicator" title="You have unsaved changes">
+          <span class="separator">•</span>
+          <span class="unsaved-dot">●</span> Unsaved
+        </span>
       </div>
     </div>
     
@@ -67,6 +71,7 @@ const props = defineProps({
   saving: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   showBack: { type: Boolean, default: false },
+  hasUnsavedChanges: { type: Boolean, default: false },
 })
 
 const zineStore = useZineStore()
@@ -169,6 +174,29 @@ const openDocs = () => {
 
 .separator {
   color: var(--border);
+}
+
+.unsaved-indicator {
+  color: #f59e0b;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.unsaved-dot {
+  color: #f59e0b;
+  font-size: 10px;
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 
 .header-right {

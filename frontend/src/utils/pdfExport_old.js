@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
+import { toPx } from './unitConversion'
 
 export async function exportToPDF(zineStore) {
   const { zineConfig, pages } = zineStore
@@ -36,8 +37,8 @@ export async function exportToPDF(zineStore) {
 
   // Get actual page dimensions in pixels for high-quality capture
   const pageDimensions = {
-    width: zineConfig.unit === 'px' ? zineConfig.width : zineConfig.width * 3.7795275591,
-    height: zineConfig.unit === 'px' ? zineConfig.height : zineConfig.height * 3.7795275591
+    width: toPx(zineConfig.width, zineConfig.unit),
+    height: toPx(zineConfig.height, zineConfig.unit)
   }
 
   // Process each page by capturing it as an image
@@ -166,8 +167,7 @@ export async function exportToPDF(zineStore) {
         
         // Convert font size from px to mm based on page dimensions
         // Use the same conversion as the canvas display
-        const mmToPx = zineConfig.unit === 'mm' ? 3.7795275591 : 1
-        const pageSizePx = zineConfig.unit === 'mm' ? zineConfig.height * mmToPx : zineConfig.height
+        const pageSizePx = toPx(zineConfig.height, zineConfig.unit)
         const fontSizeRatio = (style.fontSize || 16) / pageSizePx
         const fontSize = fontSizeRatio * height // height is already in mm
         pdf.setFontSize(fontSize)

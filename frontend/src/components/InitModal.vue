@@ -2,9 +2,10 @@
   <div class="modal-overlay">
     <div class="modal">
       <h2>Create New Zine</h2>
+      <p class="modal-description">Configure your zine's dimensions and spacing. All settings can be adjusted later.</p>
       <form @submit.prevent="handleSubmit">
         <div class="form-group">
-          <label>Page Dimensions</label>
+          <label>Page Dimensions (Full Spread)</label>
           <div class="dimension-inputs">
             <input
               v-model.number="config.width"
@@ -26,6 +27,7 @@
               <option value="px">px</option>
             </select>
           </div>
+          <small class="info-text">💡 For folded zines, enter the <strong>full spread size</strong> (both pages side-by-side), not individual page size.</small>
         </div>
 
         <div class="form-group">
@@ -36,18 +38,18 @@
             placeholder="0"
             min="0"
           />
-          <small>Extra space around the page for printing</small>
+          <small>Extra space around the page edges that will be trimmed after printing. Standard is 3mm.</small>
         </div>
 
         <div class="form-group">
-          <label>Margin ({{ config.unit }})</label>
+          <label>Margin (Safe Area) ({{ config.unit }})</label>
           <input
             v-model.number="config.margin"
             type="number"
             placeholder="0"
             min="0"
           />
-          <small>Inner margin from page edges</small>
+          <small>Keep content within this distance from edges. Creates spacing between placeholders and around page edges. Typical: 5-10mm.</small>
         </div>
 
         <div class="form-group">
@@ -175,11 +177,18 @@ const handleSubmit = () => {
 }
 
 .modal h2 {
-  margin-bottom: 32px;
+  margin-bottom: 12px;
   color: var(--text-strong);
   font-size: 28px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+.modal-description {
+  margin-bottom: 28px;
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
 }
 
 .form-group {
@@ -220,6 +229,19 @@ const handleSubmit = () => {
   color: var(--text-muted);
   font-size: 12px;
   line-height: 1.5;
+}
+
+.form-group .info-text {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border-left: 3px solid var(--accent);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.form-group .info-text strong {
+  color: var(--text);
+  font-weight: 600;
 }
 
 .dimension-inputs {

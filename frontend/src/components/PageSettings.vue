@@ -42,7 +42,12 @@
               />
               <span class="unit">{{ localConfig.unit }}</span>
             </div>
-            <p class="help-text">Content should stay within this margin</p>
+            <p class="help-text">
+              <strong>How margins work:</strong><br>
+              • Creates spacing around page edges<br>
+              • Creates gaps between adjacent placeholders (2× margin)<br>
+              • Typical values: 5-10mm for print, 10-20px for digital
+            </p>
           </div>
 
           <!-- Bleed -->

@@ -1,7 +1,7 @@
 # Element Specification System
 
 ## Overview
-A comprehensive system for defining, creating, and managing draggable elements in Zino. This system provides a scalable architecture for supporting multiple element types with unique behaviors and properties.
+A comprehensive system for defining, creating, and managing draggable elements in Ziner. This system provides a scalable architecture for supporting multiple element types with unique behaviors and properties.
 
 ## Architecture
 

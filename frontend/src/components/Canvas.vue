@@ -125,7 +125,6 @@
             >
             <div v-if="zineStore.ui.showGuides" class="guides">
               <div class="guide guide-bleed" :style="bleedGuideStyle"></div>
-              <div class="guide guide-margin" :style="marginGuideStyle"></div>
               <div class="guide guide-fold"></div>
             </div>
             <!-- Center crease effect -->
@@ -145,7 +144,10 @@
                 @drop="handleDrop($event, page.id, index)"
                 @click.stop="selectSlot(page.id, index)"
               >
-                <div v-if="zineStore.ui.showGuides && slot.innerMarginPx > 0" class="slot-margin-guide" :style="{ inset: `${slot.innerMarginPx}px` }"></div>
+                <!-- Outer margin guide (shows slot boundary with margin) -->
+                <div v-if="zineStore.ui.showGuides && zineStore.zineConfig?.margin" class="slot-outer-margin-guide"></div>
+                <!-- Inner margin guide (padding inside slot) -->
+                <div v-if="zineStore.ui.showGuides && slot.innerMarginPx > 0" class="slot-inner-margin-guide" :style="{ inset: `${slot.innerMarginPx}px` }"></div>
                 <div class="slot-inner" :style="getSlotInnerStyle(slot)">
                   <div v-if="slot.assetId" class="slot-image-wrapper" :class="slot.fit">
                     <img
@@ -214,6 +216,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useZineStore } from '../stores/zineStore'
+import { getScaledDimensions, toScaledPx } from '../utils/unitConversion'
 
 const props = defineProps({
   mediaPanelCollapsed: {
@@ -314,18 +317,11 @@ const pageStyle = computed(() => {
   const config = zineStore.zineConfig
   if (!config) return {}
 
-  // Convert to pixels for display (assuming 96 DPI for screen)
-  const mmToPx = 3.7795275591
-  const width = config.unit === 'mm' ? config.width * mmToPx : config.width
-  const height = config.unit === 'mm' ? config.height * mmToPx : config.height
-
-  // Scale down for display if too large
-  const maxWidth = 600
-  const scale = width > maxWidth ? maxWidth / width : 1
+  const { widthPx, heightPx } = getScaledDimensions(config, 600)
 
   return {
-    width: `${width * scale}px`,
-    height: `${height * scale}px`,
+    width: `${widthPx}px`,
+    height: `${heightPx}px`,
   }
 })
 
@@ -339,12 +335,11 @@ const pageInnerStyle = computed(() => {
   const bleedBottom = cfg.bleedBottom ?? cfg.bleed ?? 0
   const bleedLeft = cfg.bleedLeft ?? cfg.bleed ?? 0
   
-  // Margin starts from the bleed line, not the page edge
-  // Total inset = bleed + margin
-  const topInset = ((bleedTop + cfg.margin) / cfg.height) * 100
-  const rightInset = ((bleedRight + cfg.margin) / cfg.width) * 100
-  const bottomInset = ((bleedBottom + cfg.margin) / cfg.height) * 100
-  const leftInset = ((bleedLeft + cfg.margin) / cfg.width) * 100
+  // Apply only bleed insets (margins are now handled per-slot in getSlotStyle)
+  const topInset = (bleedTop / cfg.height) * 100
+  const rightInset = (bleedRight / cfg.width) * 100
+  const bottomInset = (bleedBottom / cfg.height) * 100
+  const leftInset = (bleedLeft / cfg.width) * 100
   
   return {
     position: 'absolute',
@@ -409,12 +404,32 @@ const marginGuideStyle = computed(() => {
 })
 
 const getSlotStyle = (slot) => {
+  const cfg = zineStore.zineConfig
+  
+  if (!cfg || !cfg.margin) {
+    // No margin configured, use simple percentage positioning
+    return {
+      position: 'absolute',
+      left: `${slot.x}%`,
+      top: `${slot.y}%`,
+      width: `${slot.width}%`,
+      height: `${slot.height}%`,
+      zIndex: slot.zIndex !== undefined ? slot.zIndex : 0,
+    }
+  }
+  
+  // Get scaled dimensions to calculate margin in pixels
+  const { scale } = getScaledDimensions(cfg, 600)
+  const marginPx = toScaledPx(cfg.margin, cfg.unit, scale)
+  
+  // Apply margin to each slot individually
+  // Each slot gets margin on all sides, creating gaps between adjacent slots
   return {
     position: 'absolute',
-    left: `${slot.x}%`,
-    top: `${slot.y}%`,
-    width: `${slot.width}%`,
-    height: `${slot.height}%`,
+    left: `calc(${slot.x}% + ${marginPx}px)`,
+    top: `calc(${slot.y}% + ${marginPx}px)`,
+    width: `calc(${slot.width}% - ${marginPx * 2}px)`,
+    height: `calc(${slot.height}% - ${marginPx * 2}px)`,
     zIndex: slot.zIndex !== undefined ? slot.zIndex : 0,
   }
 }
@@ -570,15 +585,15 @@ const setSlotBackgroundColor = (pageId, slotIndex, color) => {
 const pageWidthPx = computed(() => {
   const config = zineStore.zineConfig
   if (!config) return 800
-  const mmToPx = 3.7795275591
-  return config.unit === 'mm' ? config.width * mmToPx : config.width
+  const { widthPx } = getScaledDimensions(config, Infinity) // No scaling, just conversion
+  return widthPx
 })
 
 const pageHeightPx = computed(() => {
   const config = zineStore.zineConfig
   if (!config) return 600
-  const mmToPx = 3.7795275591
-  return config.unit === 'mm' ? config.height * mmToPx : config.height
+  const { heightPx } = getScaledDimensions(config, Infinity) // No scaling, just conversion
+  return heightPx
 })
 
 const addText = (pageId) => {
@@ -1632,12 +1647,28 @@ const handleContextDelete = () => {
   display: none !important;
 }
 
-/* Slot margin guide */
-.slot-margin-guide {
+/* Slot outer margin guide - shows the slot boundary with applied margin */
+.slot-outer-margin-guide {
+  position: absolute;
+  inset: 0;
+  border: 2px dashed rgba(34, 197, 94, 1);
+  pointer-events: none;
+  z-index: 5;
+  border-radius: 2px;
+}
+
+/* Slot inner margin guide - shows padding inside the slot */
+.slot-inner-margin-guide {
   position: absolute;
   border: 1px dashed rgba(59, 130, 246, 0.6);
   pointer-events: none;
   z-index: 5;
+}
+
+/* Hide slot guides during export */
+.export-mode .slot-outer-margin-guide,
+.export-mode .slot-inner-margin-guide {
+  display: none !important;
 }
 
 /* Transitions */

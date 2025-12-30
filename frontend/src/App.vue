@@ -25,6 +25,7 @@
         :saving="isSaving"
         :loading="isLoadingRemote"
         :show-back="view !== 'landing'"
+        :has-unsaved-changes="hasUnsavedChanges"
         @go-home="goHome"
         @export="handleExport"
         @reset="handleReset"
@@ -75,7 +76,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useZineStore } from './stores/zineStore'
 import InitModal from './components/InitModal.vue'
 import Header from './components/Header.vue'
@@ -100,6 +101,35 @@ const view = ref('landing') // landing | init | editor
 const showLibrary = ref(false)
 const mediaPanelCollapsed = ref(false)
 const pagePanelCollapsed = ref(false)
+const hasUnsavedChanges = ref(false)
+
+// Track unsaved changes
+watch(
+  () => [zineStore.pages, zineStore.mediaAssets, zineStore.zineConfig],
+  () => {
+    if (zineStore.isInitialized && view.value === 'editor') {
+      hasUnsavedChanges.value = true
+    }
+  },
+  { deep: true }
+)
+
+// Warn before leaving with unsaved changes
+const handleBeforeUnload = (e) => {
+  if (hasUnsavedChanges.value && zineStore.isInitialized) {
+    e.preventDefault()
+    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?'
+    return e.returnValue
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('beforeunload', handleBeforeUnload)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+})
 
 const formatRelativeTime = (isoString) => {
   if (!isoString) return ''
@@ -118,6 +148,7 @@ const formatRelativeTime = (isoString) => {
 const handleInitialize = (config) => {
   zineStore.initializeZine(config)
   zineStore.setProjectMeta({ id: null, title: '', updatedAt: null })
+  hasUnsavedChanges.value = false // New project starts as saved
   view.value = 'editor'
 }
 
@@ -166,6 +197,7 @@ const handleSave = () => {
   saveBook(payload)
     .then((saved) => {
       zineStore.setProjectMeta({ id: saved.id, title: saved.title, updatedAt: saved.updatedAt })
+      hasUnsavedChanges.value = false // Mark as saved
       view.value = 'editor'
       alert(`Saved "${saved.title}" (${saved.id})`) // user feedback
     })
@@ -196,6 +228,7 @@ const handleLoadFromLibrary = (book) => {
         updatedAt: book.updatedAt,
       },
     })
+    hasUnsavedChanges.value = false // Loaded project starts as saved
     view.value = 'editor'
     showLibrary.value = false
   } catch (error) {
@@ -208,10 +241,22 @@ const openCommandBar = () => {
   commandBar.value?.open()
 }
 const startNewProject = () => {
+  if (hasUnsavedChanges.value && zineStore.isInitialized) {
+    if (!confirm('You have unsaved changes. Start a new project anyway?')) {
+      return
+    }
+  }
+  hasUnsavedChanges.value = false
   view.value = 'init'
 }
 
 const goHome = () => {
+  if (hasUnsavedChanges.value && zineStore.isInitialized) {
+    if (!confirm('You have unsaved changes. Return to home anyway?')) {
+      return
+    }
+  }
+  hasUnsavedChanges.value = false
   view.value = 'landing'
   zineStore.reset()
 }
