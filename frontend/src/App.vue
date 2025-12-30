@@ -145,11 +145,48 @@ const formatRelativeTime = (isoString) => {
   return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
-const handleInitialize = (config) => {
+const handleInitialize = async (config) => {
+  // Initialize zine with config
   zineStore.initializeZine(config)
-  zineStore.setProjectMeta({ id: null, title: '', updatedAt: null })
-  hasUnsavedChanges.value = false // New project starts as saved
-  view.value = 'editor'
+  
+  // Generate book ID and save immediately
+  const bookId = `book-${Date.now()}`
+  const title = config.title || 'Untitled Zine'
+  
+  const payload = {
+    id: bookId,
+    title,
+    data: zineStore.exportProjectData(),
+    metadata: {
+      pageCount: 0, // Empty book
+      mediaCount: 0,
+    },
+  }
+  
+  try {
+    isSaving.value = true
+    const saved = await saveBook(payload)
+    
+    // Set project meta with saved ID
+    zineStore.setProjectMeta({ 
+      id: saved.id, 
+      title: saved.title, 
+      updatedAt: saved.updatedAt 
+    })
+    
+    hasUnsavedChanges.value = false
+    view.value = 'editor'
+    
+    console.log(`✅ Created and saved: "${saved.title}" (${saved.id})`)
+  } catch (error) {
+    console.error('Failed to save new zine:', error)
+    // Still proceed to editor, but without saved ID
+    zineStore.setProjectMeta({ id: bookId, title, updatedAt: null })
+    view.value = 'editor'
+    alert('Zine created, but auto-save failed. Please save manually.')
+  } finally {
+    isSaving.value = false
+  }
 }
 
 const handleExport = () => {
@@ -169,20 +206,9 @@ const handleSave = () => {
     return
   }
 
-  const defaultId = zineStore.projectMeta.id || `book-${Date.now()}`
-  const idInput = window.prompt('Enter a book ID to save:', defaultId)
-  if (!idInput) return
-
-  const defaultTitle = zineStore.projectMeta.title || 'Untitled Postcard'
-  const titleInput = window.prompt('Enter a title for this book:', defaultTitle)
-  if (titleInput === null) return
-
-  const id = idInput.trim()
-  const title = (titleInput || 'Untitled').trim()
-  if (!id) {
-    alert('Book ID cannot be empty.')
-    return
-  }
+  // Should have ID from initialization, but fallback just in case
+  const id = zineStore.projectMeta.id || `book-${Date.now()}`
+  const title = zineStore.projectMeta.title || 'Untitled Zine'
 
   const payload = {
     id,
@@ -199,7 +225,7 @@ const handleSave = () => {
       zineStore.setProjectMeta({ id: saved.id, title: saved.title, updatedAt: saved.updatedAt })
       hasUnsavedChanges.value = false // Mark as saved
       view.value = 'editor'
-      alert(`Saved "${saved.title}" (${saved.id})`) // user feedback
+      alert(`✓ Saved "${saved.title}"`) // user feedback
     })
     .catch((error) => {
       console.error('Failed to save project:', error)

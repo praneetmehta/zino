@@ -2,7 +2,7 @@
   <transition name="slide-fade">
     <div v-if="isVisible && selectedElement" class="context-menu" :style="menuPosition">
       <div class="menu-header">
-        <div class="header-icon">{{ elementType === 'slot' ? '🖼️' : '📝' }}</div>
+        <div class="header-icon">{{ elementIcon }}</div>
         <h3>{{ elementTitle }}</h3>
         <button class="close-btn" @click="$emit('close')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
@@ -219,15 +219,48 @@
           </div>
         </template>
 
-        <!-- Delete Button (for all elements) -->
-        <div class="menu-divider"></div>
-        
-        <div class="menu-section">
-          <button class="delete-btn" @click="$emit('delete')">
-            <span class="icon">🗑️</span>
-            <span class="label">Delete Element</span>
-          </button>
-        </div>
+        <!-- Page Controls -->
+        <template v-if="elementType === 'page'">
+          <div class="menu-divider"></div>
+          
+          <div class="menu-section">
+            <label class="section-label">Page Margin Override</label>
+            <div class="margin-override">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  :checked="selectedElement.marginOverride !== null"
+                  @change="$emit('toggle-margin-override')"
+                />
+                <span>Use custom margin</span>
+              </label>
+              <div v-if="selectedElement.marginOverride !== null" class="margin-input-group">
+                <input 
+                  type="number"
+                  :value="selectedElement.marginOverride"
+                  @input="e => $emit('set-page-margin', parseFloat(e.target.value))"
+                  min="0"
+                  step="0.5"
+                  class="number-input"
+                />
+                <span class="unit">{{ selectedElement.unit || 'mm' }}</span>
+              </div>
+              <small v-else class="hint">Using global margin</small>
+            </div>
+          </div>
+        </template>
+
+        <!-- Delete Button (for elements, not pages) -->
+        <template v-if="elementType !== 'page'">
+          <div class="menu-divider"></div>
+          
+          <div class="menu-section">
+            <button class="delete-btn" @click="$emit('delete')">
+              <span class="icon">🗑️</span>
+              <span class="label">Delete Element</span>
+            </button>
+          </div>
+        </template>
       </div>
     </div>
   </transition>
@@ -253,12 +286,22 @@ defineEmits([
   'update-style',
   'toggle-lock',
   'delete',
+  'toggle-margin-override',
+  'set-page-margin',
 ])
 
 const elementTitle = computed(() => {
   if (props.elementType === 'slot') return 'Image Slot'
   if (props.elementType === 'text') return 'Text Element'
+  if (props.elementType === 'page') return 'Page Settings'
   return 'Element'
+})
+
+const elementIcon = computed(() => {
+  if (props.elementType === 'slot') return '🖼️'
+  if (props.elementType === 'text') return '📝'
+  if (props.elementType === 'page') return '📄'
+  return '⚙️'
 })
 
 const menuPosition = computed(() => {
@@ -706,5 +749,49 @@ const menuPosition = computed(() => {
 
 .delete-btn .icon {
   font-size: 16px;
+}
+
+/* Page Controls */
+.margin-override {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.checkbox-label input[type="checkbox"] {
+  cursor: pointer;
+}
+
+.margin-input-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.margin-input-group .number-input {
+  flex: 1;
+}
+
+.margin-input-group .unit {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  display: block;
+  margin-top: 4px;
 }
 </style>

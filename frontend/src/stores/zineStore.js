@@ -71,7 +71,26 @@ export const useZineStore = defineStore('zine', {
         thumbnail: asset.thumbnail || asset.url,
         originalUrl: asset.originalUrl || asset.url, // High-res version for PDF export
         imageId: asset.imageId || id, // Backend image identifier
+        isUploading: asset.isUploading || false, // Upload status
+        blurPreview: asset.blurPreview || null, // Blur preview while uploading
       })
+    },
+    
+    replaceMediaAsset(oldId, newAsset) {
+      const index = this.mediaAssets.findIndex(asset => String(asset.id) === String(oldId))
+      if (index !== -1) {
+        // Replace the placeholder with the actual asset
+        this.mediaAssets[index] = {
+          id: newAsset.id,
+          name: newAsset.name,
+          url: newAsset.url,
+          type: newAsset.type,
+          thumbnail: newAsset.thumbnail || newAsset.url,
+          originalUrl: newAsset.originalUrl || newAsset.url,
+          imageId: newAsset.imageId || newAsset.id,
+          isUploading: false,
+        }
+      }
     },
     
     removeMediaAsset(id) {
@@ -86,6 +105,7 @@ export const useZineStore = defineStore('zine', {
       const page = {
         id,
         layout: layout.type,
+        marginOverride: null, // Per-page margin override (null = use global)
         slots: layout.slots.map((slot, index) => ({
           ...slot,
           type: 'image', // All slots are now image-only
@@ -102,6 +122,13 @@ export const useZineStore = defineStore('zine', {
       }
       this.pages.push(page)
       this.selectedPageId = id
+    },
+
+    setPageMarginOverride(pageId, margin) {
+      const page = this.getPageById(pageId)
+      if (page) {
+        page.marginOverride = margin
+      }
     },
     
     removePage(id) {

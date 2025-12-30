@@ -1,9 +1,22 @@
 <template>
   <div class="modal-overlay">
-    <div class="modal">
-      <h2>Create New Zine</h2>
-      <p class="modal-description">Configure your zine's dimensions and spacing. All settings can be adjusted later.</p>
-      <form @submit.prevent="handleSubmit">
+    <div class="modal modal-with-preview">
+      <div class="modal-content">
+        <h2>Create New Zine</h2>
+        <p class="modal-description">Name your zine and configure dimensions. All settings can be adjusted later.</p>
+        <form @submit.prevent="handleSubmit">
+        <div class="form-group">
+          <label>Zine Title</label>
+          <input
+            v-model="config.title"
+            type="text"
+            placeholder="My Awesome Zine"
+            required
+            maxlength="100"
+          />
+          <small>Give your zine a name to get started</small>
+        </div>
+
         <div class="form-group">
           <label>Page Dimensions (Full Spread)</label>
           <div class="dimension-inputs">
@@ -64,6 +77,21 @@
           <small>Applied inside each placeholder by default. You can tweak per placeholder later.</small>
         </div>
 
+        <div class="form-group">
+          <label>Binding Type</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" value="folded" v-model="config.bindingType" />
+              <span>Folded (Center Fold)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" value="flat" v-model="config.bindingType" />
+              <span>Flat (No Fold)</span>
+            </label>
+          </div>
+          <small>How pages are bound together. Folded shows a center crease.</small>
+        </div>
+
         <div class="preset-buttons">
           <button type="button" class="btn btn-outline" @click="applyPreset('postcard')">
             Postcard (148×100mm)
@@ -86,22 +114,74 @@
           <button type="submit" class="btn btn-primary">Create Zine</button>
         </div>
       </form>
+      </div>
+      
+      <!-- Live Preview -->
+      <div class="preview-panel">
+        <h3>Preview</h3>
+        <div class="preview-container">
+          <div class="preview-canvas">
+            <!-- Page with bleed -->
+            <div 
+              class="preview-page"
+              :style="previewStyle"
+            >
+              <!-- Bleed area -->
+              <div class="preview-bleed" v-if="config.bleed > 0"></div>
+              
+              <!-- Safe area (margin) -->
+              <div 
+                class="preview-margin"
+                :style="{
+                  inset: `${marginPercent}%`
+                }"
+                v-if="config.margin > 0"
+              ></div>
+              
+              <!-- Center fold line (for folded zines) -->
+              <div class="preview-fold"></div>
+            </div>
+          </div>
+          
+          <!-- Dimensions info -->
+          <div class="preview-info">
+            <div class="info-item">
+              <span class="label">Full Spread:</span>
+              <span class="value">{{ config.width }} × {{ config.height }} {{ config.unit }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Single Page:</span>
+              <span class="value">{{ config.width / 2 }} × {{ config.height }} {{ config.unit }}</span>
+            </div>
+            <div class="info-item" v-if="config.bleed > 0">
+              <span class="label">Bleed:</span>
+              <span class="value">{{ config.bleed }} {{ config.unit }}</span>
+            </div>
+            <div class="info-item" v-if="config.margin > 0">
+              <span class="label">Safe Area:</span>
+              <span class="value">{{ config.margin }} {{ config.unit }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, computed } from 'vue'
 
 const emit = defineEmits(['initialize'])
 
 const config = reactive({
+  title: '',
   width: 148,
   height: 100,
   unit: 'mm',
   bleed: 3,
   margin: 10,
   slotInnerMarginPercent: 0,
+  bindingType: 'folded',
 })
 
 const presets = {
@@ -119,6 +199,33 @@ const applyPreset = (preset) => {
 const handleSubmit = () => {
   emit('initialize', { ...config })
 }
+
+// Computed preview styles
+const previewStyle = computed(() => {
+  const aspectRatio = config.width / config.height
+  const maxWidth = 280
+  const maxHeight = 200
+  
+  let width, height
+  if (aspectRatio > maxWidth / maxHeight) {
+    width = maxWidth
+    height = maxWidth / aspectRatio
+  } else {
+    height = maxHeight
+    width = maxHeight * aspectRatio
+  }
+  
+  return {
+    width: `${width}px`,
+    height: `${height}px`
+  }
+})
+
+const marginPercent = computed(() => {
+  // Calculate margin as percentage of page dimension
+  const avgDimension = (config.width + config.height) / 2
+  return (config.margin / avgDimension) * 100
+})
 </script>
 
 <style scoped>
@@ -155,6 +262,14 @@ const handleSubmit = () => {
   animation: modalSlideUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid var(--border);
   position: relative;
+}
+
+.modal-with-preview {
+  max-width: 1000px;
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 40px;
+  padding: 40px;
 }
 
 .modal::before {
@@ -263,6 +378,45 @@ const handleSubmit = () => {
   font-weight: 500;
 }
 
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: var(--muted);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.radio-option:hover {
+  border-color: var(--accent);
+  background: var(--panel-bg);
+}
+
+.radio-option input[type="radio"] {
+  width: auto;
+  margin: 0;
+  cursor: pointer;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: var(--text-strong);
+  font-weight: 600;
+}
+
+.radio-option span {
+  color: var(--text);
+  font-size: 14px;
+}
+
 .preset-buttons {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -280,5 +434,116 @@ const handleSubmit = () => {
   padding: 14px 32px;
   font-size: 15px;
   font-weight: 600;
+}
+
+/* Preview Panel */
+.preview-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.preview-panel h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-strong);
+  margin: 0;
+}
+
+.preview-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.preview-canvas {
+  background: var(--muted);
+  border-radius: 12px;
+  padding: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+  border: 1px solid var(--border);
+}
+
+.preview-page {
+  background: white;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.preview-bleed {
+  position: absolute;
+  inset: -8px;
+  border: 2px dashed rgba(239, 68, 68, 0.4);
+  border-radius: 6px;
+  pointer-events: none;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.preview-margin {
+  position: absolute;
+  border: 2px dashed rgba(59, 130, 246, 0.4);
+  border-radius: 2px;
+  pointer-events: none;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.preview-fold {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, 
+    transparent 0%,
+    rgba(0, 0, 0, 0.2) 10%,
+    rgba(0, 0, 0, 0.2) 90%,
+    transparent 100%
+  );
+  transform: translateX(-50%);
+}
+
+.preview-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--muted);
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+}
+
+.info-item .label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.info-item .value {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .modal-with-preview {
+    grid-template-columns: 1fr;
+    max-width: 540px;
+  }
+  
+  .preview-panel {
+    order: -1; /* Show preview first on mobile */
+  }
 }
 </style>

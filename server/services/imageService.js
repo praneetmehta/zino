@@ -19,9 +19,9 @@ class ImageService {
     
     // Image size configurations
     this.sizes = {
-      original: { maxWidth: 4000, maxHeight: 4000, quality: 99 },  // Near-lossless for print
-      display: { maxWidth: 1200, maxHeight: 1200, quality: 85 },   // Good for screen
-      thumbnail: { maxWidth: 300, maxHeight: 300, quality: 80 }     // Small preview
+      original: { maxWidth: 4000, maxHeight: 4000, quality: 99, format: 'jpeg' },  // JPEG for print compatibility
+      display: { maxWidth: 1200, maxHeight: 1200, quality: 85, format: 'webp' },   // WebP for screen (better compression)
+      thumbnail: { maxWidth: 300, maxHeight: 300, quality: 80, format: 'webp' }     // WebP for preview
     }
   }
 
@@ -66,7 +66,7 @@ class ImageService {
       // Generate all variants
       const variants = {}
 
-      // 1. Original (optimized but full resolution)
+      // 1. Original (JPEG for print compatibility)
       const originalBuffer = await this.resizeImage(buffer, this.sizes.original)
       const originalResult = await storageService.uploadFile(originalBuffer, {
         filename: `${imageId}_original.jpg`,
@@ -84,12 +84,12 @@ class ImageService {
         size: originalBuffer.length
       }
 
-      // 2. Display (1200px max for canvas)
+      // 2. Display (WebP for better compression)
       const displayBuffer = await this.resizeImage(buffer, this.sizes.display)
       const displayResult = await storageService.uploadFile(displayBuffer, {
-        filename: `${imageId}_display.jpg`,
+        filename: `${imageId}_display.webp`,
         originalName: file.originalname,
-        mimeType: 'image/jpeg',
+        mimeType: 'image/webp',
         userId: metadata.userId,
         bookId: metadata.bookId,
         imageId
@@ -103,12 +103,12 @@ class ImageService {
         size: displayBuffer.length
       }
 
-      // 3. Thumbnail (300px max for media panel)
+      // 3. Thumbnail (WebP for smallest size)
       const thumbnailBuffer = await this.resizeImage(buffer, this.sizes.thumbnail)
       const thumbnailResult = await storageService.uploadFile(thumbnailBuffer, {
-        filename: `${imageId}_thumb.jpg`,
+        filename: `${imageId}_thumb.webp`,
         originalName: file.originalname,
-        mimeType: 'image/jpeg',
+        mimeType: 'image/webp',
         userId: metadata.userId,
         bookId: metadata.bookId,
         imageId
@@ -230,16 +230,28 @@ class ImageService {
    * Process image buffer to create resized variant
    */
   async resizeImage(buffer, options) {
-    return sharp(buffer)
+    const image = sharp(buffer)
       .resize(options.maxWidth, options.maxHeight, { 
         fit: 'inside', 
         withoutEnlargement: true 
       })
-      .jpeg({ 
-        quality: options.quality,
-        mozjpeg: true // Better compression
-      })
-      .toBuffer()
+    
+    // Convert to WebP or JPEG based on config
+    if (options.format === 'webp') {
+      return image
+        .webp({ 
+          quality: options.quality,
+          effort: 4 // 0-6, higher = better compression but slower
+        })
+        .toBuffer()
+    } else {
+      return image
+        .jpeg({ 
+          quality: options.quality,
+          mozjpeg: true
+        })
+        .toBuffer()
+    }
   }
 }
 

@@ -41,15 +41,26 @@
         v-for="asset in zineStore.mediaAssets"
         :key="asset.id"
         class="media-item"
-        :class="{ 'in-use': isAssetInUse(asset.id) }"
-        draggable="true"
+        :class="{ 'in-use': isAssetInUse(asset.id), 'uploading': asset.isUploading }"
+        :draggable="!asset.isUploading"
         @dragstart="handleDragStart($event, asset)"
       >
-        <img :src="asset.thumbnail" :alt="asset.name" />
-        <div class="usage-badge" v-if="isAssetInUse(asset.id)">
+        <!-- Show image with blur while uploading -->
+        <img 
+          :src="asset.thumbnail || asset.url" 
+          :alt="asset.name"
+          :class="{ 'uploading-blur': asset.isUploading }"
+        />
+        
+        <!-- Spinner overlay while uploading -->
+        <div v-if="asset.isUploading" class="upload-overlay">
+          <div class="spinner-small"></div>
+        </div>
+        
+        <div class="usage-badge" v-if="!asset.isUploading && isAssetInUse(asset.id)">
           ✓ {{ getAssetUsageCount(asset.id) }}
         </div>
-        <div class="media-overlay">
+        <div class="media-overlay" v-if="!asset.isUploading">
           <button class="delete-btn" @click="deleteAsset(asset.id)">×</button>
         </div>
         <div class="media-name">{{ asset.name }}</div>
@@ -141,7 +152,7 @@
 import { ref, computed, watch } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import { getElementSpecsByCategory } from '../utils/elementSpecs'
-import { uploadMultipleImages } from '../api/images'
+import { uploadImage } from '../api/images'
 
 const zineStore = useZineStore()
 const fileInput = ref(null)
@@ -184,6 +195,43 @@ const triggerUpload = () => {
   fileInput.value?.click()
 }
 
+const findExistingAsset = (file) => {
+  // Check if file already exists by name
+  return zineStore.mediaAssets.find(asset => 
+    asset.name === file.name && 
+    !asset.isUploading // Don't count uploading placeholders
+  )
+}
+
+const generateBlurPreview = (file) => {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        // Create tiny canvas (50px max)
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const maxSize = 50
+        const scale = Math.min(maxSize / img.width, maxSize / img.height)
+        
+        canvas.width = img.width * scale
+        canvas.height = img.height * scale
+        
+        // Draw tiny version
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
+        
+        // Convert to data URL (will be blurred with CSS)
+        resolve(canvas.toDataURL('image/jpeg', 0.5))
+      }
+      img.onerror = () => resolve('') // Fallback to no preview
+      img.src = e.target.result
+    }
+    reader.onerror = () => resolve('') // Fallback
+    reader.readAsDataURL(file)
+  })
+}
+
 const handleFileUpload = async (event) => {
   const files = Array.from(event.target.files)
   
@@ -200,37 +248,95 @@ const handleFileUpload = async (event) => {
   
   isUploading.value = true
   
-  try {
-    const result = await uploadMultipleImages(imageFiles, {
-      bookId: zineStore.projectMeta?.id || null
-    })
+  // Generate blur previews and create placeholders
+  const placeholders = await Promise.all(imageFiles.map(async (file) => {
+    const existingAsset = findExistingAsset(file)
+    const blurPreview = await generateBlurPreview(file)
     
-    // Add uploaded images to media pool
-    result.images.forEach(imageMetadata => {
+    if (existingAsset) {
+      // Mark existing asset as re-uploading (overwrite mode)
+      existingAsset.isUploading = true
+      existingAsset.blurPreview = blurPreview
+      return { file, placeholderId: existingAsset.id, isOverwrite: true }
+    } else {
+      // Create new placeholder with blur preview
+      const placeholderId = `placeholder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
       zineStore.addMediaAsset({
-        id: imageMetadata.id,
-        name: imageMetadata.originalName,
-        url: imageMetadata.variants.display.url,
-        thumbnail: imageMetadata.variants.thumbnail.url,
-        type: imageMetadata.mimeType,
-        originalUrl: imageMetadata.variants.original.url,
-        // Store the image ID for future reference
-        imageId: imageMetadata.id
+        id: placeholderId,
+        name: file.name,
+        url: blurPreview, // Blur preview initially
+        thumbnail: blurPreview,
+        type: file.type,
+        isUploading: true,
+        blurPreview // Store for CSS
       })
-    })
-    
-    // Show summary if there were any errors
-    if (result.errors && result.errors.length > 0) {
-      console.warn('Some images failed to upload:', result.errors)
-      alert(`Uploaded ${result.summary.uploaded}/${result.summary.total} images. ${result.summary.failed} failed.`)
+      
+      return { file, placeholderId, isOverwrite: false }
     }
-  } catch (error) {
-    console.error('Failed to upload images:', error)
-    alert(`Failed to upload images: ${error.message}`)
-  } finally {
-    isUploading.value = false
-    // Reset input
-    event.target.value = ''
+  }))
+  
+  // Upload images one by one
+  let newCount = 0
+  let overwriteCount = 0
+  let failCount = 0
+  
+  for (const { file, placeholderId, isOverwrite } of placeholders) {
+    try {
+      const imageMetadata = await uploadImage(file, {
+        bookId: zineStore.projectMeta?.id || null
+      })
+      
+      if (isOverwrite) {
+        // Overwrite: Keep same ID, just update URLs
+        zineStore.replaceMediaAsset(placeholderId, {
+          id: placeholderId, // Keep original ID!
+          name: imageMetadata.originalName,
+          url: imageMetadata.variants.display.url,
+          thumbnail: imageMetadata.variants.thumbnail.url,
+          type: imageMetadata.mimeType,
+          originalUrl: imageMetadata.variants.original.url,
+          imageId: imageMetadata.id,
+          isUploading: false,
+          blurPreview: null // Clear blur preview
+        })
+        overwriteCount++
+      } else {
+        // New upload: Use new ID from backend
+        zineStore.replaceMediaAsset(placeholderId, {
+          id: imageMetadata.id,
+          name: imageMetadata.originalName,
+          url: imageMetadata.variants.display.url,
+          thumbnail: imageMetadata.variants.thumbnail.url,
+          type: imageMetadata.mimeType,
+          originalUrl: imageMetadata.variants.original.url,
+          imageId: imageMetadata.id,
+          isUploading: false,
+          blurPreview: null // Clear blur preview
+        })
+        newCount++
+      }
+    } catch (error) {
+      console.error(`Failed to upload ${file.name}:`, error)
+      
+      if (!isOverwrite) {
+        // Remove failed placeholder (only if it was new)
+        zineStore.removeMediaAsset(placeholderId)
+      } else {
+        // Reset uploading flag on existing asset
+        const asset = zineStore.mediaAssets.find(a => a.id === placeholderId)
+        if (asset) asset.isUploading = false
+      }
+      failCount++
+    }
+  }
+  
+  isUploading.value = false
+  event.target.value = ''
+  
+  // Only show alert if there were failures
+  if (failCount > 0) {
+    alert(`Upload complete: ${newCount + overwriteCount} succeeded, ${failCount} failed`)
   }
 }
 
@@ -695,5 +801,42 @@ const deleteAsset = (id) => {
 .btn-icon:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Upload state */
+.media-item.uploading {
+  cursor: not-allowed;
+  position: relative;
+}
+
+/* Blur effect while uploading */
+.uploading-blur {
+  filter: blur(8px);
+  transform: scale(1.05);
+  transition: filter 0.3s ease, transform 0.3s ease;
+}
+
+/* Overlay with spinner */
+.upload-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+.spinner-small {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 </style>

@@ -120,6 +120,7 @@
               :style="pageStyle"
               :data-page-id="page.id"
               @click="zineStore.selectPage(page.id)"
+              @contextmenu.prevent="openPageContextMenu(page)"
               @dragover.prevent="handlePageDragOver"
               @drop="handlePageDrop($event, page.id)"
             >
@@ -139,7 +140,7 @@
                   selected: selectedSlot?.pageId === page.id && selectedSlot?.index === index,
                   'hide-guides': !showGuides
                 }"
-                :style="getSlotStyle(slot)"
+                :style="getSlotStyle(slot, page)"
                 @dragover.prevent="handleDragOver"
                 @drop="handleDrop($event, page.id, index)"
                 @click.stop="selectSlot(page.id, index)"
@@ -150,15 +151,15 @@
                 <div v-if="zineStore.ui.showGuides && slot.innerMarginPx > 0" class="slot-inner-margin-guide" :style="{ inset: `${slot.innerMarginPx}px` }"></div>
                 <div class="slot-inner" :style="getSlotInnerStyle(slot)">
                   <div v-if="slot.assetId" class="slot-image-wrapper" :class="slot.fit">
-                    <img
+                    <LazyImage
                       class="slot-image"
-                      :src="getAssetUrl(slot.assetId)"
+                      :src="getAssetUrls(slot.assetId).display"
+                      :thumbnail-url="getAssetUrls(slot.assetId).thumbnail"
                       :style="getImageStyle(slot)"
                       :data-slot-id="`${page.id}-${index}`"
                       :data-fit="slot.fit"
                       @load="handleImageLoad($event, slot)"
                       alt="Slot image"
-                      draggable="false"
                     />
                   </div>
                   <div v-else class="slot-placeholder export-hide">
@@ -199,7 +200,7 @@
       :is-visible="contextMenuVisible"
       :selected-element="selectedElement"
       :element-type="selectedElementType"
-      :position="{ left: 'calc(50% + 420px)', top: 100 }"
+      :position="{ left: 'calc(50% + 420px)', top: 450 }"
       @close="closeContextMenu"
       @bring-to-front="handleContextBringToFront"
       @send-to-back="handleContextSendToBack"
@@ -209,6 +210,8 @@
       @update-style="handleContextUpdateStyle"
       @toggle-lock="handleContextToggleLock"
       @delete="handleContextDelete"
+      @toggle-margin-override="handleTogglePageMarginOverride"
+      @set-page-margin="handleSetPageMargin"
     />
   </div>
 </template>
@@ -246,6 +249,7 @@ import TextToolbar from '../components/TextToolbar.vue'
 import FloatingTextBox from '../components/FloatingTextBox.vue'
 import ElementContextMenu from '../components/ElementContextMenu.vue'
 import PageSettings from '../components/PageSettings.vue'
+import LazyImage from '../components/LazyImage.vue'
 import { createElementFromSpec } from '../utils/elementSpecs.js'
 
 const zineStore = useZineStore()
@@ -403,10 +407,15 @@ const marginGuideStyle = computed(() => {
   }
 })
 
-const getSlotStyle = (slot) => {
+const getSlotStyle = (slot, page) => {
   const cfg = zineStore.zineConfig
   
-  if (!cfg || !cfg.margin) {
+  // Use page-specific margin override if set, otherwise use global margin
+  const effectiveMargin = page?.marginOverride !== null && page?.marginOverride !== undefined 
+    ? page.marginOverride 
+    : cfg?.margin
+  
+  if (!cfg || !effectiveMargin) {
     // No margin configured, use simple percentage positioning
     return {
       position: 'absolute',
@@ -420,7 +429,7 @@ const getSlotStyle = (slot) => {
   
   // Get scaled dimensions to calculate margin in pixels
   const { scale } = getScaledDimensions(cfg, 600)
-  const marginPx = toScaledPx(cfg.margin, cfg.unit, scale)
+  const marginPx = toScaledPx(effectiveMargin, cfg.unit, scale)
   
   // Apply margin to each slot individually
   // Each slot gets margin on all sides, creating gaps between adjacent slots
@@ -455,6 +464,16 @@ const getSlotInnerStyle = (slot) => {
 const getAssetUrl = (assetId) => {
   const asset = zineStore.mediaAssets.find(a => a.id === assetId)
   return asset?.url || ''
+}
+
+const getAssetUrls = (assetId) => {
+  const asset = zineStore.mediaAssets.find(a => a.id === assetId)
+  if (!asset) return { display: '', thumbnail: '' }
+  
+  return {
+    display: asset.url || '',  // Display version (WebP)
+    thumbnail: asset.thumbnail || asset.url || ''  // Thumbnail for blur placeholder
+  }
 }
 
 const getImageStyle = (slot) => {
@@ -740,6 +759,18 @@ const selectTextElement = (pageId, elementId) => {
   contextMenuVisible.value = true
 }
 
+const openPageContextMenu = (page) => {
+  // Select page and open context menu for page settings
+  zineStore.selectPage(page.id)
+  selectedElement.value = {
+    ...page,
+    unit: zineStore.zineConfig.unit
+  }
+  selectedElementType.value = 'page'
+  selectedElementRef.value = { pageId: page.id }
+  contextMenuVisible.value = true
+}
+
 const closeContextMenu = () => {
   contextMenuVisible.value = false
   selectedElement.value = null
@@ -824,6 +855,42 @@ const handleContextDelete = () => {
   }
   
   closeContextMenu()
+}
+
+const handleTogglePageMarginOverride = () => {
+  if (!selectedElementRef.value?.pageId) return
+  const page = zineStore.getPageById(selectedElementRef.value.pageId)
+  if (!page) return
+  
+  if (page.marginOverride === null) {
+    // Enable override with current global margin
+    zineStore.setPageMarginOverride(page.id, zineStore.zineConfig.margin)
+  } else {
+    // Disable override
+    zineStore.setPageMarginOverride(page.id, null)
+  }
+  
+  // Update selected element to reflect changes
+  selectedElement.value = {
+    ...page,
+    unit: zineStore.zineConfig.unit
+  }
+}
+
+const handleSetPageMargin = (margin) => {
+  if (!selectedElementRef.value?.pageId) return
+  const page = zineStore.getPageById(selectedElementRef.value.pageId)
+  if (!page) return
+  
+  if (!isNaN(margin) && margin >= 0) {
+    zineStore.setPageMarginOverride(page.id, margin)
+    
+    // Update selected element to reflect changes
+    selectedElement.value = {
+      ...page,
+      unit: zineStore.zineConfig.unit
+    }
+  }
 }
 </script>
 
@@ -1133,6 +1200,13 @@ const handleContextDelete = () => {
 }
 
 .pages-container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+
+.pages-stack {
   display: flex;
   flex-direction: column;
   gap: 40px;
@@ -1478,20 +1552,20 @@ const handleContextDelete = () => {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
-
 .page-wrapper {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 20px;
+  justify-content: center;
   margin-bottom: 40px;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Ensure children don't affect layout when positioned absolutely */
+  isolation: isolate;
 }
 
 .page-wrapper:first-child {
   margin-top: 40px;
 }
-
 .page-wrapper.scaled-one {
   transform: scale(1.1);
   margin-bottom: 48px;
