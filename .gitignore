@@ -28,10 +28,17 @@ dist-ssr
 *.sln
 *.sw?
 
-# Environment variables
+# Environment files
 .env
 .env.local
+.env.production
 .env.*.local
+
+# Deployment platform configs (add per-project)
+railway.json
+nixpacks.toml
+vercel.json
+netlify.toml
 
 # Testing
 coverage
@@ -65,3 +72,7 @@ Thumbs.db
 
 # Production
 build
+
+server/data/books/
+server/data/uploads/
+*.json.backup
