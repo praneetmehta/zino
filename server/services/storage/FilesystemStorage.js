@@ -27,10 +27,20 @@ class FilesystemStorage extends StorageInterface {
    * Upload a file to filesystem
    */
   async uploadFile(file, metadata = {}) {
-    const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-    const extension = path.extname(metadata.originalName || '')
-    const filename = `${id}${extension}`
-    const filePath = path.join(this.uploadDir, filename)
+    // Use provided filename or generate ID
+    const filename = metadata.filename || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}${path.extname(metadata.originalName || '')}`
+    
+    // Organize by book if bookId provided
+    let targetDir = this.uploadDir
+    let urlPath = filename
+    
+    if (metadata.bookId) {
+      targetDir = path.join(this.uploadDir, metadata.bookId)
+      await fs.mkdir(targetDir, { recursive: true })
+      urlPath = `${metadata.bookId}/${filename}`
+    }
+    
+    const filePath = path.join(targetDir, filename)
 
     // Write file
     if (Buffer.isBuffer(file)) {
@@ -45,11 +55,14 @@ class FilesystemStorage extends StorageInterface {
 
     // Get file stats
     const stats = await fs.stat(filePath)
+    
+    // Extract ID from filename (before extension and variant suffix)
+    const id = metadata.imageId || filename.split('.')[0]
 
     return {
       id,
       filename,
-      url: `${this.baseUrl}/uploads/${filename}`,
+      url: `${this.baseUrl}/uploads/${urlPath}`,
       path: filePath,
       size: stats.size,
       mimeType: metadata.mimeType,

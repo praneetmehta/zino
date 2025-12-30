@@ -4,6 +4,7 @@
  * Storage-agnostic - uses identifiers to work with any storage provider
  */
 const { storageService } = require('./storage')
+const sharp = require('sharp')
 
 class ImageService {
   constructor() {
@@ -18,9 +19,9 @@ class ImageService {
     
     // Image size configurations
     this.sizes = {
-      original: { maxWidth: 4000, maxHeight: 4000, quality: 95 },
-      display: { maxWidth: 1200, maxHeight: 1200, quality: 85 },
-      thumbnail: { maxWidth: 300, maxHeight: 300, quality: 80 }
+      original: { maxWidth: 4000, maxHeight: 4000, quality: 99 },  // Near-lossless for print
+      display: { maxWidth: 1200, maxHeight: 1200, quality: 85 },   // Good for screen
+      thumbnail: { maxWidth: 300, maxHeight: 300, quality: 80 }     // Small preview
     }
   }
 
@@ -49,48 +50,140 @@ class ImageService {
       throw new Error(`Unsupported image type: ${file.mimetype}`)
     }
 
+    // Skip processing for SVGs (vector format)
+    if (file.mimetype === 'image/svg+xml') {
+      return this.uploadSingleVariant(file, metadata)
+    }
+
     const imageId = this.generateImageId()
-    const extension = this.getExtension(file.originalname)
+    const buffer = file.buffer || file
 
     try {
-      // For now, we'll upload the original file as-is
-      // Image resizing will be added when sharp is installed
-      const uploadResult = await storageService.uploadFile(file.buffer || file, {
-        originalName: file.originalname,
-        mimeType: file.mimetype,
-        userId: metadata.userId,
-        imageId,
-        variant: 'original'
-      })
+      // Get image metadata
+      const image = sharp(buffer)
+      const imageMetadata = await image.metadata()
 
-      // Build image metadata
-      const imageMetadata = {
-        id: imageId,
+      // Generate all variants
+      const variants = {}
+
+      // 1. Original (optimized but full resolution)
+      const originalBuffer = await this.resizeImage(buffer, this.sizes.original)
+      const originalResult = await storageService.uploadFile(originalBuffer, {
+        filename: `${imageId}_original.jpg`,
         originalName: file.originalname,
-        mimeType: file.mimetype,
-        size: file.size,
+        mimeType: 'image/jpeg',
         userId: metadata.userId,
-        uploadedAt: new Date().toISOString(),
-        variants: {
-          original: {
-            storageId: uploadResult.id,
-            url: uploadResult.url,
-            width: null, // Will be set when sharp is added
-            height: null,
-            size: file.size
-          }
-        }
+        bookId: metadata.bookId,
+        imageId
+      })
+      variants.original = {
+        storageId: imageId,
+        url: originalResult.url,
+        width: imageMetadata.width,
+        height: imageMetadata.height,
+        size: originalBuffer.length
       }
 
-      // TODO: Generate thumbnail and display versions when sharp is installed
-      // For now, use original for all variants
-      imageMetadata.variants.display = { ...imageMetadata.variants.original }
-      imageMetadata.variants.thumbnail = { ...imageMetadata.variants.original }
+      // 2. Display (1200px max for canvas)
+      const displayBuffer = await this.resizeImage(buffer, this.sizes.display)
+      const displayResult = await storageService.uploadFile(displayBuffer, {
+        filename: `${imageId}_display.jpg`,
+        originalName: file.originalname,
+        mimeType: 'image/jpeg',
+        userId: metadata.userId,
+        bookId: metadata.bookId,
+        imageId
+      })
+      const displayMeta = await sharp(displayBuffer).metadata()
+      variants.display = {
+        storageId: imageId,
+        url: displayResult.url,
+        width: displayMeta.width,
+        height: displayMeta.height,
+        size: displayBuffer.length
+      }
 
-      return imageMetadata
+      // 3. Thumbnail (300px max for media panel)
+      const thumbnailBuffer = await this.resizeImage(buffer, this.sizes.thumbnail)
+      const thumbnailResult = await storageService.uploadFile(thumbnailBuffer, {
+        filename: `${imageId}_thumb.jpg`,
+        originalName: file.originalname,
+        mimeType: 'image/jpeg',
+        userId: metadata.userId,
+        bookId: metadata.bookId,
+        imageId
+      })
+      const thumbMeta = await sharp(thumbnailBuffer).metadata()
+      variants.thumbnail = {
+        storageId: imageId,
+        url: thumbnailResult.url,
+        width: thumbMeta.width,
+        height: thumbMeta.height,
+        size: thumbnailBuffer.length
+      }
+
+      // Calculate total size saved
+      const originalSize = file.size
+      const totalProcessedSize = variants.original.size + variants.display.size + variants.thumbnail.size
+      const savings = Math.round((1 - totalProcessedSize / (originalSize * 3)) * 100)
+
+      console.log(`✅ Processed image: ${file.originalname}`)
+      console.log(`   Original: ${Math.round(originalSize / 1024)}KB → ${Math.round(variants.original.size / 1024)}KB`)
+      console.log(`   Display: ${Math.round(variants.display.size / 1024)}KB`)
+      console.log(`   Thumbnail: ${Math.round(variants.thumbnail.size / 1024)}KB`)
+      console.log(`   Total savings: ${savings}% vs uploading original 3x`)
+
+      return {
+        id: imageId,
+        originalName: file.originalname,
+        mimeType: 'image/jpeg',
+        size: originalSize,
+        userId: metadata.userId,
+        uploadedAt: new Date().toISOString(),
+        variants
+      }
     } catch (error) {
       console.error('Failed to upload image:', error)
       throw new Error(`Image upload failed: ${error.message}`)
+    }
+  }
+
+  /**
+   * Upload single variant (for SVG or fallback)
+   */
+  async uploadSingleVariant(file, metadata = {}) {
+    const imageId = this.generateImageId()
+    const extension = this.getExtension(file.originalname)
+
+    const uploadResult = await storageService.uploadFile(file.buffer || file, {
+      filename: `${imageId}_original${extension}`,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      userId: metadata.userId,
+      bookId: metadata.bookId,
+      imageId
+    })
+
+    const variant = {
+      storageId: uploadResult.id,
+      url: uploadResult.url,
+      width: null,
+      height: null,
+      size: file.size
+    }
+
+    return {
+      id: imageId,
+      originalName: file.originalname,
+      mimeType: file.mimetype,
+      size: file.size,
+      userId: metadata.userId,
+      uploadedAt: new Date().toISOString(),
+      variants: {
+        original: variant,
+        display: variant,
+        thumbnail: variant
+      }
     }
   }
 
@@ -135,18 +228,18 @@ class ImageService {
 
   /**
    * Process image buffer to create resized variant
-   * Placeholder for when sharp is installed
    */
   async resizeImage(buffer, options) {
-    // TODO: Implement with sharp
-    // const sharp = require('sharp')
-    // return sharp(buffer)
-    //   .resize(options.maxWidth, options.maxHeight, { fit: 'inside', withoutEnlargement: true })
-    //   .jpeg({ quality: options.quality })
-    //   .toBuffer()
-    
-    // For now, return original buffer
-    return buffer
+    return sharp(buffer)
+      .resize(options.maxWidth, options.maxHeight, { 
+        fit: 'inside', 
+        withoutEnlargement: true 
+      })
+      .jpeg({ 
+        quality: options.quality,
+        mozjpeg: true // Better compression
+      })
+      .toBuffer()
   }
 }
 
