@@ -25,9 +25,9 @@ export const TEXT_ELEMENT_SPECS = {
       fontFamily: 'Inter' 
     },
     defaultProps: {
-      width: 60,
+      width: 100,
       height: 20,
-      content: 'Editorial Hero',
+      content: 'Editorial',
       style: {
         fontSize: 72,
         fontWeight: 900,
@@ -52,14 +52,14 @@ export const TEXT_ELEMENT_SPECS = {
       fontFamily: 'Inter' 
     },
     defaultProps: {
-      width: 25,
-      height: 25,
+      width: 30,
+      height: 30,
       content: '01',
       style: {
         fontSize: 120,
         fontWeight: 900,
         textAlign: 'center',
-        padding: 20,
+        padding: 5,
         lineHeight: 0.8,
         color: '#000000',
         fontFamily: 'Inter'
@@ -81,7 +81,7 @@ export const TEXT_ELEMENT_SPECS = {
     defaultProps: {
       width: 50,
       height: 18,
-      content: 'Magazine Title',
+      content: 'Title',
       style: {
         fontSize: 64,
         fontWeight: 900,

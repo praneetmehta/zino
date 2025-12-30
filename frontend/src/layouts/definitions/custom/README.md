@@ -1,4 +1,28 @@
-# Custom Layouts Directory
+# Custom Layouts (Deprecated)
+
+⚠️ **This directory is no longer used for storing custom layouts.**
+
+## New System
+
+Custom layouts are now stored in the **backend** at:
+```
+server/data/customLayouts/
+```
+
+Custom layouts are:
+- Saved via API: `POST /layouts/custom`
+- Loaded via API: `GET /layouts/custom`  
+- Tied to user accounts (userId)
+- Deleted via API: `DELETE /layouts/custom/:id`
+
+## For Developers
+
+This directory is kept for reference only. Do not add .json files here.
+Custom layouts are loaded dynamically from the backend API in Canvas.vue.
+
+---
+
+# Old Documentation (For Reference)
 
 This directory contains user-created custom layouts saved from the Layout Builder.
 

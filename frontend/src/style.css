@@ -75,7 +75,7 @@ body::before {
 [data-theme="dark"] {
   --bg: linear-gradient(135deg, #0f1419 0%, #1a1f2e 100%);
   --app-bg: #0f1419;
-  --panel-bg: rgba(26, 32, 44, 0.85);
+  --panel-bg: rgba(26, 32, 44, 1);
   --panel-bg-solid: #1a202c;
   --border: rgba(45, 55, 72, 0.8);
   --text: #e2e8f0;

@@ -11,7 +11,7 @@ const { storageService } = require('../services/storage')
 
 const PORT = process.env.PORT || 4876
 const DATA_DIR = path.join(__dirname, '..', 'data', 'books')
-const LAYOUTS_DIR = path.join(__dirname, '..', '..', 'frontend', 'src', 'layouts', 'definitions', 'custom')
+const LAYOUTS_DIR = path.join(__dirname, '..', 'data', 'customLayouts')
 
 const JSON_LIMIT = process.env.JSON_BODY_LIMIT || '150mb'
 
@@ -239,11 +239,13 @@ app.delete('/books/:id', optionalAuth, async (req, res) => {
 })
 
 // Custom Layouts API
-app.get('/layouts/custom', async (req, res) => {
+app.get('/layouts/custom', optionalAuth, async (req, res) => {
   try {
     await ensureLayoutsDir()
     const files = await fs.readdir(LAYOUTS_DIR)
     const layouts = []
+    const currentUserId = req.user?.id
+    const isAdmin = req.user?.role === 'admin'
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue
@@ -251,6 +253,15 @@ app.get('/layouts/custom', async (req, res) => {
       try {
         const raw = await fs.readFile(filePath, 'utf8')
         const layout = JSON.parse(raw)
+        
+        // Filter by user: show only own layouts (or all if admin)
+        if (currentUserId && layout.userId) {
+          const isOwner = layout.userId === currentUserId
+          if (!isAdmin && !isOwner) {
+            continue // Skip layouts that don't belong to user
+          }
+        }
+        
         layouts.push(layout)
       } catch (err) {
         console.error(`Failed to parse layout file ${file}:`, err)
@@ -264,7 +275,7 @@ app.get('/layouts/custom', async (req, res) => {
   }
 })
 
-app.post('/layouts/custom', async (req, res) => {
+app.post('/layouts/custom', optionalAuth, async (req, res) => {
   try {
     await ensureLayoutsDir()
     const layout = req.body
@@ -276,20 +287,58 @@ app.post('/layouts/custom', async (req, res) => {
       return res.status(400).json({ error: 'Layout name is required' })
     }
 
-    // Sanitize filename
+    const now = new Date().toISOString()
+    const userId = req.user?.id || null
+    const username = req.user?.name || req.user?.email || 'Anonymous'
+    const isAdmin = req.user?.role === 'admin'
+    
+    // Non-admin users can only create layouts in 'custom' category
+    let category = layout.category || 'custom'
+    if (!isAdmin && category !== 'custom') {
+      category = 'custom'
+      console.log(`Non-admin user attempted to create layout in '${layout.category}' category. Forcing to 'custom'.`)
+    }
+    
+    // Check if updating existing layout
     const filename = `${layout.id}.json`
     const filePath = path.join(LAYOUTS_DIR, filename)
+    const existing = await fs.stat(filePath).catch(() => null)
+    
+    let createdAt = now
+    if (existing) {
+      try {
+        const current = JSON.parse(await fs.readFile(filePath, 'utf8'))
+        createdAt = current.createdAt || now
+        
+        // Check ownership for updates
+        if (req.user && current.userId && current.userId !== req.user.id && req.user.role !== 'admin') {
+          return res.status(403).json({ error: 'Access denied' })
+        }
+      } catch (err) {
+        console.warn('Failed to read existing layout:', err)
+      }
+    }
 
-    await fs.writeFile(filePath, JSON.stringify(layout, null, 2), 'utf8')
+    const payload = {
+      ...layout,
+      category, // Use the enforced category
+      userId,
+      username,
+      createdAt,
+      updatedAt: now,
+      enabled: layout.enabled !== undefined ? layout.enabled : true
+    }
 
-    res.status(201).json({ layout, message: 'Layout saved successfully' })
+    await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8')
+
+    res.status(201).json({ layout: payload, message: 'Layout saved successfully' })
   } catch (error) {
     console.error('[POST /layouts/custom] error:', error)
     res.status(500).json({ error: 'Failed to save custom layout' })
   }
 })
 
-app.delete('/layouts/custom/:id', async (req, res) => {
+app.delete('/layouts/custom/:id', optionalAuth, async (req, res) => {
   try {
     await ensureLayoutsDir()
     const filename = `${req.params.id}.json`
@@ -298,6 +347,16 @@ app.delete('/layouts/custom/:id', async (req, res) => {
     const stat = await fs.stat(filePath).catch(() => null)
     if (!stat) {
       return res.status(404).json({ error: 'Layout not found' })
+    }
+    
+    // Check ownership
+    try {
+      const layout = JSON.parse(await fs.readFile(filePath, 'utf8'))
+      if (req.user && layout.userId && layout.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+    } catch (err) {
+      // Continue with deletion if can't read
     }
 
     await fs.rm(filePath)

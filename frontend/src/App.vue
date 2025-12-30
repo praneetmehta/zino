@@ -125,6 +125,9 @@ const handleBeforeUnload = (e) => {
 
 onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload)
+  
+  // Apply theme to body for teleported components (dropdowns, modals, etc.)
+  document.body.setAttribute('data-theme', zineStore.ui.theme)
 })
 
 onBeforeUnmount(() => {
@@ -293,19 +296,9 @@ const navigateToLayoutBuilder = () => {
 
 const handleSaveLayout = async (layout) => {
   try {
-    // Save layout to server
-    const response = await fetch('http://localhost:4876/layouts/custom', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(layout),
-    })
-
-    if (!response.ok) {
-      const error = await response.json()
-      throw new Error(error.error || 'Failed to save layout')
-    }
+    // Save layout to server using API
+    const { saveCustomLayout } = await import('./api/layouts.js')
+    const result = await saveCustomLayout(layout)
 
     // Auto-enable the new layout
     const enabledLayouts = JSON.parse(localStorage.getItem('enabledLayouts') || '[]')
@@ -316,17 +309,13 @@ const handleSaveLayout = async (layout) => {
 
     // Go back to layout library
     view.value = 'layout-library'
-
+    
     // Show success message
     alert(`Layout "${layout.name}" saved successfully!`)
   } catch (error) {
     console.error('Failed to save layout:', error)
-    alert(`Failed to save layout: ${error.message}`)
+    alert(error.message || 'Failed to save layout')
   }
-}
-
-const navigateToDocs = () => {
-  window.open('https://github.com/praneetmehta/ziner#usage', '_blank')
 }
 
 const lastSavedSummary = computed(() => {

@@ -198,11 +198,17 @@ onMounted(() => {
 
 const loadCustomLayouts = async () => {
   try {
-    const response = await fetch('http://localhost:4876/layouts/custom')
-    if (response.ok) {
-      const data = await response.json()
-      customLayouts.value = data.layouts || []
-    }
+    const { listCustomLayouts } = await import('../api/layouts.js')
+    const layouts = await listCustomLayouts()
+    customLayouts.value = layouts
+    
+    // Auto-enable all custom layouts that have enabled: true
+    layouts.forEach(layout => {
+      if (layout.enabled) {
+        enabledLayouts.value.add(layout.id)
+      }
+    })
+    saveEnabledLayouts()
   } catch (error) {
     console.error('Failed to load custom layouts:', error)
     customLayouts.value = []
@@ -306,13 +312,8 @@ const disableAll = () => {
 const deleteLayout = async (layoutId) => {
   if (confirm('Delete this custom layout?')) {
     try {
-      const response = await fetch(`http://localhost:4876/layouts/custom/${layoutId}`, {
-        method: 'DELETE',
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to delete layout')
-      }
+      const { deleteCustomLayout } = await import('../api/layouts.js')
+      await deleteCustomLayout(layoutId)
 
       // Remove from local state
       customLayouts.value = customLayouts.value.filter(l => l.id !== layoutId)

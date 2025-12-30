@@ -25,10 +25,6 @@
             <input type="checkbox" v-model="showGuides" />
             <span>Show Guides</span>
           </label>
-          <label class="toggle-guides">
-            <input type="checkbox" v-model="showCrease" />
-            <span>Show Crease</span>
-          </label>
           <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
             {{ toolbarCollapsed ? '▼' : '▲' }}
           </button>
@@ -128,8 +124,8 @@
               <div class="guide guide-bleed" :style="bleedGuideStyle"></div>
               <div class="guide guide-fold"></div>
             </div>
-            <!-- Center crease effect -->
-            <div class="page-crease" v-if="showCrease && zineStore.zineConfig?.bindingType === 'folded'"></div>
+            <!-- Center crease effect (only for folded binding) -->
+            <div class="page-crease" v-if="zineStore.zineConfig?.bindingType === 'folded'"></div>
             <div class="page-inner" :style="pageInnerStyle">
               <!-- Image slots -->
               <div
@@ -162,7 +158,11 @@
                       draggable="false"
                     />
                   </div>
-                  <div v-else class="slot-placeholder export-hide">
+                  <div 
+                    v-else 
+                    class="slot-placeholder export-hide"
+                    :class="{ 'has-background': slot.backgroundColor }"
+                  >
                     <span>{{ slot.backgroundColor ? '' : 'Drop image or set color' }}</span>
                   </div>
                 </div>
@@ -261,13 +261,13 @@ const showGuides = computed({
   get: () => zineStore.ui.showGuides,
   set: (value) => { zineStore.ui.showGuides = value }
 })
-const showCrease = ref(true)
 
 // Restore deeper crease effect
 
 
 // Filter layouts by enabled status
 const enabledLayoutIds = ref(new Set())
+const customLayouts = ref([])
 
 const loadEnabledLayouts = () => {
   const stored = localStorage.getItem('enabledLayouts')
@@ -281,24 +281,52 @@ const loadEnabledLayouts = () => {
   }
 }
 
-loadEnabledLayouts()
+const loadCustomLayouts = async () => {
+  try {
+    const { listCustomLayouts } = await import('../api/layouts.js')
+    const layouts = await listCustomLayouts()
+    customLayouts.value = layouts
+    
+    // Auto-enable custom layouts that have enabled: true
+    layouts.forEach(layout => {
+      if (layout.enabled) {
+        enabledLayoutIds.value.add(layout.id)
+      }
+    })
+  } catch (error) {
+    console.error('Failed to load custom layouts:', error)
+    customLayouts.value = []
+  }
+}
 
-// Filter categories to only show enabled layouts
+loadEnabledLayouts()
+loadCustomLayouts()
+
+// Filter categories to only show enabled layouts (built-in + custom)
 const categories = computed(() => {
   const filtered = {}
   Object.keys(layoutCategories).forEach(key => {
-    const enabledLayouts = layoutCategories[key].layouts
-      .map(layoutId => getLayoutById(layoutId))
-      .filter(layout => layout && enabledLayoutIds.value.has(layout.id))
-    
-    filtered[key] = {
-      ...layoutCategories[key],
-      layouts: enabledLayouts
+    if (key === 'custom') {
+      // Custom category: use layouts from API
+      const enabledCustom = customLayouts.value
+        .filter(layout => enabledLayoutIds.value.has(layout.id))
+      
+      filtered[key] = {
+        ...layoutCategories[key],
+        layouts: enabledCustom
+      }
+    } else {
+      // Built-in categories: use layouts from layoutLoader
+      const enabledLayouts = layoutCategories[key].layouts
+        .map(layoutId => getLayoutById(layoutId))
+        .filter(layout => layout && enabledLayoutIds.value.has(layout.id))
+      
+      filtered[key] = {
+        ...layoutCategories[key],
+        layouts: enabledLayouts
+      }
     }
   })
-  
-  // Custom layouts are now loaded via layoutLoader from the custom folder
-  // They will be automatically included in the layoutDefinitions
   
   return filtered
 })
@@ -507,6 +535,7 @@ const handleImageLoad = (event, slot) => {
 }
 
 const addPageWithLayout = (layout) => {
+  console.log('Adding page with layout:', layout.name, 'Slots:', layout.slots)
   zineStore.addPage({
     type: layout.id,
     slots: layout.slots,
@@ -1332,13 +1361,18 @@ const handleSetPageMargin = (margin) => {
 }
 
 /* Only show overlay background if no backgroundColor is set */
-.slot-placeholder:not([style*="background-color"]) {
+.slot-placeholder:not(.has-background) {
   background: var(--muted);
 }
 
-.slot:hover .slot-placeholder:not([style*="background-color"]) {
+.slot:hover .slot-placeholder:not(.has-background) {
   background: color-mix(in srgb, var(--accent) 10%, var(--muted));
   color: var(--accent);
+}
+
+/* When slot has background color, no overlay */
+.slot-placeholder.has-background {
+  background: transparent;
 }
 
 .text-slot {

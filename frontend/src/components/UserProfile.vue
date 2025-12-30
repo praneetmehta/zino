@@ -7,7 +7,7 @@
     </button>
 
     <!-- Logged in -->
-    <div v-else class="user-menu" @click="toggleMenu">
+    <div v-else ref="menuButtonRef" class="user-menu" @click="toggleMenu">
       <div class="user-avatar" :class="{ 'temp-user': authStore.isTemp }">
         {{ userInitials }}
       </div>
@@ -16,9 +16,11 @@
         <div class="user-role">{{ authStore.userRole }}</div>
       </div>
       <span class="dropdown-icon">▼</span>
+    </div>
 
-      <!-- Dropdown Menu -->
-      <div v-if="menuOpen" class="dropdown-menu" @click.stop>
+    <!-- Dropdown Menu (teleported to body to escape stacking context) -->
+    <Teleport to="body">
+      <div v-if="menuOpen" class="dropdown-menu" :style="dropdownPosition" @click.stop>
         <div class="menu-header">
           <div class="avatar-large" :class="{ 'temp-user': authStore.isTemp }">
             {{ userInitials }}
@@ -56,7 +58,7 @@
           <span>Sign Out</span>
         </button>
       </div>
-    </div>
+    </Teleport>
 
     <!-- Login Modal -->
     <LoginModal :is-open="showLoginModal" @close="showLoginModal = false" />
@@ -73,6 +75,8 @@ const authStore = useAuthStore()
 const zineStore = useZineStore()
 const menuOpen = ref(false)
 const showLoginModal = ref(false)
+const menuButtonRef = ref(null)
+const dropdownPosition = ref({})
 
 const userInitials = computed(() => {
   const name = authStore.userName
@@ -90,8 +94,19 @@ const bookCount = computed(() => {
   return zineStore.pages.length
 })
 
-function toggleMenu() {
+function toggleMenu(event) {
   menuOpen.value = !menuOpen.value
+  
+  if (menuOpen.value) {
+    // Calculate position relative to the button
+    const button = event.currentTarget
+    const rect = button.getBoundingClientRect()
+    dropdownPosition.value = {
+      position: 'fixed',
+      top: `${rect.bottom + 8}px`,
+      right: `${window.innerWidth - rect.right}px`,
+    }
+  }
 }
 
 function viewProfile() {
@@ -119,10 +134,17 @@ async function handleLogout() {
   }
 }
 
-// Close menu when clicking outside
+// Close menu when clicking outside (works with teleported dropdown)
 if (typeof window !== 'undefined') {
   window.addEventListener('click', (e) => {
-    if (!e.target.closest('.user-menu')) {
+    if (!e.target.closest('.user-menu') && !e.target.closest('.dropdown-menu')) {
+      menuOpen.value = false
+    }
+  })
+  
+  // Close on escape key
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && menuOpen.value) {
       menuOpen.value = false
     }
   })
@@ -237,19 +259,22 @@ if (typeof window !== 'undefined') {
   transform: translateY(2px);
 }
 
-/* Dropdown Menu */
+/* Dropdown Menu (teleported to body - needs !important for theme vars) */
 .dropdown-menu {
-  position: absolute;
-  top: calc(100% + 8px);
-  right: 0;
+  /* position and top/right set via inline style */
   width: 280px;
-  background: var(--panel-bg);
+  background: var(--panel-bg-solid);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--border);
   border-radius: 16px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
   padding: 16px;
-  z-index: 1000;
+  z-index: 9999;
   animation: menuSlideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  
+  /* Ensure colors work when teleported */
+  color: var(--text);
 }
 
 @keyframes menuSlideDown {
@@ -382,5 +407,21 @@ if (typeof window !== 'undefined') {
   border-radius: 12px;
   font-size: 12px;
   color: var(--text-muted);
+}
+</style>
+
+<!-- Unscoped styles for teleported dropdown -->
+<style>
+/* Teleported dropdown needs global styles to work with theme */
+.dropdown-menu {
+  font-family: inherit;
+}
+
+.dropdown-menu .menu-item:hover {
+  background: var(--muted);
+}
+
+.dropdown-menu .menu-item.logout:hover {
+  background: color-mix(in srgb, #ef4444 10%, transparent);
 }
 </style>

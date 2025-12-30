@@ -101,24 +101,30 @@ export const useZineStore = defineStore('zine', {
     
     addPage(layout) {
       const id = String(Date.now() + Math.random())
+      console.log('zineStore.addPage - Received slots:', layout.slots)
       const page = {
         id,
         layout: layout.type,
         marginOverride: null, // Per-page margin override (null = use global)
-        slots: layout.slots.map((slot, index) => ({
-          ...slot,
-          type: 'image', // All slots are now image-only
-          zIndex: slot.zIndex !== undefined ? slot.zIndex : index,
-          assetId: null,
-          fit: 'cover',
-          innerMarginPx: 0, // Absolute pixel margin
-          backgroundColor: slot.backgroundColor || null, // Optional solid color
-        })),
+        slots: layout.slots.map((slot, index) => {
+          const mappedSlot = {
+            ...slot,
+            type: 'image', // All slots are now image-only
+            zIndex: slot.zIndex !== undefined ? slot.zIndex : index,
+            assetId: null,
+            fit: 'cover',
+            innerMarginPx: 0, // Absolute pixel margin
+            backgroundColor: slot.backgroundColor || null, // Optional solid color
+          }
+          console.log(`Slot ${index}:`, mappedSlot)
+          return mappedSlot
+        }),
         textElements: layout.textElements ? layout.textElements.map(textEl => ({
           ...textEl,
           id: `${id}-${textEl.id}-${Date.now()}`, // Make ID unique per page
         })) : [], // Floating text boxes from layout or empty
       }
+      console.log('Created page with slots:', page.slots)
       this.pages.push(page)
       this.selectedPageId = id
     },
@@ -423,10 +429,18 @@ export const useZineStore = defineStore('zine', {
 
     setTheme(theme) {
       this.ui.theme = theme === 'dark' ? 'dark' : 'light'
+      // Apply theme to body for teleported components (like dropdowns)
+      if (typeof document !== 'undefined') {
+        document.body.setAttribute('data-theme', this.ui.theme)
+      }
     },
 
     toggleTheme() {
       this.ui.theme = this.ui.theme === 'dark' ? 'light' : 'dark'
+      // Apply theme to body for teleported components (like dropdowns)
+      if (typeof document !== 'undefined') {
+        document.body.setAttribute('data-theme', this.ui.theme)
+      }
     },
 
     toggleGuides() {

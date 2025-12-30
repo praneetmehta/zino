@@ -1,0 +1,22 @@
+{
+  "id": "custom-1767135842420",
+  "name": "color-back",
+  "icon": "⭐",
+  "category": "custom",
+  "slots": [
+    {
+      "x": 0,
+      "y": 0,
+      "width": 36.5,
+      "height": 100,
+      "type": "image"
+    },
+    {
+      "x": 15,
+      "y": 10,
+      "width": 77.66666666666667,
+      "height": 80.32183465022163,
+      "type": "image"
+    }
+  ]
+}

@@ -28,17 +28,26 @@
 
         <div class="control-section">
           <label class="section-label">Category</label>
-          <select v-model="layoutCategory" class="category-select">
+          <select 
+            v-if="isAdmin" 
+            v-model="layoutCategory" 
+            class="category-select"
+          >
             <option value="basic">Basic</option>
             <option value="editorial">Editorial</option>
             <option value="portfolio">Portfolio</option>
             <option value="magazine">Magazine</option>
             <option value="custom">Custom</option>
           </select>
+          <div v-else class="category-locked">
+            <span class="category-badge">Custom</span>
+            <span class="hint">Only admins can create layouts in other categories</span>
+          </div>
         </div>
 
         <div class="control-section">
-          <label class="section-label">Page Dimensions</label>
+          <label class="section-label">Canvas Preview Size</label>
+          <p class="hint">These dimensions are only for the builder preview. Your layout will work with any page size.</p>
           <div class="dimension-inputs">
             <div class="input-group">
               <label>Width (mm)</label>
@@ -319,15 +328,20 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/authStore'
 
 const emit = defineEmits(['close', 'save'])
+const authStore = useAuthStore()
 
 const layoutName = ref('')
 const layoutCategory = ref('custom')
+
+// Only admins can create layouts in non-custom categories
+const isAdmin = computed(() => authStore.isAdmin)
 const pageWidth = ref(148)
 const pageHeight = ref(210)
 const slots = ref([
-  { x: 10, y: 10, width: 80, height: 40 }
+  { x: 10, y: 10, width: 80, height: 40, type: 'image' }
 ])
 const selectedSlotIndex = ref(0)
 const showGrid = ref(true)
@@ -693,20 +707,28 @@ const saveLayout = () => {
         }
       })
     } else {
-      // Keep image slots as is
-      imageSlots.push({ ...slot })
+      // Image slots - ensure they have the required type property
+      imageSlots.push({
+        x: slot.x,
+        y: slot.y,
+        width: slot.width,
+        height: slot.height,
+        type: 'image' // Required for rendering
+      })
     }
   })
   
   const layout = {
     id: `custom-${Date.now()}`,
     name: layoutName.value,
+    icon: '⭐', // Custom layouts get star icon
     category: layoutCategory.value,
-    width: pageWidth.value,
-    height: pageHeight.value,
+    // Don't include width/height - layouts should work with any page size
     slots: imageSlots,
-    textElements: textElements
+    textElements: textElements.length > 0 ? textElements : undefined // Only include if there are text elements
   }
+  
+  console.log('Saving custom layout:', JSON.stringify(layout, null, 2))
   
   emit('save', layout)
 }
@@ -824,6 +846,42 @@ const saveLayout = () => {
 .category-select:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+.category-locked {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.category-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: white;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.category-locked .hint {
+  font-size: 12px;
+  margin-top: 0;
 }
 
 .dimension-inputs {

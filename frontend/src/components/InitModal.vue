@@ -138,8 +138,8 @@
                 v-if="config.margin > 0"
               ></div>
               
-              <!-- Center fold line (for folded zines) -->
-              <div class="preview-fold"></div>
+              <!-- Center fold line (only for folded binding type) -->
+              <div class="preview-fold" v-if="config.bindingType === 'folded'"></div>
             </div>
           </div>
           
