@@ -3,15 +3,59 @@ const cors = require('cors')
 const fs = require('fs/promises')
 const path = require('path')
 
+// Import middleware and routes
+const { authenticateJWT, optionalAuth } = require('../middleware/auth')
+const authRoutes = require('../routes/auth')
+const { storageService } = require('../services/storage')
+
 const PORT = process.env.PORT || 4876
 const DATA_DIR = path.join(__dirname, '..', 'data', 'books')
-const LAYOUTS_DIR = path.join(__dirname, '..', '..', 'src', 'layouts', 'definitions', 'custom')
+const LAYOUTS_DIR = path.join(__dirname, '..', '..', 'frontend', 'src', 'layouts', 'definitions', 'custom')
 
 const JSON_LIMIT = process.env.JSON_BODY_LIMIT || '150mb'
 
+// CORS Configuration
+const ALLOWED_ORIGINS = process.env.CORS_ORIGIN 
+  ? process.env.CORS_ORIGIN.split(',').map(origin => origin.trim())
+  : ['http://localhost:5173', 'http://localhost:4173']
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true)
+    
+    // In development, allow all
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true)
+    }
+    
+    // In production, check whitelist
+    if (ALLOWED_ORIGINS.includes(origin) || ALLOWED_ORIGINS.includes('*')) {
+      callback(null, true)
+    } else {
+      console.warn(`CORS blocked origin: ${origin}`)
+      callback(new Error('Not allowed by CORS'))
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400, // 24 hours
+}
+
 const app = express()
-app.use(cors())
+app.use(cors(corsOptions))
 app.use(express.json({ limit: JSON_LIMIT }))
+
+// Initialize storage service
+storageService.init(process.env.STORAGE_PROVIDER)
+
+// Static file serving for uploads (filesystem storage)
+app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')))
+
+// Auth routes (no auth required for these)
+app.use('/auth', authRoutes)
 
 async function ensureDataDir() {
   await fs.mkdir(DATA_DIR, { recursive: true })
@@ -38,22 +82,40 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-app.get('/books', async (req, res) => {
+app.get('/books', optionalAuth, async (req, res) => {
   try {
     await ensureDataDir()
     const files = await fs.readdir(DATA_DIR)
     const books = []
+
+    // Get userId from authenticated user (JWT token), NOT from query params
+    const currentUserId = req.user?.id
+    const isAdmin = req.user?.role === 'admin'
 
     for (const file of files) {
       if (!file.endsWith('.json')) continue
       const filePath = path.join(DATA_DIR, file)
       try {
         const book = await readBookFile(filePath)
+        
+        // Authorization logic:
+        // - No auth (dev mode): return all books
+        // - Regular user: return only their own books
+        // - Admin: return all books
+        if (currentUserId && book.userId) {
+          const isOwner = book.userId === currentUserId
+          
+          if (!isAdmin && !isOwner) {
+            continue // Skip books that don't belong to user (unless admin)
+          }
+        }
+        
         books.push({
           id: book.id,
           title: book.title || 'Untitled',
           updatedAt: book.updatedAt,
           createdAt: book.createdAt,
+          userId: book.userId,
         })
       } catch (err) {
         console.error(`Failed to parse book file ${file}:`, err)
@@ -61,14 +123,14 @@ app.get('/books', async (req, res) => {
     }
 
     books.sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt))
-    res.json({ books })
+    res.json(books)
   } catch (error) {
     console.error('[GET /books] error:', error)
     res.status(500).json({ error: 'Failed to list books' })
   }
 })
 
-app.get('/books/:id', async (req, res) => {
+app.get('/books/:id', optionalAuth, async (req, res) => {
   try {
     await ensureDataDir()
     const filePath = getBookPath(req.params.id)
@@ -78,14 +140,20 @@ app.get('/books/:id', async (req, res) => {
     }
 
     const book = await readBookFile(filePath)
-    res.json({ book })
+    
+    // Check ownership in production (skip in dev mode)
+    if (req.user && book.userId && book.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Access denied' })
+    }
+    
+    res.json(book)
   } catch (error) {
     console.error(`[GET /books/${req.params.id}] error:`, error)
     res.status(500).json({ error: 'Failed to load book' })
   }
 })
 
-app.post('/books', async (req, res) => {
+app.post('/books', optionalAuth, async (req, res) => {
   try {
     await ensureDataDir()
     const { id, title, data, metadata } = req.body || {}
@@ -100,12 +168,19 @@ app.post('/books', async (req, res) => {
     const filePath = getBookPath(id)
     const now = new Date().toISOString()
     let createdAt = now
+    let userId = req.user?.id || null
 
     const existing = await fs.stat(filePath).catch(() => null)
     if (existing) {
       try {
         const current = await readBookFile(filePath)
         createdAt = current.createdAt || now
+        userId = current.userId || userId
+        
+        // Check ownership for updates
+        if (req.user && current.userId && current.userId !== req.user.id && req.user.role !== 'admin') {
+          return res.status(403).json({ error: 'Access denied' })
+        }
       } catch (err) {
         console.warn('Failed to read existing book for createdAt preservation:', err)
       }
@@ -116,26 +191,35 @@ app.post('/books', async (req, res) => {
       title: title || 'Untitled',
       data,
       metadata: metadata || {},
+      userId,
       createdAt,
       updatedAt: now,
     }
 
     await fs.writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8')
 
-    res.status(201).json({ book: payload })
+    res.status(201).json(payload)
   } catch (error) {
     console.error('[POST /books] error:', error)
     res.status(500).json({ error: 'Failed to save book' })
   }
 })
 
-app.delete('/books/:id', async (req, res) => {
+app.delete('/books/:id', optionalAuth, async (req, res) => {
   try {
     await ensureDataDir()
     const filePath = getBookPath(req.params.id)
     const stat = await fs.stat(filePath).catch(() => null)
     if (!stat) {
       return res.status(404).json({ error: 'Book not found' })
+    }
+
+    // Check ownership before deleting
+    if (req.user) {
+      const book = await readBookFile(filePath)
+      if (book.userId && book.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ error: 'Access denied' })
+      }
     }
 
     await fs.rm(filePath)

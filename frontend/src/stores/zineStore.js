@@ -80,7 +80,7 @@ export const useZineStore = defineStore('zine', {
     },
     
     addPage(layout) {
-      const id = Date.now() + Math.random()
+      const id = String(Date.now() + Math.random())
       const page = {
         id,
         layout: layout.type,

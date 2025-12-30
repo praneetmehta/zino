@@ -88,12 +88,9 @@ const pageDimensions = {
 
 ### ✅ Completed
 - `Canvas.vue` - pageStyle, pageWidthPx, pageHeightPx
-- `pdfExport_old.js` - page dimensions and font size calculations
+- `Canvas.vue` - getSlotStyle with per-slot margin calculations
 - Created centralized utility module
-
-### 🔄 Pending
-- Slot margin/gap calculations (to be implemented next)
-- Any other components using hardcoded conversion factors
+- All hardcoded conversion factors migrated
 
 ## Benefits
 

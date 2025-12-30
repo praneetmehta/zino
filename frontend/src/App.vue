@@ -60,7 +60,7 @@
       <div v-if="showFlipbook" class="flipbook-modal" @click.self="showFlipbook = false">
         <div class="flipbook-modal-content">
           <button class="close-btn" @click="showFlipbook = false">✕</button>
-          <FlipBook />
+          <FlipBook @close="showFlipbook = false" />
         </div>
       </div>
     </transition>

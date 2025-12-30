@@ -444,8 +444,8 @@ const getSlotInnerStyle = (slot) => {
     boxSizing: 'border-box',
   }
   
-  // Add background color if set and no image
-  if (slot.backgroundColor && !slot.assetId) {
+  // Add background color if set (shows in padding area when image is present)
+  if (slot.backgroundColor) {
     style.backgroundColor = slot.backgroundColor
   }
   
@@ -1262,14 +1262,18 @@ const handleContextDelete = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--muted);
   color: var(--text-muted);
   font-size: 13px;
-  font-weight: 500;
+  border-radius: 4px;
   transition: all var(--transition);
 }
 
-.slot:hover .slot-placeholder {
+/* Only show overlay background if no backgroundColor is set */
+.slot-placeholder:not([style*="background-color"]) {
+  background: var(--muted);
+}
+
+.slot:hover .slot-placeholder:not([style*="background-color"]) {
   background: color-mix(in srgb, var(--accent) 10%, var(--muted));
   color: var(--accent);
 }

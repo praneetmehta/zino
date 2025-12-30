@@ -45,20 +45,18 @@
       <button class="btn btn-outline" @click="openDocs">
         📘 Docs
       </button>
-      <button class="btn btn-outline" @click="$emit('save')" :disabled="!zineStore.isInitialized || saving">
+      <button class="btn btn-outline" @click="$emit('save')" data-action="save" :disabled="!zineStore.isInitialized || saving">
         <span v-if="saving">⏳ Saving…</span>
-        <span v-else>💾 Save to Library</span>
+        <span v-else>💾 Save</span>
       </button>
-      <button class="btn btn-outline" @click="$emit('load')" :disabled="loading">
+      <button class="btn btn-outline" @click="$emit('load')" data-action="load" :disabled="loading">
         <span v-if="loading">🔍 Loading…</span>
-        <span v-else>📂 Load from Library</span>
-      </button>
-      <button class="btn btn-outline" @click="$emit('reset')">
-        🔄 Reset
+        <span v-else>📂 Load</span>
       </button>
       <button class="btn btn-primary" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
         📥 Export PDF
       </button>
+      <UserProfile />
     </div>
   </header>
 </template>
@@ -66,6 +64,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useZineStore } from '../stores/zineStore'
+import UserProfile from './UserProfile.vue'
 
 const props = defineProps({
   saving: { type: Boolean, default: false },

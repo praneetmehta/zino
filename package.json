@@ -1,0 +1,29 @@
+{
+  "name": "ziner",
+  "version": "2.0.0",
+  "description": "Ziner - Production-ready zine creation tool",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "cd server && npm run dev",
+    "dev:client": "cd frontend && npm run dev",
+    "build": "cd frontend && npm run build",
+    "start:server": "cd server && npm start",
+    "install:all": "npm install && cd frontend && npm install && cd ../server && npm install",
+    "clean": "rm -rf frontend/node_modules server/node_modules node_modules frontend/dist",
+    "lint": "cd frontend && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/praneetmehta/zino.git"
+  },
+  "author": "Praneet Mehta",
+  "license": "MIT"
+}

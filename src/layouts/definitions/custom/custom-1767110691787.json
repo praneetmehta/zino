@@ -1,0 +1,16 @@
+{
+  "id": "custom-1767110691787",
+  "name": "some random layout",
+  "category": "custom",
+  "width": 148,
+  "height": 100,
+  "slots": [
+    {
+      "x": 9.833333333333332,
+      "y": 25.04721526305647,
+      "width": 80,
+      "height": 49.86702640200424
+    }
+  ],
+  "textElements": []
+}
