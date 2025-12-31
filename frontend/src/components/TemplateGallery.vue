@@ -150,19 +150,27 @@ async function selectTemplate(template) {
     if (props.mode === 'book') {
       // Clone book template
       const token = localStorage.getItem('token')
-      if (!token) {
+      const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true'
+      
+      if (!token && !skipAuth) {
         toast.error('Please sign in to use templates', 'Authentication Required')
         return
+      }
+
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add auth header only if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
       }
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/templates/books/${template.id}/clone`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          }
+          headers
         }
       )
 
@@ -180,19 +188,27 @@ async function selectTemplate(template) {
       }
 
       const token = localStorage.getItem('token')
-      if (!token) {
+      const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true'
+      
+      if (!token && !skipAuth) {
         toast.error('Please sign in to apply covers', 'Authentication Required')
         return
+      }
+
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      
+      // Add auth header only if token exists
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
       }
 
       const response = await fetch(
         `${import.meta.env.VITE_API_URL}/api/templates/covers/${template.id}/apply`,
         {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json'
-          },
+          headers,
           body: JSON.stringify({ bookId: props.bookId })
         }
       )

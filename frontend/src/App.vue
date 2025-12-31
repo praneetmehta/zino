@@ -679,19 +679,27 @@ const handleTemplateSelected = (result) => {
   if (result.type === 'book') {
     // Load the cloned book from template
     try {
-      zineStore.importFromJSON(result.data, {
+      console.log('Loading template:', result.data)
+      
+      // The book data is in result.data.data (nested structure from server)
+      if (!result.data || !result.data.data) {
+        throw new Error('Invalid book structure')
+      }
+      
+      zineStore.importFromJSON(result.data.data, {
         meta: {
           id: result.data.id,
-          title: result.data.name,
+          title: result.data.title || result.data.name,
           updatedAt: result.data.updatedAt,
         },
       })
       hasUnsavedChanges.value = false
       view.value = 'editor'
       showTemplateGallery.value = false
+      toast.success(`Loaded "${result.data.title || result.data.name}"`)
     } catch (error) {
       console.error('Failed to load template:', error)
-      toast.error('Failed to load template', 'Error')
+      toast.error(`Failed to load template: ${error.message}`, 'Error')
     }
   } else if (result.type === 'cover') {
     // Cover applied, reload the book
@@ -831,6 +839,16 @@ const startDemoMode = async () => {
 }
 
 const handleRequireLogin = (action) => {
+  // Skip auth check in development if VITE_SKIP_AUTH is true
+  if (import.meta.env.VITE_SKIP_AUTH === 'true') {
+    console.log('Auth skipped in development mode')
+    // Proceed with the action without requiring login
+    if (action === 'create') {
+      startNewProject()
+    }
+    return
+  }
+  
   const messages = {
     create: 'Sign in to create and save your own projects.',
     library: 'Sign in to access your saved projects.',

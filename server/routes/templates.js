@@ -76,24 +76,50 @@ router.post('/books/:id/clone', authenticateJWT, async (req, res) => {
     const templateData = await fs.readFile(templatePath, 'utf-8')
     const template = JSON.parse(templateData)
     
-    // Create new book from template
+    // Create new book from template in the format expected by zineStore
     const newBook = {
       id: `book-${Date.now()}`,
       userId: userId,
+      title: `${template.name} (Copy)`,
       name: `${template.name} (Copy)`,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      config: template.config,
-      pages: template.pages.map(page => ({
-        ...page,
-        id: `page-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        // Clear any images from slots
-        slots: page.slots?.map(slot => ({
-          ...slot,
-          imageId: null,
-          url: null
-        })) || []
-      })),
+      data: {
+        zineConfig: {
+          width: template.config.width,
+          height: template.config.height,
+          unit: template.config.unit,
+          bleed: template.config.bleed || 0,
+          margin: template.config.margin || 0,
+          slotInnerMarginPercent: 0,
+          bindingType: template.config.binding === 'perfect' ? 'flat' : 'folded'
+        },
+        mediaAssets: [],
+        pages: template.pages.map((page, index) => ({
+          id: `page-${Date.now()}-${index}`,
+          layout: page.layoutId || 'custom',
+          slots: (page.slots || []).map((slot, slotIndex) => ({
+            id: `slot-${Date.now()}-${index}-${slotIndex}`,
+            x: slot.x,
+            y: slot.y,
+            width: slot.width,
+            height: slot.height,
+            fit: slot.fit || 'cover',
+            imageId: null,
+            url: null
+          })),
+          textElements: (page.textElements || []).map((text, textIndex) => ({
+            id: text.id || `text-${Date.now()}-${index}-${textIndex}`,
+            type: 'text',
+            content: text.content,
+            x: text.x,
+            y: text.y,
+            width: text.width,
+            height: text.height,
+            style: text.style || {}
+          }))
+        }))
+      },
       metadata: {
         ...template.metadata,
         isFromTemplate: true,

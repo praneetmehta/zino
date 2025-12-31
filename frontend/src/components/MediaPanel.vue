@@ -225,6 +225,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { uploadImage } from '@/api/images'
 import { useNotification } from '@/composables/useNotification'
 import { getElementSpecsByCategory } from '@/utils/elementSpecs'
+import heic2any from 'heic2any'
 
 const zineStore = useZineStore()
 const authStore = useAuthStore()
@@ -332,9 +333,6 @@ const isActuallyHEIF = async (file) => {
 const convertHeifToJpeg = async (file) => {
   try {
     console.log(`🔄 Converting HEIF: ${file.name} (${file.type})`)
-    
-    // Use heic2any library for conversion
-    const heic2any = (await import('heic2any')).default
     
     const result = await heic2any({
       blob: file,
