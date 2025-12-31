@@ -1,0 +1,125 @@
+{
+  "id": "elegant-serif",
+  "name": "Elegant Serif",
+  "description": "Classic elegant design with serif typography",
+  "thumbnail": "/templates/thumbnails/elegant-serif-cover.jpg",
+  "category": "elegant",
+  "tags": ["elegant", "classic", "serif", "sophisticated"],
+  "coverType": "hardcover",
+  "front": {
+    "backgroundColor": "#f8f9fa",
+    "textElements": [
+      {
+        "id": "front-title",
+        "type": "text",
+        "content": "Book Title",
+        "x": 10,
+        "y": 35,
+        "width": 80,
+        "height": 30,
+        "style": {
+          "fontFamily": "Playfair Display",
+          "fontSize": 48,
+          "fontWeight": 700,
+          "color": "#2c3e50",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "front-author",
+        "type": "text",
+        "content": "Author Name",
+        "x": 10,
+        "y": 60,
+        "width": 80,
+        "height": 10,
+        "style": {
+          "fontFamily": "Lora",
+          "fontSize": 20,
+          "fontWeight": 400,
+          "color": "#7f8c8d",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "front-decoration",
+        "type": "text",
+        "content": "✦",
+        "x": 10,
+        "y": 55,
+        "width": 80,
+        "height": 5,
+        "style": {
+          "fontFamily": "Inter",
+          "fontSize": 24,
+          "color": "#95a5a6",
+          "textAlign": "center"
+        }
+      }
+    ],
+    "imageSlots": []
+  },
+  "back": {
+    "backgroundColor": "#ecf0f1",
+    "textElements": [
+      {
+        "id": "back-description",
+        "type": "text",
+        "content": "Add your book description here. This elegant design provides a sophisticated backdrop for your story.",
+        "x": 15,
+        "y": 25,
+        "width": 70,
+        "height": 50,
+        "style": {
+          "fontFamily": "Lora",
+          "fontSize": 14,
+          "color": "#2c3e50",
+          "textAlign": "left",
+          "lineHeight": 1.8
+        }
+      }
+    ],
+    "imageSlots": []
+  },
+  "spine": {
+    "backgroundColor": "#f8f9fa",
+    "textElements": [
+      {
+        "id": "spine-title",
+        "type": "text",
+        "content": "Book Title",
+        "x": 10,
+        "y": 40,
+        "width": 80,
+        "height": 10,
+        "style": {
+          "fontFamily": "Playfair Display",
+          "fontSize": 18,
+          "fontWeight": 600,
+          "color": "#2c3e50",
+          "textAlign": "center"
+        }
+      },
+      {
+        "id": "spine-author",
+        "type": "text",
+        "content": "Author",
+        "x": 10,
+        "y": 52,
+        "width": 80,
+        "height": 8,
+        "style": {
+          "fontFamily": "Lora",
+          "fontSize": 12,
+          "color": "#7f8c8d",
+          "textAlign": "center"
+        }
+      }
+    ]
+  },
+  "metadata": {
+    "author": "Zino Templates",
+    "version": "1.0",
+    "createdAt": "2025-12-31T00:00:00.000Z"
+  }
+}

@@ -38,7 +38,7 @@
       <input
         ref="fileInput"
         type="file"
-        accept="image/*"
+        accept="image/*,.heif,.heic"
         multiple
         @change="handleFileUpload"
         style="display: none"
@@ -298,28 +298,71 @@ const findExistingAsset = (file) => {
   )
 }
 
+// Check if file is actually HEIF by reading file signature
+const isActuallyHEIF = async (file) => {
+  try {
+    // Read first 12 bytes to check file signature
+    const slice = file.slice(0, 12)
+    const arrayBuffer = await slice.arrayBuffer()
+    const bytes = new Uint8Array(arrayBuffer)
+    
+    // HEIF/HEIC files have 'ftyp' at bytes 4-7 and 'heic', 'heix', 'hevc', 'hevx', 'mif1' at bytes 8-11
+    const ftypSignature = String.fromCharCode(...bytes.slice(4, 8))
+    const brandSignature = String.fromCharCode(...bytes.slice(8, 12))
+    
+    const isHeif = ftypSignature === 'ftyp' && 
+                   (brandSignature.startsWith('heic') || 
+                    brandSignature.startsWith('heix') ||
+                    brandSignature.startsWith('hevc') ||
+                    brandSignature.startsWith('hevx') ||
+                    brandSignature.startsWith('mif1'))
+    
+    if (isHeif) {
+      console.log(`🔍 Detected HEIF file: ${file.name} (signature: ${ftypSignature} ${brandSignature})`)
+    }
+    
+    return isHeif
+  } catch (error) {
+    console.error('Failed to check file signature:', error)
+    return false
+  }
+}
+
 // Convert HEIF/HEIC to JPEG
 const convertHeifToJpeg = async (file) => {
   try {
+    console.log(`🔄 Converting HEIF: ${file.name} (${file.type})`)
+    
     // Use heic2any library for conversion
     const heic2any = (await import('heic2any')).default
     
-    const convertedBlob = await heic2any({
+    const result = await heic2any({
       blob: file,
       toType: 'image/jpeg',
-      quality: 0.9
+      quality: 0.92
     })
     
+    // heic2any can return an array or single blob
+    const convertedBlob = Array.isArray(result) ? result[0] : result
+    
+    console.log(`✅ Converted blob type: ${convertedBlob.type}, size: ${convertedBlob.size}`)
+    
     // Create a new File object from the blob
+    const newFileName = file.name.replace(/\.(heic|heif|jpg|jpeg)$/i, '.jpg')
     const convertedFile = new File(
       [convertedBlob],
-      file.name.replace(/\.(heic|heif)$/i, '.jpg'),
-      { type: 'image/jpeg' }
+      newFileName,
+      { 
+        type: 'image/jpeg',
+        lastModified: Date.now()
+      }
     )
+    
+    console.log(`✅ Converted file: ${convertedFile.name}, type: ${convertedFile.type}, size: ${convertedFile.size}`)
     
     return convertedFile
   } catch (error) {
-    console.error('HEIF conversion failed:', error)
+    console.error('❌ HEIF conversion failed:', error)
     throw error
   }
 }
@@ -333,16 +376,25 @@ const processFiles = async (imageFiles) => {
   // Convert HEIF/HEIC files to JPEG
   const processedFiles = await Promise.all(
     imageFiles.map(async (file) => {
-      const isHeif = file.type === 'image/heif' || 
-                     file.type === 'image/heic' ||
-                     file.name.toLowerCase().endsWith('.heif') ||
-                     file.name.toLowerCase().endsWith('.heic')
+      // Check by extension first
+      const hasHeifExtension = file.name.toLowerCase().endsWith('.heif') ||
+                               file.name.toLowerCase().endsWith('.heic')
+      
+      // Check by MIME type
+      const hasHeifMimeType = file.type === 'image/heif' || 
+                              file.type === 'image/heic'
+      
+      // Check by file signature (for misnamed files like .jpg that are actually HEIF)
+      const hasHeifSignature = await isActuallyHEIF(file)
+      
+      const isHeif = hasHeifExtension || hasHeifMimeType || hasHeifSignature
       
       if (isHeif) {
         try {
-          toast.info(`Converting ${file.name} to JPEG...`, 'Converting', { duration: 2000 })
+          toast.info(`Converting ${file.name} to JPEG...`, 'Converting')
           return await convertHeifToJpeg(file)
         } catch (error) {
+          console.error(`Conversion failed for ${file.name}:`, error)
           toast.error(`Failed to convert ${file.name}. Please convert manually.`, 'Conversion Failed')
           return null
         }
@@ -498,8 +550,12 @@ const handleFileUpload = async (event) => {
   
   if (files.length === 0) return
   
-  // Filter for images only
-  const imageFiles = files.filter(file => file.type.startsWith('image/'))
+  // Filter for images only (including HEIF/HEIC which may not have proper MIME type)
+  const imageFiles = files.filter(file => {
+    const isImage = file.type.startsWith('image/')
+    const isHeif = file.name.toLowerCase().endsWith('.heif') || file.name.toLowerCase().endsWith('.heic')
+    return isImage || isHeif
+  })
   
   if (imageFiles.length === 0) {
     alert('Please select image files only')

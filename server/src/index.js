@@ -11,6 +11,7 @@ const { authenticateJWT, optionalAuth } = require('../middleware/auth')
 const authRoutes = require('../routes/auth')
 const imageRoutes = require('../routes/images')
 const publishedRoutes = require('../routes/published')
+const templateRoutes = require('../routes/templates')
 const { storageService } = require('../services/storage')
 const { databaseService } = require('../services/database')
 const { googleAuthService } = require('../services/auth/googleAuth')
@@ -101,6 +102,9 @@ app.use('/api/images', imageRoutes)
 
 // Published PDFs routes (requires auth)
 app.use('/api/published', publishedRoutes)
+
+// Templates routes
+app.use('/api/templates', templateRoutes)
 
 // Serve frontend static files from /zino path
 const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')

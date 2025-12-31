@@ -89,6 +89,15 @@
       @close="showLibrary = false"
       @load-book="handleLoadFromLibrary"
       @create-new="startNewProject"
+      @open-templates="showTemplateGallery = true"
+    />
+
+    <!-- Template Gallery -->
+    <TemplateGallery
+      v-if="showTemplateGallery"
+      mode="book"
+      @close="showTemplateGallery = false"
+      @template-selected="handleTemplateSelected"
     />
 
     <!-- Published PDFs Modal -->
@@ -136,6 +145,7 @@ import FlipBook from './components/FlipBook.vue'
 import PortfolioLanding from './components/PortfolioLanding.vue'
 import LandingPage from './components/LandingPage.vue'
 import LibraryModal from './components/LibraryModal.vue'
+import TemplateGallery from './components/TemplateGallery.vue'
 import LayoutBuilder from './components/LayoutBuilder.vue'
 import LayoutLibrary from './components/LayoutLibrary.vue'
 import GoogleOneTap from './components/GoogleOneTap.vue'
@@ -179,6 +189,7 @@ window.addEventListener('popstate', () => {
   view.value = getInitialView()
 })
 const showLibrary = ref(false)
+const showTemplateGallery = ref(false)
 const showPublications = ref(false)
 const selectedPublication = ref(null)
 const mediaPanelCollapsed = ref(false)
@@ -661,6 +672,30 @@ const handleLoadFromLibrary = (book) => {
   } catch (error) {
     console.error('Failed to import book:', error)
     toast.error(error.message, 'Load Failed')
+  }
+}
+
+const handleTemplateSelected = (result) => {
+  if (result.type === 'book') {
+    // Load the cloned book from template
+    try {
+      zineStore.importFromJSON(result.data, {
+        meta: {
+          id: result.data.id,
+          title: result.data.name,
+          updatedAt: result.data.updatedAt,
+        },
+      })
+      hasUnsavedChanges.value = false
+      view.value = 'editor'
+      showTemplateGallery.value = false
+    } catch (error) {
+      console.error('Failed to load template:', error)
+      toast.error('Failed to load template', 'Error')
+    }
+  } else if (result.type === 'cover') {
+    // Cover applied, reload the book
+    toast.success('Cover template applied successfully')
   }
 }
 

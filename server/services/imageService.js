@@ -14,7 +14,11 @@ class ImageService {
       'image/png',
       'image/gif',
       'image/webp',
-      'image/svg+xml'
+      'image/svg+xml',
+      'image/heif',
+      'image/heic',
+      'image/heif-sequence',
+      'image/heic-sequence'
     ]
     
     // Image size configurations
@@ -30,6 +34,53 @@ class ImageService {
    */
   isValidImage(mimeType) {
     return this.supportedMimeTypes.includes(mimeType)
+  }
+
+  /**
+   * Check if file is HEIF/HEIC by signature
+   */
+  isHEIF(buffer) {
+    try {
+      // Check file signature - HEIF files have 'ftyp' at bytes 4-7
+      const signature = buffer.toString('ascii', 4, 8)
+      const brand = buffer.toString('ascii', 8, 12)
+      
+      return signature === 'ftyp' && 
+             (brand.startsWith('heic') || 
+              brand.startsWith('heix') ||
+              brand.startsWith('hevc') ||
+              brand.startsWith('hevx') ||
+              brand.startsWith('mif1'))
+    } catch (error) {
+      return false
+    }
+  }
+
+  /**
+   * Convert HEIF to JPEG buffer
+   */
+  async convertHEIFToJPEG(buffer) {
+    try {
+      console.log('🔄 Converting HEIF to JPEG on server...')
+      
+      // Try to use Sharp with HEIF support
+      // If libheif is not available, this will fail gracefully
+      const image = sharp(buffer, {
+        unlimited: true,
+        failOnError: false
+      })
+      
+      // Convert to JPEG
+      const jpegBuffer = await image
+        .jpeg({ quality: 95, mozjpeg: true })
+        .toBuffer()
+      
+      console.log(`✅ HEIF converted: ${buffer.length} bytes → ${jpegBuffer.length} bytes`)
+      return jpegBuffer
+    } catch (error) {
+      console.error('❌ HEIF conversion failed:', error.message)
+      throw new Error('HEIF format not supported. Please convert to JPEG before uploading.')
+    }
   }
 
   /**
@@ -56,12 +107,27 @@ class ImageService {
     }
 
     const imageId = this.generateImageId()
-    const buffer = file.buffer || file
+    let buffer = file.buffer || file
 
     try {
+      console.log(`📸 Processing image: ${file.originalname}, type: ${file.mimetype}, size: ${buffer.length} bytes`)
+      
+      // Check if file is HEIF and convert to JPEG
+      if (this.isHEIF(buffer)) {
+        console.log('🔍 HEIF file detected, converting to JPEG...')
+        buffer = await this.convertHEIFToJPEG(buffer)
+        // Update mimetype after conversion
+        file.mimetype = 'image/jpeg'
+      }
+      
       // Get image metadata
-      const image = sharp(buffer)
+      const image = sharp(buffer, { 
+        failOnError: false,
+        unlimited: true
+      })
       const imageMetadata = await image.metadata()
+      
+      console.log(`✅ Image metadata: ${imageMetadata.format}, ${imageMetadata.width}x${imageMetadata.height}`)
 
       // Generate all variants
       const variants = {}
@@ -230,7 +296,10 @@ class ImageService {
    * Process image buffer to create resized variant
    */
   async resizeImage(buffer, options) {
-    const image = sharp(buffer)
+    const image = sharp(buffer, {
+      failOnError: false,
+      unlimited: true
+    })
       .resize(options.maxWidth, options.maxHeight, { 
         fit: 'inside', 
         withoutEnlargement: true 

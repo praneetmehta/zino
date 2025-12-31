@@ -4,6 +4,15 @@
       <div class="modal-container">
         <div class="modal-header">
           <h2>📚 Your Library</h2>
+          <button class="btn-templates" @click="$emit('open-templates')" title="Browse Templates">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+              <rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+            Templates
+          </button>
           <button class="close-btn" @click="close">✕</button>
         </div>
 
@@ -243,6 +252,7 @@ watch(() => props.isOpen, (newVal) => {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
 .modal-header h2 {
@@ -250,6 +260,32 @@ watch(() => props.isOpen, (newVal) => {
   font-weight: 700;
   color: var(--text-strong);
   margin: 0;
+  flex: 1;
+}
+
+.btn-templates {
+  padding: 10px 16px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.btn-templates:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.btn-templates svg {
+  flex-shrink: 0;
 }
 
 .close-btn {

@@ -8,7 +8,7 @@ const API_BASE_URL = env.apiUrl
 
 /**
  * Upload a single image
- * @param {File} file - The image file to upload
+ * @param {File} file - The image file to upload (should already be converted if HEIF)
  * @param {Object} metadata - Optional metadata (bookId, albumId, etc.)
  * @returns {Promise<Object>} Image metadata with id and URLs
  */
@@ -37,7 +37,7 @@ export async function uploadImage(file, metadata = {}) {
 
 /**
  * Upload multiple images
- * @param {File[]} files - Array of image files
+ * @param {File[]} files - Array of image files (should already be converted if HEIF)
  * @param {Object} metadata - Optional metadata
  * @returns {Promise<Object>} Upload results with images array
  */
