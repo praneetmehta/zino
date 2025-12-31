@@ -64,6 +64,9 @@
                 <span v-if="loading">🔍 Loading…</span>
                 <span v-else>📂 Open from Library</span>
               </button>
+              <button class="btn btn-ghost" @click="$emit('open-layout-builder')">
+                🎨 Layout Builder
+              </button>
             </template>
           </div>
           <div class="meta" v-if="lastSavedSummary">

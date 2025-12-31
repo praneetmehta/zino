@@ -94,35 +94,7 @@
       </transition>
     </div>
 
-    <!-- Zoom Controls -->
-    <div class="zoom-controls" v-if="zineStore.pages.length > 0">
-      <button class="zoom-btn" @click="zoomOut" :disabled="zoom <= 25" title="Zoom out (-)">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M5 7H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <div class="zoom-display" @click="resetZoom" title="Click to reset (100%)">
-        {{ zoom }}%
-      </div>
-      <button class="zoom-btn" @click="zoomIn" :disabled="zoom >= 200" title="Zoom in (+)">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M5 7H9M7 5V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        </svg>
-      </button>
-      <button class="zoom-btn" @click="fitToScreen" title="Fit to screen">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-          <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
-          <path d="M5 2V14M11 2V14M2 5H14M2 11H14" stroke="currentColor" stroke-width="1.5"/>
-        </svg>
-      </button>
-    </div>
-
     <div class="canvas-workspace" :class="{ 'editing-text': isTextBeingEdited }">
-      <div class="canvas-zoom-wrapper" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', minHeight: `${(100 / zoom) * 100}%` }">
       <div v-if="zineStore.pages.length === 0" class="empty-canvas">
         <div class="empty-message">
           <h3>👆 Select a layout above to create your first page</h3>
@@ -131,7 +103,7 @@
       </div>
 
       <div v-else class="pages-container">
-        <transition-group name="page-fade" tag="div" class="pages-stack">
+        <transition-group name="page-fade" tag="div" class="pages-stack" :class="{ 'spread-view': isSpreadView }">
           <div
             v-for="page in zineStore.pages"
             :key="page.id"
@@ -213,7 +185,6 @@
           </div>
         </transition-group>
       </div>
-      </div>
     </div>
     <TextToolbar
       :isVisible="textToolbarVisible"
@@ -286,11 +257,15 @@ const toolbarMode = ref('layouts')
 const toolbarCollapsed = ref(false)
 const isTextBeingEdited = ref(false)
 const selectedSlot = ref(null)
-const zoom = ref(100) // Zoom level percentage
+// const zoom = ref(100) // Zoom level percentage - DISABLED for now
 const showGuides = computed({
   get: () => zineStore.ui.showGuides,
   set: (value) => { zineStore.ui.showGuides = value }
 })
+
+// Check if we should show spread view (2 pages per row)
+// Flat/stapled = spreads (side by side), Folded = single column
+const isSpreadView = computed(() => zineStore.zineConfig?.bindingType !== 'folded')
 
 // Restore deeper crease effect
 
@@ -373,6 +348,7 @@ const contextMenuVisible = ref(false)
 const selectedElement = ref(null)
 const selectedElementType = ref(null)
 const selectedElementRef = ref(null) // { pageId, index } or { pageId, elementId }
+let contextMenuTransitionTimeout = null
 
 const pageStyle = computed(() => {
   const config = zineStore.zineConfig
@@ -572,28 +548,28 @@ const addPageWithLayout = (layout) => {
   })
 }
 
-// Zoom controls
-const zoomIn = () => {
-  if (zoom.value < 200) {
-    zoom.value = Math.min(zoom.value + 25, 200)
-  }
-}
-
-const zoomOut = () => {
-  if (zoom.value > 25) {
-    zoom.value = Math.max(zoom.value - 25, 25)
-  }
-}
-
-const resetZoom = () => {
-  zoom.value = 100
-}
-
-const fitToScreen = () => {
-  // Calculate ideal zoom to fit page in viewport
-  // For now, just set to 75% as a reasonable fit
-  zoom.value = 75
-}
+// Zoom controls - DISABLED for now
+// const zoomIn = () => {
+//   if (zoom.value < 200) {
+//     zoom.value = Math.min(zoom.value + 25, 200)
+//   }
+// }
+// 
+// const zoomOut = () => {
+//   if (zoom.value > 25) {
+//     zoom.value = Math.max(zoom.value - 25, 25)
+//   }
+// }
+// 
+// const resetZoom = () => {
+//   zoom.value = 100
+// }
+// 
+// const fitToScreen = () => {
+//   // Calculate ideal zoom to fit page in viewport
+//   // For now, just set to 75% as a reasonable fit
+//   zoom.value = 75
+// }
 
 const handleDragOver = (event) => {
   event.preventDefault()
@@ -737,41 +713,41 @@ const handleClickOutside = (event) => {
   }
 }
 
-// Keyboard shortcuts for zoom
-const handleZoomKeyboard = (e) => {
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
-  const cmdKey = isMac ? e.metaKey : e.ctrlKey
-  
-  // Cmd/Ctrl + Plus = Zoom in
-  if (cmdKey && (e.key === '+' || e.key === '=')) {
-    e.preventDefault()
-    zoomIn()
-    return
-  }
-  
-  // Cmd/Ctrl + Minus = Zoom out
-  if (cmdKey && (e.key === '-' || e.key === '_')) {
-    e.preventDefault()
-    zoomOut()
-    return
-  }
-  
-  // Cmd/Ctrl + 0 = Reset zoom
-  if (cmdKey && e.key === '0') {
-    e.preventDefault()
-    resetZoom()
-    return
-  }
-}
+// Keyboard shortcuts for zoom - DISABLED for now
+// const handleZoomKeyboard = (e) => {
+//   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+//   const cmdKey = isMac ? e.metaKey : e.ctrlKey
+//   
+//   // Cmd/Ctrl + Plus = Zoom in
+//   if (cmdKey && (e.key === '+' || e.key === '=')) {
+//     e.preventDefault()
+//     zoomIn()
+//     return
+//   }
+//   
+//   // Cmd/Ctrl + Minus = Zoom out
+//   if (cmdKey && (e.key === '-' || e.key === '_')) {
+//     e.preventDefault()
+//     zoomOut()
+//     return
+//   }
+//   
+//   // Cmd/Ctrl + 0 = Reset zoom
+//   if (cmdKey && e.key === '0') {
+//     e.preventDefault()
+//     resetZoom()
+//     return
+//   }
+// }
 
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
-  window.addEventListener('keydown', handleZoomKeyboard)
+  // window.addEventListener('keydown', handleZoomKeyboard)
 })
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
-  window.removeEventListener('keydown', handleZoomKeyboard)
+  // window.removeEventListener('keydown', handleZoomKeyboard)
 })
 
 // Debounce timer for style updates
@@ -838,11 +814,29 @@ const selectSlot = (pageId, index) => {
   const page = zineStore.getPageById(pageId)
   if (!page || !page.slots[index]) return
   
-  selectedElement.value = page.slots[index]
-  selectedElementType.value = 'slot'
-  selectedElementRef.value = { pageId, index }
-  selectedSlot.value = { pageId, index }
-  contextMenuVisible.value = true
+  // If context menu is already open for a different element, close and reopen with transition
+  const isDifferentElement = contextMenuVisible.value && 
+    (selectedElementType.value !== 'slot' || 
+     selectedElementRef.value?.pageId !== pageId || 
+     selectedElementRef.value?.index !== index)
+  
+  if (isDifferentElement) {
+    contextMenuVisible.value = false
+    if (contextMenuTransitionTimeout) clearTimeout(contextMenuTransitionTimeout)
+    contextMenuTransitionTimeout = setTimeout(() => {
+      selectedElement.value = page.slots[index]
+      selectedElementType.value = 'slot'
+      selectedElementRef.value = { pageId, index }
+      selectedSlot.value = { pageId, index }
+      contextMenuVisible.value = true
+    }, 150) // Brief delay for visual feedback
+  } else {
+    selectedElement.value = page.slots[index]
+    selectedElementType.value = 'slot'
+    selectedElementRef.value = { pageId, index }
+    selectedSlot.value = { pageId, index }
+    contextMenuVisible.value = true
+  }
 }
 
 const selectTextElement = (pageId, elementId) => {
@@ -852,25 +846,64 @@ const selectTextElement = (pageId, elementId) => {
   const element = page.textElements.find(el => el.id === elementId)
   if (!element) return
   
-  selectedElement.value = element
-  selectedElementType.value = 'text'
-  selectedElementRef.value = { pageId, elementId }
-  contextMenuVisible.value = true
+  // If context menu is already open for a different element, close and reopen with transition
+  const isDifferentElement = contextMenuVisible.value && 
+    (selectedElementType.value !== 'text' || 
+     selectedElementRef.value?.pageId !== pageId || 
+     selectedElementRef.value?.elementId !== elementId)
+  
+  if (isDifferentElement) {
+    contextMenuVisible.value = false
+    if (contextMenuTransitionTimeout) clearTimeout(contextMenuTransitionTimeout)
+    contextMenuTransitionTimeout = setTimeout(() => {
+      selectedElement.value = element
+      selectedElementType.value = 'text'
+      selectedElementRef.value = { pageId, elementId }
+      contextMenuVisible.value = true
+    }, 150) // Brief delay for visual feedback
+  } else {
+    selectedElement.value = element
+    selectedElementType.value = 'text'
+    selectedElementRef.value = { pageId, elementId }
+    contextMenuVisible.value = true
+  }
 }
 
 const openPageContextMenu = (page) => {
   // Select page and open context menu for page settings
-  zineStore.selectPage(page.id)
-  selectedElement.value = {
-    ...page,
-    unit: zineStore.zineConfig.unit
+  const pageElement = {
+    id: page.id,
+    type: page.type,
+    // Add any other page properties you want to show
   }
-  selectedElementType.value = 'page'
-  selectedElementRef.value = { pageId: page.id }
-  contextMenuVisible.value = true
+  
+  // If context menu is already open for a different element, close and reopen with transition
+  const isDifferentElement = contextMenuVisible.value && 
+    (selectedElementType.value !== 'page' || 
+     selectedElementRef.value?.pageId !== page.id)
+  
+  if (isDifferentElement) {
+    contextMenuVisible.value = false
+    if (contextMenuTransitionTimeout) clearTimeout(contextMenuTransitionTimeout)
+    contextMenuTransitionTimeout = setTimeout(() => {
+      selectedElement.value = pageElement
+      selectedElementType.value = 'page'
+      selectedElementRef.value = { pageId: page.id }
+      contextMenuVisible.value = true
+    }, 150) // Brief delay for visual feedback
+  } else {
+    selectedElement.value = pageElement
+    selectedElementType.value = 'page'
+    selectedElementRef.value = { pageId: page.id }
+    contextMenuVisible.value = true
+  }
 }
 
 const closeContextMenu = () => {
+  if (contextMenuTransitionTimeout) {
+    clearTimeout(contextMenuTransitionTimeout)
+    contextMenuTransitionTimeout = null
+  }
   contextMenuVisible.value = false
   selectedElement.value = null
   selectedElementType.value = null
@@ -1004,67 +1037,8 @@ const handleSetPageMargin = (margin) => {
   position: relative;
 }
 
-/* Zoom Controls */
-.zoom-controls {
-  position: absolute;
-  bottom: 24px;
-  left: 24px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel-bg);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 8px;
-  box-shadow: var(--shadow-lg);
-  z-index: 50;
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-}
-
-.zoom-btn {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.zoom-btn:hover:not(:disabled) {
-  background: var(--border);
-  transform: translateY(-1px);
-}
-
-.zoom-btn:active:not(:disabled) {
-  transform: translateY(0);
-}
-
-.zoom-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-.zoom-display {
-  min-width: 60px;
-  text-align: center;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  padding: 0 8px;
-  cursor: pointer;
-  user-select: none;
-  font-variant-numeric: tabular-nums;
-}
-
-.zoom-display:hover {
-  color: var(--accent);
-}
+/* Zoom Controls - DISABLED for now */
+/* .zoom-controls { ... } */
 
 .toolbar {
   background: var(--panel-bg);
@@ -1322,13 +1296,8 @@ const handleSetPageMargin = (margin) => {
   align-items: flex-start;
 }
 
-.canvas-zoom-wrapper {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  transition: transform 0.2s ease;
-}
+/* .canvas-zoom-wrapper - DISABLED for now */
+/* .canvas-zoom-wrapper { ... } */
 
 /* Disable hover effects when text is being edited */
 .canvas-workspace.editing-text .page-canvas:hover,
@@ -1375,15 +1344,33 @@ const handleSetPageMargin = (margin) => {
   gap: 40px;
 }
 
-
 .pages-stack {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 32px;
   align-items: center;
 }
 
-.pages-stack { display: contents; }
+/* Spread view: 2 pages per row for flat/stapled binding */
+.pages-stack.spread-view {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start; /* Align pages to top */
+  gap: 24px;
+  max-width: 1224px; /* Max 2 pages: (600px * 2) + 24px gap */
+}
+
+.pages-stack.spread-view .page-wrapper {
+  flex: 0 0 600px; /* Fixed width per page */
+  max-width: 600px;
+  align-items: flex-start; /* Override center alignment */
+}
+
+/* Remove extra margins in spread view */
+.pages-stack.spread-view .page-wrapper:first-child {
+  margin-top: 0;
+}
 
 .page {
   position: relative;
@@ -1445,7 +1432,7 @@ const handleSetPageMargin = (margin) => {
 .page-inner {
   position: absolute;
   inset: 0;
-  pointer-events: none;
+  /* pointer-events: none; */ /* Removed - was blocking drag and drop */
 }
 
 .slot-inner {
