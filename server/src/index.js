@@ -104,14 +104,26 @@ app.use('/api/published', publishedRoutes)
 
 // Serve frontend static files from /zino path
 const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')
-app.use('/zino', express.static(FRONTEND_DIST, {
-  // Don't serve index.html for assets
-  index: false
+
+// Serve static assets with proper MIME types
+app.use('/zino/assets', express.static(path.join(FRONTEND_DIST, 'assets'), {
+  maxAge: '1y',
+  immutable: true
 }))
 
-// Fallback: serve index.html for SPA routes
-// Use regex to exclude asset paths
-app.get(/^\/zino\/(?!assets\/|favicon|.*\.(ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot)$).*/, (req, res) => {
+// Serve other static files (favicon, etc.)
+app.use('/zino', express.static(FRONTEND_DIST, {
+  index: false,
+  maxAge: '1h'
+}))
+
+// Fallback: serve index.html for SPA routes (only for non-asset paths)
+app.get('/zino/*', (req, res, next) => {
+  // Skip if it's an asset request
+  if (req.path.startsWith('/zino/assets/') || 
+      req.path.match(/\.(ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot|css|js)$/)) {
+    return next()
+  }
   res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
 })
 
