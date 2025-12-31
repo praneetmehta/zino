@@ -99,6 +99,10 @@ async function ensureLayoutsDir() {
   await fs.mkdir(LAYOUTS_DIR, { recursive: true })
 }
 
+async function ensureDataDir() {
+  await fs.mkdir(DATA_DIR, { recursive: true })
+}
+
 function getBookPath(bookId) {
   const safeId = String(bookId).trim()
   if (!safeId) {
