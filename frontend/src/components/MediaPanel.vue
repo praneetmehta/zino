@@ -229,6 +229,7 @@ import { getElementSpecsByCategory } from '@/utils/elementSpecs'
 const zineStore = useZineStore()
 const authStore = useAuthStore()
 const { toast } = useNotification()
+const fileInput = ref(null)
 const isCollapsed = ref(false)
 const isUploading = ref(false)
 const imagesExpanded = ref(true)
