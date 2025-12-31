@@ -10,8 +10,17 @@ const { StorageInterface } = require('./StorageInterface')
 class FilesystemStorage extends StorageInterface {
   constructor(config = {}) {
     super()
-    this.uploadDir = config.uploadDir || path.join(__dirname, '../../data/uploads')
+    
+    // Use Railway volume path if available, otherwise local data directory
+    const VOLUME_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, '../../data')
+    this.uploadDir = config.uploadDir || path.join(VOLUME_PATH, 'uploads')
+    
+    // Construct base URL from environment
     this.baseUrl = config.baseUrl || process.env.BASE_URL || 'http://localhost:4876'
+    
+    console.log(`📦 Storage upload directory: ${this.uploadDir}`)
+    console.log(`📦 Storage base URL: ${this.baseUrl}`)
+    
     this.ensureUploadDir()
   }
 

@@ -77,39 +77,6 @@
           <small>Applied inside each placeholder by default. You can tweak per placeholder later.</small>
         </div>
 
-        <div class="form-group">
-          <label>Binding Type</label>
-          <div class="radio-group">
-            <label class="radio-option">
-              <input type="radio" value="folded" v-model="config.bindingType" />
-              <span>Folded (Center Fold)</span>
-            </label>
-            <label class="radio-option">
-              <input type="radio" value="flat" v-model="config.bindingType" />
-              <span>Flat (No Fold)</span>
-            </label>
-          </div>
-          <small>How pages are bound together. Folded shows a center crease.</small>
-        </div>
-
-        <div class="preset-buttons">
-          <button type="button" class="btn btn-outline" @click="applyPreset('postcard')">
-            Postcard (148×100mm)
-          </button>
-          <button type="button" class="btn btn-outline" @click="applyPreset('a4')">
-            A4 (210×297mm)
-          </button>
-          <button type="button" class="btn btn-outline" @click="applyPreset('a5')">
-            A5 (148×210mm)
-          </button>
-          <button type="button" class="btn btn-outline" @click="applyPreset('letter')">
-            Letter (216×279mm)
-          </button>
-          <button type="button" class="btn btn-outline" @click="applyPreset('square')">
-            Square (200×200mm)
-          </button>
-        </div>
-
         <div class="modal-actions">
           <button type="submit" class="btn btn-primary">Create Zine</button>
         </div>
@@ -161,6 +128,44 @@
               <span class="label">Safe Area:</span>
               <span class="value">{{ config.margin }} {{ config.unit }}</span>
             </div>
+          </div>
+        </div>
+
+        <!-- Binding Type -->
+        <div class="form-group">
+          <label>Binding Type</label>
+          <div class="radio-group">
+            <label class="radio-option">
+              <input type="radio" value="folded" v-model="config.bindingType" />
+              <span>Folded (Center Fold)</span>
+            </label>
+            <label class="radio-option">
+              <input type="radio" value="flat" v-model="config.bindingType" />
+              <span>Flat (No Fold)</span>
+            </label>
+          </div>
+          <small>How pages are bound together. Folded shows a center crease.</small>
+        </div>
+
+        <!-- Size Presets -->
+        <div class="form-group">
+          <label>Size Presets</label>
+          <div class="preset-buttons">
+            <button type="button" class="btn btn-outline" @click="applyPreset('postcard')">
+              Postcard (148×100mm)
+            </button>
+            <button type="button" class="btn btn-outline" @click="applyPreset('a4')">
+              A4 (210×297mm)
+            </button>
+            <button type="button" class="btn btn-outline" @click="applyPreset('a5')">
+              A5 (148×210mm)
+            </button>
+            <button type="button" class="btn btn-outline" @click="applyPreset('letter')">
+              Letter (216×279mm)
+            </button>
+            <button type="button" class="btn btn-outline" @click="applyPreset('square')">
+              Square (200×200mm)
+            </button>
           </div>
         </div>
       </div>
@@ -421,7 +426,6 @@ const marginPercent = computed(() => {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 10px;
-  margin-bottom: 28px;
 }
 
 .modal-actions {
@@ -440,7 +444,34 @@ const marginPercent = computed(() => {
 .preview-panel {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+.preview-panel .form-group {
+  margin-bottom: 0;
+}
+
+.preview-panel .form-group label {
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.preview-panel .radio-option {
+  padding: 10px 14px;
+}
+
+.preview-panel .radio-option span {
+  font-size: 13px;
+}
+
+.preview-panel small {
+  font-size: 11px;
+  margin-top: 4px;
+}
+
+.preview-panel .btn-outline {
+  padding: 8px 12px;
+  font-size: 12px;
 }
 
 .preview-panel h3 {

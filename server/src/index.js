@@ -15,8 +15,14 @@ const { databaseService } = require('../services/database')
 const { googleAuthService } = require('../services/auth/googleAuth')
 
 const PORT = process.env.PORT || 4876
-const DATA_DIR = path.join(__dirname, '..', 'data', 'books')
-const LAYOUTS_DIR = path.join(__dirname, '..', 'data', 'customLayouts')
+
+// Use Railway volume path if available, otherwise local data directory
+const VOLUME_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, '..', 'data')
+const DATA_DIR = path.join(VOLUME_PATH, 'books')
+const LAYOUTS_DIR = path.join(VOLUME_PATH, 'customLayouts')
+
+console.log(`📁 Data directory: ${DATA_DIR}`)
+console.log(`📁 Layouts directory: ${LAYOUTS_DIR}`)
 
 const JSON_LIMIT = process.env.JSON_BODY_LIMIT || '150mb'
 
@@ -75,7 +81,9 @@ async function initializeServices() {
 }
 
 // Static file serving for uploads (filesystem storage)
-app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')))
+const UPLOADS_PATH = path.join(VOLUME_PATH, 'uploads')
+console.log(`📁 Uploads directory: ${UPLOADS_PATH}`)
+app.use('/uploads', express.static(UPLOADS_PATH))
 
 // Auth routes (no auth required for these)
 app.use('/auth', authRoutes)
