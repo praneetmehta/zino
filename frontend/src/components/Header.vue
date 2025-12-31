@@ -42,8 +42,12 @@
         <span v-if="saving">⏳ Saving…</span>
         <span v-else>💾 Save</span>
       </button>
-      <button class="btn btn-primary" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
+      <button class="btn btn-outline" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
         📥 Export PDF
+      </button>
+      <button class="btn btn-primary" @click="$emit('publish')" :disabled="zineStore.pageCount === 0 || publishing">
+        <span v-if="publishing">⏳ Publishing…</span>
+        <span v-else>🚀 Publish</span>
       </button>
       <UserProfile />
     </div>
@@ -57,13 +61,14 @@ import UserProfile from './UserProfile.vue'
 
 const props = defineProps({
   saving: { type: Boolean, default: false },
+  publishing: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
   showBack: { type: Boolean, default: false },
   hasUnsavedChanges: { type: Boolean, default: false },
 })
 
 const zineStore = useZineStore()
-defineEmits(['export', 'reset', 'save', 'load', 'go-home'])
+defineEmits(['export', 'publish', 'reset', 'save', 'load', 'go-home'])
 
 const projectTitle = computed(() => zineStore.projectMeta.title?.trim() || '')
 

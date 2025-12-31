@@ -25,6 +25,7 @@ export const useAuthStore = defineStore('auth', () => {
   const userName = computed(() => user.value?.name || 'Guest')
   const userEmail = computed(() => user.value?.email || '')
   const isTemp = computed(() => user.value?.isTemp || false)
+  const token = computed(() => authService.getToken())
 
   // Actions
   async function init() {
@@ -148,6 +149,7 @@ export const useAuthStore = defineStore('auth', () => {
     userName,
     userEmail,
     isTemp,
+    token,
 
     // Actions
     init,

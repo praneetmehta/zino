@@ -25,11 +25,13 @@
     <template v-else>
       <Header
         :saving="isSaving"
+        :publishing="isPublishing"
         :loading="isLoadingRemote"
         :show-back="view !== 'landing'"
         :has-unsaved-changes="hasUnsavedChanges"
         @go-home="goHome"
         @export="handleExport"
+        @publish="handlePublish"
         @reset="handleReset"
         @save="handleSave"
         @load="handleLoad"
@@ -75,8 +77,18 @@
       @create-new="startNewProject"
     />
 
+    <!-- Published PDFs Modal -->
+    <PublishedPDFsModal
+      :is-open="showPublications"
+      @close="showPublications = false"
+    />
+
     <!-- Google One Tap (shows automatically when not logged in) -->
     <GoogleOneTap />
+
+    <!-- Notification System -->
+    <NotificationToast ref="toastRef" />
+    <ConfirmDialog ref="confirmRef" />
   </div>
 </template>
 
@@ -96,17 +108,26 @@ import LibraryModal from './components/LibraryModal.vue'
 import LayoutBuilder from './components/LayoutBuilder.vue'
 import LayoutLibrary from './components/LayoutLibrary.vue'
 import GoogleOneTap from './components/GoogleOneTap.vue'
+import PublishedPDFsModal from './components/PublishedPDFsModal.vue'
+import NotificationToast from './components/NotificationToast.vue'
+import ConfirmDialog from './components/ConfirmDialog.vue'
+import { setToastInstance, setConfirmInstance, useNotification } from './composables/useNotification'
 import { exportToPDF } from './utils/pdfExport'
+import { publishToPDF } from './utils/pdfPublish'
 import { listBooks, saveBook, getBook } from './api/books'
 
 const zineStore = useZineStore()
 const authStore = useAuthStore()
 const commandBar = ref(null)
+const toastRef = ref(null)
+const confirmRef = ref(null)
 const showFlipbook = ref(false)
 const isSaving = ref(false)
+const isPublishing = ref(false)
 const isLoadingRemote = ref(false)
 const view = ref('landing') // landing | init | editor
 const showLibrary = ref(false)
+const showPublications = ref(false)
 const mediaPanelCollapsed = ref(false)
 const pagePanelCollapsed = ref(false)
 const hasUnsavedChanges = ref(false)
@@ -194,7 +215,7 @@ const handleInitialize = async (config) => {
     // Still proceed to editor, but without saved ID
     zineStore.setProjectMeta({ id: bookId, title, updatedAt: null })
     view.value = 'editor'
-    alert('Book created, but auto-save failed. Please save manually.')
+    toast.warning('Book created, but auto-save failed. Please save manually.', 'Warning')
   } finally {
     isSaving.value = false
   }
@@ -204,28 +225,100 @@ const handleExport = () => {
   exportToPDF(zineStore)
 }
 
-const handleReset = () => {
-  if (confirm('Are you sure you want to reset? All progress will be lost.')) {
+const { toast, confirm } = useNotification()
+
+const handlePublish = async () => {
+  if (!zineStore.isInitialized || zineStore.pageCount === 0) {
+    toast.warning('No pages to publish')
+    return
+  }
+  
+  // Check if user is authenticated (skip check in dev mode with VITE_SKIP_AUTH)
+  const skipAuth = import.meta.env.VITE_SKIP_AUTH === 'true'
+  if (!skipAuth && !authStore.isAuthenticated) {
+    toast.warning('Please sign in to publish your zine')
+    return
+  }
+  
+  try {
+    isPublishing.value = true
+    
+    // Use temp token in dev mode if not authenticated
+    const token = authStore.token || (skipAuth ? 'dev-token' : null)
+    if (!token) {
+      throw new Error('No authentication token available')
+    }
+    
+    // Publish PDF to server
+    const publication = await publishToPDF(zineStore, token)
+    
+    console.log('✅ Published successfully:', publication)
+    
+    // Show success message with option to view or order print
+    const action = await confirm(
+      `Your zine "${publication.title}" has been published!\n\nView your published PDFs?`,
+      {
+        title: '🎉 Published Successfully!',
+        type: 'success',
+        confirmText: 'View PDFs',
+        cancelText: 'Continue Editing'
+      }
+    )
+    
+    if (action) {
+      // Show publications modal
+      showPublications.value = true
+    }
+  } catch (error) {
+    console.error('Failed to publish:', error)
+    toast.error(error.message, 'Publish Failed')
+  } finally {
+    isPublishing.value = false
+  }
+}
+
+const handleReset = async () => {
+  const confirmed = await confirm(
+    'All progress will be lost. This action cannot be undone.',
+    {
+      title: 'Reset Project?',
+      type: 'danger',
+      confirmText: 'Reset',
+      cancelText: 'Keep Editing'
+    }
+  )
+  
+  if (confirmed) {
     zineStore.reset()
     view.value = 'init'
+    toast.info('Project reset')
   }
 }
 
 const handleSave = async () => {
   if (!zineStore.isInitialized) {
-    alert('No project to save')
+    toast.warning('No project to save')
     return
   }
   
   // Check if user is authenticated
   if (!authStore.isAuthenticated) {
-    alert('Please sign in to save your project. You can continue working in demo mode, but changes won\'t be saved.')
+    toast.warning('Please sign in to save your project', 'Sign In Required')
     return
   }
   
   // Prevent saving demo projects
   if (zineStore.projectMeta.id === 'demo') {
-    if (confirm('This is a demo project. Would you like to sign in to save it as your own?')) {
+    const confirmed = await confirm(
+      'This is a demo project. Would you like to sign in to save it as your own?',
+      {
+        title: 'Demo Project',
+        type: 'info',
+        confirmText: 'Sign In',
+        cancelText: 'Cancel'
+      }
+    )
+    if (confirmed) {
       handleRequireLogin('save')
     }
     return
@@ -250,11 +343,11 @@ const handleSave = async () => {
       zineStore.setProjectMeta({ id: saved.id, title: saved.title, updatedAt: saved.updatedAt })
       hasUnsavedChanges.value = false // Mark as saved
       view.value = 'editor'
-      alert(`✓ Saved "${saved.title}"`) // user feedback
+      toast.success(`Saved "${saved.title}"`)
     })
     .catch((error) => {
       console.error('Failed to save project:', error)
-      alert(`Failed to save project: ${error.message}`)
+      toast.error(error.message, 'Save Failed')
     })
     .finally(() => {
       isSaving.value = false
@@ -267,7 +360,7 @@ const handleLoad = () => {
 
 const handleLoadFromLibrary = (book) => {
   if (!book || !book.data) {
-    alert('Invalid book data')
+    toast.error('Invalid book data')
     return
   }
 
@@ -282,30 +375,45 @@ const handleLoadFromLibrary = (book) => {
     hasUnsavedChanges.value = false // Loaded project starts as saved
     view.value = 'editor'
     showLibrary.value = false
+    toast.success(`Loaded "${book.title || book.id}"`)
   } catch (error) {
     console.error('Failed to import book:', error)
-    alert(`Failed to load book: ${error.message}`)
+    toast.error(error.message, 'Load Failed')
   }
 }
 
 const openCommandBar = () => {
   commandBar.value?.open()
 }
-const startNewProject = () => {
+const startNewProject = async () => {
   if (hasUnsavedChanges.value && zineStore.isInitialized) {
-    if (!confirm('You have unsaved changes. Start a new project anyway?')) {
-      return
-    }
+    const confirmed = await confirm(
+      'You have unsaved changes that will be lost.',
+      {
+        title: 'Unsaved Changes',
+        type: 'warning',
+        confirmText: 'Start New',
+        cancelText: 'Cancel'
+      }
+    )
+    if (!confirmed) return
   }
   hasUnsavedChanges.value = false
   view.value = 'init'
 }
 
-const startDemoMode = () => {
+const startDemoMode = async () => {
   if (hasUnsavedChanges.value && zineStore.isInitialized) {
-    if (!confirm('You have unsaved changes. Start demo anyway?')) {
-      return
-    }
+    const confirmed = await confirm(
+      'You have unsaved changes that will be lost.',
+      {
+        title: 'Unsaved Changes',
+        type: 'warning',
+        confirmText: 'Start Demo',
+        cancelText: 'Cancel'
+      }
+    )
+    if (!confirmed) return
   }
   
   // Load demo photobook
@@ -417,11 +525,18 @@ const handleRequireLogin = (context) => {
   // TODO: Show proper login modal/redirect instead of alert
 }
 
-const goHome = () => {
+const goHome = async () => {
   if (hasUnsavedChanges.value && zineStore.isInitialized) {
-    if (!confirm('You have unsaved changes. Return to home anyway?')) {
-      return
-    }
+    const confirmed = await confirm(
+      'You have unsaved changes that will be lost.',
+      {
+        title: 'Return to Home?',
+        type: 'warning',
+        confirmText: 'Go Home',
+        cancelText: 'Cancel'
+      }
+    )
+    if (!confirmed) return
   }
   hasUnsavedChanges.value = false
   view.value = 'landing'
@@ -449,10 +564,10 @@ const handleSaveLayout = async (layout) => {
     view.value = 'layout-library'
     
     // Show success message
-    alert(`Layout "${layout.name}" saved successfully!`)
+    toast.success(`Layout "${layout.name}" saved successfully!`)
   } catch (error) {
     console.error('Failed to save layout:', error)
-    alert(error.message || 'Failed to save layout')
+    toast.error(error.message || 'Failed to save layout', 'Save Failed')
   }
 }
 
@@ -461,6 +576,27 @@ const lastSavedSummary = computed(() => {
   const updated = formatRelativeTime(zineStore.projectMeta.updatedAt)
   if (!updated) return `${zineStore.projectMeta.title || zineStore.projectMeta.id}`
   return `${zineStore.projectMeta.title || zineStore.projectMeta.id} • ${updated}`
+})
+
+// Listen for show-publications event from UserProfile
+onMounted(() => {
+  // Initialize notification system
+  if (toastRef.value) {
+    setToastInstance(toastRef.value)
+  }
+  if (confirmRef.value) {
+    setConfirmInstance(confirmRef.value)
+  }
+
+  window.addEventListener('show-publications', () => {
+    showPublications.value = true
+  })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('show-publications', () => {
+    showPublications.value = true
+  })
 })
 </script>
 

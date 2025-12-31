@@ -45,6 +45,10 @@
             <span>My Library</span>
             <span class="count">{{ bookCount }}</span>
           </button>
+          <button class="menu-item" @click="viewPublications">
+            <span class="item-icon">📄</span>
+            <span>Published PDFs</span>
+          </button>
           <button v-if="authStore.isAdmin" class="menu-item" @click="viewAdmin">
             <span class="item-icon">⚙️</span>
             <span>Admin Dashboard</span>
@@ -118,6 +122,12 @@ function viewLibrary() {
   menuOpen.value = false
   // Trigger library modal
   document.querySelector('[data-action="load"]')?.click()
+}
+
+function viewPublications() {
+  menuOpen.value = false
+  // Emit event to parent to show publications modal
+  window.dispatchEvent(new CustomEvent('show-publications'))
 }
 
 function viewAdmin() {
