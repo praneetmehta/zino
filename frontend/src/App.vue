@@ -60,13 +60,19 @@
       v-if="view === 'editor'"
       ref="commandBar"
       @export="handleExport"
-      @reset="handleReset"
       @save="handleSave"
       @load="handleLoad"
       @flipbook="showFlipbook = true"
     />
     
-    <!-- Flipbook Modal -->
+    <!-- Order Print View -->
+    <OrderPrint 
+      v-else-if="view === 'order-print'" 
+      :publication="selectedPublication"
+      @back="view = 'editor'; selectedPublication = null" 
+    />
+
+    <!-- Editor View -->
     <transition name="fade">
       <div v-if="showFlipbook" class="flipbook-modal" @click.self="showFlipbook = false">
         <div class="flipbook-modal-content">
@@ -85,14 +91,14 @@
     />
 
     <!-- Published PDFs Modal -->
-    <PublishedPDFsModal
-      :is-open="showPublications"
+    <PublishedPDFsModal 
+      :is-open="showPublications" 
       @close="showPublications = false"
+      @order-print="handleOrderFromPublication"
     />
 
     <!-- Google One Tap (shows automatically when not logged in) -->
     <GoogleOneTap />
-
     <!-- Notification System -->
     <NotificationToast ref="toastRef" />
     <ConfirmDialog ref="confirmRef" />
@@ -136,6 +142,7 @@ import NotificationToast from './components/NotificationToast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
 import PDFProgressModal from './components/PDFProgressModal.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
+import OrderPrint from './components/OrderPrint.vue'
 import { setToastInstance, setConfirmInstance, useNotification } from './composables/useNotification'
 import { exportToPDF } from './utils/pdfExport'
 import { publishToPDF } from './utils/pdfPublish'
@@ -156,9 +163,10 @@ const showFlipbook = ref(false)
 const isSaving = ref(false)
 const isPublishing = ref(false)
 const isLoadingRemote = ref(false)
-const view = ref('landing') // landing | init | editor
+const view = ref('landing') // landing | init | editor | order-print
 const showLibrary = ref(false)
 const showPublications = ref(false)
+const selectedPublication = ref(null)
 const mediaPanelCollapsed = ref(false)
 const pagePanelCollapsed = ref(false)
 const hasUnsavedChanges = ref(false)
@@ -411,6 +419,12 @@ const handleExport = async () => {
 }
 
 const { toast, confirm } = useNotification()
+
+const handleOrderFromPublication = (publication) => {
+  selectedPublication.value = publication
+  showPublications.value = false
+  view.value = 'order-print'
+}
 
 const handlePublish = async () => {
   if (!zineStore.isInitialized || zineStore.pageCount === 0) {
@@ -767,7 +781,7 @@ const startDemoMode = async () => {
   view.value = 'editor'
 }
 
-const handleRequireLogin = (context) => {
+const handleRequireLogin = (action) => {
   const messages = {
     create: 'Sign in to create and save your own projects.',
     library: 'Sign in to access your saved projects.',
@@ -775,8 +789,12 @@ const handleRequireLogin = (context) => {
     save: 'Sign in to save your work.'
   }
   
-  alert(messages[context] || 'Please sign in to continue.')
+  alert(messages[action] || 'Please sign in to continue.')
   // TODO: Show proper login modal/redirect instead of alert
+}
+
+const navigateToDocs = () => {
+  window.open('https://github.com/praneetmehta/zino', '_blank')
 }
 
 const goHome = async () => {

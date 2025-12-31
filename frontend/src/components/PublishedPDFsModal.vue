@@ -82,7 +82,7 @@ const props = defineProps({
   isOpen: { type: Boolean, default: false }
 })
 
-defineEmits(['close'])
+const emit = defineEmits(['close', 'order-print'])
 
 const authStore = useAuthStore()
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4876'
@@ -121,6 +121,8 @@ async function loadPublications() {
   }
 }
 
+import download from 'downloadjs'
+
 async function downloadPublication(pub) {
   try {
     downloading.value = pub.id
@@ -133,18 +135,10 @@ async function downloadPublication(pub) {
         },
         responseType: 'blob'
       }
-    )
+    ).then ((response) => {
+        download(response.data, `${pub.title}.pdf`, 'application/pdf');
+    }).catch(error => console.log(error));
 
-    // Create download link
-    const blob = new Blob([response.data], { type: 'application/pdf' })
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.download = `${pub.title}.pdf`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    window.URL.revokeObjectURL(url)
 
     console.log('✅ Downloaded:', pub.title)
     
@@ -156,6 +150,10 @@ async function downloadPublication(pub) {
   } finally {
     downloading.value = null
   }
+}
+
+function orderPrint(pub) {
+  emit('order-print', pub)
 }
 
 async function deletePublication(pub) {
@@ -182,11 +180,6 @@ async function deletePublication(pub) {
   } finally {
     deleting.value = null
   }
-}
-
-function orderPrint(pub) {
-  // Navigate to print service page (to be implemented)
-  alert(`Print service coming soon!\n\nYou'll be able to order professional prints of "${pub.title}"`)
 }
 
 function formatSize(bytes) {

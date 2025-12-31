@@ -59,7 +59,8 @@ export async function publishToPDF(zineStore, userToken, progressCallback = null
       throw new Error('No page elements found to publish')
     }
 
-    const scaleFactor = 4
+    // Get scale factor from environment or use default
+    const scaleFactor = parseFloat(import.meta.env.VITE_PDF_SCALE_FACTOR) || 4
 
     // Generate PDF pages
     for (let i = 0; i < pageElements.length; i++) {

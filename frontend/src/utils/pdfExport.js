@@ -49,7 +49,8 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       return
     }
 
-    const scaleFactor = 4
+    // Get scale factor from environment or use default
+    const scaleFactor = parseFloat(import.meta.env.VITE_PDF_SCALE_FACTOR) || 4
 
     for (let i = 0; i < pageElements.length; i++) {
       updateProgress(i + 1, pageElements.length)
