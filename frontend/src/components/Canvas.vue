@@ -200,7 +200,7 @@
       :is-visible="contextMenuVisible"
       :selected-element="selectedElement"
       :element-type="selectedElementType"
-      :position="{ left: 'calc(50% + 420px)', top: 450 }"
+      :position="contextMenuPosition"
       @close="closeContextMenu"
       @bring-to-front="handleContextBringToFront"
       @send-to-back="handleContextSendToBack"
@@ -348,6 +348,7 @@ const contextMenuVisible = ref(false)
 const selectedElement = ref(null)
 const selectedElementType = ref(null)
 const selectedElementRef = ref(null) // { pageId, index } or { pageId, elementId }
+const contextMenuPosition = ref({ right: '320px', top: '100px' })
 let contextMenuTransitionTimeout = null
 
 const pageStyle = computed(() => {
@@ -814,6 +815,16 @@ const selectSlot = (pageId, index) => {
   const page = zineStore.getPageById(pageId)
   if (!page || !page.slots[index]) return
   
+  // Calculate position: 40px to the right of the page
+  const pageEl = document.querySelector(`[data-page-id="${pageId}"]`)
+  if (pageEl) {
+    const rect = pageEl.getBoundingClientRect()
+    contextMenuPosition.value = {
+      left: `${rect.right + 40}px`,
+      top: `${rect.top}px`
+    }
+  }
+  
   // If context menu is already open for a different element, close and reopen with transition
   const isDifferentElement = contextMenuVisible.value && 
     (selectedElementType.value !== 'slot' || 
@@ -846,6 +857,16 @@ const selectTextElement = (pageId, elementId) => {
   const element = page.textElements.find(el => el.id === elementId)
   if (!element) return
   
+  // Calculate position: 40px to the right of the page
+  const pageEl = document.querySelector(`[data-page-id="${pageId}"]`)
+  if (pageEl) {
+    const rect = pageEl.getBoundingClientRect()
+    contextMenuPosition.value = {
+      left: `${rect.right + 40}px`,
+      top: `${rect.top}px`
+    }
+  }
+  
   // If context menu is already open for a different element, close and reopen with transition
   const isDifferentElement = contextMenuVisible.value && 
     (selectedElementType.value !== 'text' || 
@@ -875,6 +896,16 @@ const openPageContextMenu = (page) => {
     id: page.id,
     type: page.type,
     // Add any other page properties you want to show
+  }
+  
+  // Calculate position: 40px to the right of the page
+  const pageEl = document.querySelector(`[data-page-id="${page.id}"]`)
+  if (pageEl) {
+    const rect = pageEl.getBoundingClientRect()
+    contextMenuPosition.value = {
+      left: `${rect.right + 40}px`,
+      top: `${rect.top}px`
+    }
   }
   
   // If context menu is already open for a different element, close and reopen with transition

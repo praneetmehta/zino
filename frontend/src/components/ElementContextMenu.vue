@@ -111,23 +111,32 @@
           
           <div class="menu-section">
             <label class="section-label">Font</label>
-            <select 
-              :value="selectedElement.style?.fontFamily || 'Inter'" 
-              @change="e => $emit('update-style', { fontFamily: e.target.value })"
-              class="select-input"
-            >
-              <optgroup label="Sans Serif">
-                <option value="Inter">Inter</option>
-                <option value="Roboto">Roboto</option>
-                <option value="Montserrat">Montserrat</option>
-                <option value="Poppins">Poppins</option>
-              </optgroup>
-              <optgroup label="Serif">
-                <option value="Playfair Display">Playfair Display</option>
-                <option value="Lora">Lora</option>
-                <option value="Merriweather">Merriweather</option>
-              </optgroup>
-            </select>
+            <div class="custom-font-dropdown">
+              <button 
+                class="font-dropdown-trigger" 
+                @click="fontDropdownOpen = !fontDropdownOpen"
+                :style="{ fontFamily: selectedElement.style?.fontFamily || 'Inter' }"
+              >
+                {{ selectedElement.style?.fontFamily || 'Inter' }}
+                <span class="dropdown-arrow">▼</span>
+              </button>
+              <div v-if="fontDropdownOpen" class="font-dropdown-menu" @mouseleave="fontDropdownOpen = false">
+                <div v-for="category in fontCategories" :key="category.name" class="font-category">
+                  <div class="category-label">{{ category.name }}</div>
+                  <button
+                    v-for="font in category.fonts"
+                    :key="font"
+                    class="font-option"
+                    :class="{ active: (selectedElement.style?.fontFamily || 'Inter') === font }"
+                    :style="{ fontFamily: font }"
+                    @mouseenter="$emit('update-style', { fontFamily: font })"
+                    @click="fontDropdownOpen = false"
+                  >
+                    {{ font }}
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="menu-section">
@@ -304,6 +313,27 @@ const elementIcon = computed(() => {
   return '⚙️'
 })
 
+// Font dropdown state
+const fontDropdownOpen = ref(false)
+const fontCategories = [
+  {
+    name: 'Sans Serif',
+    fonts: ['Inter', 'Roboto', 'Montserrat', 'Poppins', 'Raleway', 'Work Sans', 'DM Sans', 'Space Grotesk']
+  },
+  {
+    name: 'Elegant Serif',
+    fonts: ['Playfair Display', 'Bodoni Moda', 'Cormorant Garamond', 'EB Garamond', 'Cinzel', 'Spectral', 'Lora', 'Merriweather', 'Crimson Text', 'Libre Baskerville', 'Bitter']
+  },
+  {
+    name: 'Bold & Impact',
+    fonts: ['Bebas Neue', 'Anton', 'Archivo Black', 'Oswald', 'Staatliches', 'Righteous']
+  },
+  {
+    name: 'Display & Editorial',
+    fonts: ['Abril Fatface']
+  }
+]
+
 // Draggable state
 const contextMenuEl = ref(null)
 const isDragging = ref(false)
@@ -323,18 +353,23 @@ onMounted(() => {
 })
 
 const menuPosition = computed(() => {
-  // Use saved position if available
+  // Use saved position if available and valid
   if (savedPosition.value) {
+    // Ensure position is visible (not behind sidebar)
+    const minLeft = 320 // Account for left sidebar
+    const left = Math.max(savedPosition.value.left, minLeft)
+    
     return {
-      left: `${savedPosition.value.left}px`,
+      left: `${left}px`,
       top: `${savedPosition.value.top}px`,
     }
   }
   
-  // Otherwise use props position or default
-  if (!props.position) return { left: 'calc(50% + 420px)', top: '100px' }
+  // Otherwise use props position or default (fixed position from right)
+  if (!props.position) return { right: '320px', top: '100px' }
   return {
-    left: props.position.left || 'calc(50% + 420px)',
+    left: props.position.left,
+    right: props.position.right,
     top: `${props.position.top || 100}px`,
   }
 })
@@ -671,9 +706,95 @@ const stopDrag = () => {
 .value {
   font-size: 13px;
   font-weight: 600;
+}
+
+/* Custom Font Dropdown */
+.custom-font-dropdown {
+  position: relative;
+}
+
+.font-dropdown-trigger {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
   color: var(--text);
-  min-width: 40px;
-  text-align: right;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.font-dropdown-trigger:hover {
+  border-color: var(--accent);
+}
+
+.dropdown-arrow {
+  font-size: 10px;
+  opacity: 0.5;
+}
+
+.font-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  padding: 8px;
+}
+
+.font-category {
+  margin-bottom: 12px;
+}
+
+.font-category:last-child {
+  margin-bottom: 0;
+}
+
+.category-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 8px 12px 4px;
+  margin-bottom: 4px;
+}
+
+.font-option {
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 6px;
+  transition: all 0.15s;
+  display: block;
+}
+
+.font-option:hover {
+  background: var(--accent);
+  color: white;
+}
+
+.font-option.active {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--accent);
+  font-weight: 500;
 }
 
 /* Text Controls */
@@ -682,9 +803,9 @@ const stopDrag = () => {
   padding: 10px 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: var(--panel-bg-solid);
+  background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
 }
