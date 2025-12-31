@@ -81,6 +81,7 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')
 app.use('/auth', authRoutes)
 
 // Image upload routes
+app.use('/api/images', imageRoutes)
 
 // Serve frontend static files from /zino path
 const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')
