@@ -39,6 +39,14 @@ async function request(path, options = {}) {
     return null
   }
 
+  // Check if response is JSON
+  const contentType = res.headers.get('content-type')
+  if (!contentType || !contentType.includes('application/json')) {
+    const text = await res.text()
+    console.error('Expected JSON but got:', text.substring(0, 200))
+    throw new Error('Server returned non-JSON response. Check API_URL configuration.')
+  }
+
   return res.json()
 }
 

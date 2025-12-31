@@ -7,7 +7,6 @@
           <div class="cover-texture" :style="textureStyle"></div>
           <div class="cover-title">
             <h4>{{ title }}</h4>
-            <p class="page-count">{{ pageCount }} pages</p>
           </div>
         </div>
       </li>
@@ -497,32 +496,28 @@ ul {
 /* Cover Title */
 .cover-title {
   position: absolute;
-  bottom: 30px;
-  left: 20px;
-  right: 20px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 85%;
   z-index: 10;
   color: white;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.7);
+  text-align: center;
 }
 
 .cover-title h4 {
-  font-size: 16px;
+  font-size: 12px;
   font-weight: 700;
-  margin: 0 0 4px 0;
+  margin: 0;
   line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
+  -webkit-line-clamp: 6;
+  line-clamp: 6;
   -webkit-box-orient: vertical;
-}
-
-.cover-title .page-count {
-  font-size: 10px;
-  font-weight: 500;
-  margin: 0;
-  opacity: 0.9;
+  word-break: break-word;
 }
 
 /* Cover Texture */

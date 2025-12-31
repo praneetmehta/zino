@@ -113,7 +113,7 @@ async function loadPublications() {
       }
     })
 
-    publications.value = response.data.publications
+    publications.value = response.data.publications || []
     console.log('✅ Loaded publications:', publications.value.length)
   } catch (err) {
     console.error('Failed to load publications:', err)
