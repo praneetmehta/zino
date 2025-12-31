@@ -6,9 +6,9 @@
 const express = require('express')
 const router = express.Router()
 const { generateToken, authenticateJWT } = require('../middleware/auth')
-
-// Mock user database (replace with real database in production)
-const users = new Map()
+const { googleAuthService } = require('../services/auth/googleAuth')
+const { databaseService } = require('../services/database')
+const User = require('../models/User')
 
 /**
  * POST /auth/google
@@ -16,45 +16,75 @@ const users = new Map()
  */
 router.post('/google', async (req, res) => {
   try {
-    const { code } = req.body
+    const { code, credential } = req.body
 
-    if (!code) {
-      return res.status(400).json({ error: 'Authorization code required' })
+    if (!code && !credential) {
+      return res.status(400).json({ error: 'Authorization code or credential required' })
     }
 
-    // TODO: In production, exchange code with Google OAuth
-    // const { tokens } = await oauth2Client.getToken(code)
-    // const userInfo = await getUserInfo(tokens.access_token)
+    // Check if Google OAuth is configured
+    if (!googleAuthService.isConfigured()) {
+      // Fallback to mock user if no OAuth configured
+      const mockUser = {
+        id: `dev-user-${Date.now()}`,
+        email: 'dev@ziner.local',
+        name: 'Development User',
+        role: 'user',
+      }
 
-    // For now, mock user creation (REPLACE IN PRODUCTION)
-    const mockUser = {
-      id: `user-${Date.now()}`,
-      email: 'user@example.com',
-      name: 'Example User',
-      role: 'user',
-      googleId: 'mock-google-id',
+      const token = generateToken(mockUser, '24h')
+      const expiresIn = 24 * 60 * 60 * 1000
+
+      return res.json({
+        user: mockUser,
+        token,
+        expiresIn,
+      })
     }
 
-    // Store or update user in database
-    users.set(mockUser.id, mockUser)
+    let googleProfile
+
+    // Handle Google One Tap (ID token)
+    if (credential) {
+      googleProfile = await googleAuthService.verifyIdToken(credential)
+    } 
+    // Handle traditional OAuth flow (authorization code)
+    else if (code) {
+      googleProfile = await googleAuthService.getProfileFromCode(code)
+    }
+
+    let user
+
+    // If database is connected, save user
+    if (databaseService.isConnected()) {
+      const dbUser = await User.findOrCreate(googleProfile)
+      user = User.toJSON(dbUser)
+    } else {
+      // No database - use Google profile directly
+      user = {
+        id: `google_${googleProfile.id}`,
+        email: googleProfile.email,
+        name: googleProfile.name,
+        avatar: googleProfile.picture,
+        role: 'user',
+      }
+    }
 
     // Generate JWT token
-    const token = generateToken(mockUser, '24h')
+    const token = generateToken(user, '24h')
     const expiresIn = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
     res.json({
-      user: {
-        id: mockUser.id,
-        email: mockUser.email,
-        name: mockUser.name,
-        role: mockUser.role,
-      },
+      user,
       token,
       expiresIn,
     })
   } catch (error) {
     console.error('Google auth error:', error)
-    res.status(500).json({ error: 'Authentication failed' })
+    res.status(500).json({ 
+      error: 'Authentication failed',
+      message: process.env.NODE_ENV === 'development' ? error.message : undefined
+    })
   }
 })
 
@@ -79,6 +109,15 @@ router.post('/logout', authenticateJWT, async (req, res) => {
  */
 router.get('/me', authenticateJWT, async (req, res) => {
   try {
+    // If database is connected, fetch fresh user data
+    if (databaseService.isConnected() && !req.user.isTemp) {
+      const dbUser = await User.findById(req.user.id)
+      if (dbUser) {
+        return res.json({ user: User.toJSON(dbUser) })
+      }
+    }
+
+    // Fallback to JWT data
     res.json({ user: req.user })
   } catch (error) {
     console.error('Get user error:', error)

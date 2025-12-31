@@ -47,7 +47,7 @@ body::before {
 :root {
   --bg: linear-gradient(135deg, #f5f7fa 0%, #e8ecf1 100%);
   --app-bg: #f5f7fa;
-  --panel-bg: rgba(255, 255, 255, 0.85);
+  --panel-bg: rgba(235, 235, 235, 0.7);
   --panel-bg-solid: #ffffff;
   --border: rgba(220, 224, 230, 0.8);
   --text: #1a1d23;

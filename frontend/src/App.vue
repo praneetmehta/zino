@@ -74,6 +74,9 @@
       @load-book="handleLoadFromLibrary"
       @create-new="startNewProject"
     />
+
+    <!-- Google One Tap (shows automatically when not logged in) -->
+    <GoogleOneTap />
   </div>
 </template>
 
@@ -92,6 +95,7 @@ import LandingPage from './components/LandingPage.vue'
 import LibraryModal from './components/LibraryModal.vue'
 import LayoutBuilder from './components/LayoutBuilder.vue'
 import LayoutLibrary from './components/LayoutLibrary.vue'
+import GoogleOneTap from './components/GoogleOneTap.vue'
 import { exportToPDF } from './utils/pdfExport'
 import { listBooks, saveBook, getBook } from './api/books'
 
@@ -311,14 +315,65 @@ const startDemoMode = () => {
     height: 148,
     unit: 'mm',
     margin: 5,
-    gutter: 0
+    bleed: 0,
+    bindingType: 'folded'
   }
   
-  zineStore.initializeProject(demoConfig, {
+  zineStore.initializeZine(demoConfig)
+  zineStore.setProjectMeta({
     id: 'demo',
     title: 'Demo Photobook',
     updatedAt: new Date().toISOString()
   })
+  
+  // Add preloaded demo images from Unsplash
+  const demoImages = [
+    {
+      id: 'demo-img-1',
+      name: 'Street Photography 1',
+      url: 'https://images.unsplash.com/photo-1516387938699-a93567ec168e?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1516387938699-a93567ec168e?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    },
+    {
+      id: 'demo-img-2',
+      name: 'Street Photography 2',
+      url: 'https://images.unsplash.com/photo-1526481280695-3c4693f1b8d9?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1526481280695-3c4693f1b8d9?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    },
+    {
+      id: 'demo-img-3',
+      name: 'Street Photography 3',
+      url: 'https://images.unsplash.com/photo-1473187983305-f615310e7daa?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1473187983305-f615310e7daa?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    },
+    {
+      id: 'demo-img-4',
+      name: 'Street Photography 4',
+      url: 'https://images.unsplash.com/photo-1518709414768-a88981a4515d?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1518709414768-a88981a4515d?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    },
+    {
+      id: 'demo-img-5',
+      name: 'Street Photography 5',
+      url: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    },
+    {
+      id: 'demo-img-6',
+      name: 'Street Photography 6',
+      url: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=800&q=80',
+      thumbnail: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=200&q=80',
+      type: 'image/jpeg'
+    }
+  ]
+  
+  // Add demo images to media assets
+  demoImages.forEach(img => zineStore.addMediaAsset(img))
   
   // Add some sample pages with layouts
   zineStore.addPage({

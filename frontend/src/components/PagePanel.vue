@@ -435,16 +435,16 @@ onMounted(() => {
   border-color: var(--accent);
   background: var(--accent);
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
-  box-shadow: 0 0 0 3px var(--accent);
-  box-shadow: var(--shadow-lg), 0 0 0 3px color-mix(in srgb, var(--accent) 20%, transparent);
+  box-shadow: 0 0 0 2px var(--accent);
+  box-shadow: var(--shadow-lg), 0 0 0 2px color-mix(in srgb, var(--accent) 10%, transparent);
 }
 
 .page-number {
   position: absolute;
   top: 8px;
   left: 8px;
-  background: var(--accent);
-  color: white;
+  background: white;
+  color: var(--accent);
   font-size: 10px;
   font-weight: 700;
   padding: 4px 8px;
@@ -455,8 +455,8 @@ onMounted(() => {
 }
 
 .page-thumbnail.active .page-number {
-  background: white;
-  color: var(--accent);
+  background: var(--accent);
+  color: white;
 }
 
 .page-preview {

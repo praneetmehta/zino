@@ -11,7 +11,15 @@ export const useAuthStore = defineStore('auth', () => {
   const error = ref(null)
 
   // Computed
-  const isAuthenticated = computed(() => authService.isAuthenticated())
+  const isAuthenticated = computed(() => {
+    const result = authService.isAuthenticated()
+    console.log('🏪 AuthStore isAuthenticated computed:', {
+      result,
+      storeUser: user.value?.email,
+      serviceUser: authService.getUser()?.email
+    })
+    return result
+  })
   const isAdmin = computed(() => authService.isAdmin())
   const userRole = computed(() => user.value?.role || 'guest')
   const userName = computed(() => user.value?.name || 'Guest')
@@ -20,7 +28,9 @@ export const useAuthStore = defineStore('auth', () => {
 
   // Actions
   async function init() {
-    if (isInitialized.value) return
+    if (isInitialized.value) {
+      return
+    }
 
     try {
       isLoading.value = true
@@ -109,6 +119,12 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function saveSession() {
+    // Sync user from auth service after external login (e.g., Google One Tap)
+    user.value = authService.getUser()
+    env.log('Session saved:', user.value?.email)
+  }
+
   // Subscribe to auth service events
   authService.subscribe((event, data) => {
     if (event === 'login') {
@@ -141,5 +157,6 @@ export const useAuthStore = defineStore('auth', () => {
     hasRole,
     requireAuth,
     requireAdmin,
+    saveSession,
   }
 })

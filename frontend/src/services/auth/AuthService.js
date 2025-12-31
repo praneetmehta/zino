@@ -16,8 +16,11 @@ export class AuthService {
    * Initialize auth service
    */
   async init() {
+
     // Check for existing session
     const savedAuth = this.loadFromStorage()
+
+
     if (savedAuth) {
       this.user = savedAuth.user
       this.token = savedAuth.token
@@ -29,12 +32,17 @@ export class AuthService {
       } else {
         this.notifyListeners('login', this.user)
       }
+    } else {
+      console.log('❌ No saved auth data found')
     }
 
     // In development mode with SKIP_AUTH, create temp user
     if (env.isDevelopment() && env.skipAuth && !this.user) {
+      console.log('🛠️ Creating temp user for development...')
       await this.loginAsTemp()
     }
+
+    console.log('✅ AuthService init complete')
   }
 
   /**
@@ -84,6 +92,8 @@ export class AuthService {
     }
 
     const data = await response.json()
+
+
     this.setSession(data.user, data.token, data.expiresIn)
 
     return data
@@ -136,6 +146,7 @@ export class AuthService {
    * Set session data
    */
   setSession(user, token, expiresIn) {
+
     this.user = user
     this.token = token
     this.tokenExpiry = Date.now() + expiresIn
@@ -181,15 +192,25 @@ export class AuthService {
    * Check if user is authenticated
    */
   isAuthenticated() {
-    return !!this.user && !this.isTokenExpired()
+    const hasUser = !!this.user
+    const isExpired = this.isTokenExpired()
+    const result = hasUser && !isExpired
+    return result
   }
 
   /**
    * Check if token is expired
    */
   isTokenExpired() {
-    if (!this.tokenExpiry) return true
-    return Date.now() >= this.tokenExpiry
+    if (!this.tokenExpiry) {
+      return true
+    }
+
+    const now = Date.now()
+    const expired = now >= this.tokenExpiry
+    const timeLeft = this.tokenExpiry - now
+
+    return expired
   }
 
   /**

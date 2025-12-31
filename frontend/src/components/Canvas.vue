@@ -535,7 +535,6 @@ const handleImageLoad = (event, slot) => {
 }
 
 const addPageWithLayout = (layout) => {
-  console.log('Adding page with layout:', layout.name, 'Slots:', layout.slots)
   zineStore.addPage({
     type: layout.id,
     slots: layout.slots,

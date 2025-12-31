@@ -1,3 +1,6 @@
+// Load environment variables first
+require('dotenv').config()
+
 const express = require('express')
 const cors = require('cors')
 const fs = require('fs/promises')
@@ -8,6 +11,8 @@ const { authenticateJWT, optionalAuth } = require('../middleware/auth')
 const authRoutes = require('../routes/auth')
 const imageRoutes = require('../routes/images')
 const { storageService } = require('../services/storage')
+const { databaseService } = require('../services/database')
+const { googleAuthService } = require('../services/auth/googleAuth')
 
 const PORT = process.env.PORT || 4876
 const DATA_DIR = path.join(__dirname, '..', 'data', 'books')
@@ -53,8 +58,21 @@ const app = express()
 app.use(cors(corsOptions))
 app.use(express.json({ limit: JSON_LIMIT }))
 
-// Initialize storage service
-storageService.init(process.env.STORAGE_PROVIDER)
+// Initialize services
+async function initializeServices() {
+  // Initialize storage service
+  storageService.init(process.env.STORAGE_PROVIDER)
+
+  // Initialize database
+  try {
+    await databaseService.init()
+  } catch (error) {
+    console.warn('⚠️  Database initialization failed, continuing without database')
+  }
+
+  // Initialize Google OAuth
+  googleAuthService.init()
+}
 
 // Static file serving for uploads (filesystem storage)
 app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')))
@@ -64,6 +82,10 @@ app.use('/auth', authRoutes)
 
 // Image upload routes
 app.use('/api/images', imageRoutes)
+
+// Serve frontend static files from /zino path
+const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')
+app.use('/zino', express.static(FRONTEND_DIST))
 
 async function ensureDataDir() {
   await fs.mkdir(DATA_DIR, { recursive: true })
@@ -367,14 +389,40 @@ app.delete('/layouts/custom/:id', optionalAuth, async (req, res) => {
   }
 })
 
-Promise.all([ensureDataDir(), ensureLayoutsDir()])
-  .then(() => {
+// Fallback: serve index.html for any /zino/* routes (SPA support)
+app.get('/zino/*', (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
+})
+
+// Root path - can be used for landing page or redirect
+app.get('/', (req, res) => {
+  res.send('<h1>Welcome to Zino</h1><p><a href="/zino">Go to Zino App →</a></p>')
+})
+
+// Initialize server
+async function startServer() {
+  try {
+    // Initialize directories
+    await ensureDataDir()
+    await ensureLayoutsDir()
+
+    // Initialize services
+    await initializeServices()
+
+    // Start server
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`📚 Zino backend listening on http://0.0.0.0:${PORT}`)
       console.log(`   Environment: ${process.env.NODE_ENV || 'development'}`)
-      console.log(`   CORS Origins: ${ALLOWED_ORIGINS.join(', ')}`)    })
-  })
-  .catch((error) => {
-    console.error('Failed to initialize data directory', error)
+      console.log(`   CORS Origins: ${ALLOWED_ORIGINS.join(', ')}`)
+      console.log(`   Storage: ${process.env.STORAGE_PROVIDER || 'filesystem'}`)
+      console.log(`   Database: ${databaseService.isConnected() ? '✅ Connected' : '⚠️  Not configured'}`)
+      console.log(`   Google OAuth: ${googleAuthService.isConfigured() ? '✅ Configured' : '⚠️  Not configured'}`)
+      console.log(`   Frontend: http://0.0.0.0:${PORT}/zino`)
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
     process.exit(1)
-  })
+  }
+}
+
+startServer()

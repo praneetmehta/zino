@@ -1,7 +1,8 @@
 <template>
-  <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
-    <div class="modal">
-      <button class="close-btn" @click="$emit('close')">✕</button>
+  <Teleport to="body">
+    <div v-if="isOpen" class="modal-overlay" @click.self="$emit('close')">
+      <div class="modal">
+        <button class="close-btn" @click="$emit('close')">✕</button>
       
       <h2>Welcome to Zino</h2>
       <p class="subtitle">Sign in to save your work and access it anywhere</p>
@@ -42,8 +43,9 @@
         <a href="#">Terms of Service</a> and 
         <a href="#">Privacy Policy</a>
       </p>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup>
@@ -63,19 +65,27 @@ const isDev = computed(() => env.isDevelopment())
 async function handleGoogleLogin() {
   try {
     loading.value = true
+    console.log('🔐 Starting Google login...')
     
     if (env.skipAuth) {
       // Development mode: Use mock login
       await mockGoogleLogin()
     } else {
       // Production mode: Real Google OAuth
-      await authStore.loginWithGoogle()
+      const result = await authStore.loginWithGoogle()
+      console.log('✅ Login successful:', result)
     }
     
+    console.log('Closing modal and refreshing UI...')
     emit('close')
+    
+    // Force UI refresh
+    setTimeout(() => {
+      window.location.reload()
+    }, 500)
   } catch (error) {
-    console.error('Login failed:', error)
-    alert('Login failed. Please try again.')
+    console.error('❌ Login failed:', error)
+    alert(`Login failed: ${error.message}\n\nCheck browser console for details.`)
   } finally {
     loading.value = false
   }
@@ -101,7 +111,7 @@ async function mockGoogleLogin() {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 99999;
   animation: fadeIn 0.2s ease;
 }
 

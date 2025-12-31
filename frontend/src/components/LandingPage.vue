@@ -5,8 +5,8 @@
       <div class="brand">
         <span class="logo">📚</span>
         <div class="title">
-          <h1>Zino Studio</h1>
-          <p>Create bold, expressive publications in minutes.</p>
+          <h1>Zino</h1>
+          <p class="subtitle">by <a href="https://instagram.com/the_talking_streets" target="_blank" class="tts-link">@the_talking_streets</a></p>
         </div>
       </div>
       <div class="actions">
@@ -15,20 +15,27 @@
           <span v-else>☀️</span>
           <span class="label">{{ theme === 'light' ? 'Dark Mode' : 'Light Mode' }}</span>
         </button>
+        <UserProfile />
       </div>
     </header>
 
     <main class="landing-content">
       <section class="hero">
         <div class="hero-text">
-          <h2>Design the stories you want to tell.</h2>
-          <p>
-            Craft zines, postcards, and editorial spreads with a canvas that celebrates experimentation.
+          <h2><span style="color: orange">Design </span>Your Story.
+            <br />
+            Print Your <span style="color: #95d92d">Vision.</span></h2>
+          <p class="hero-description">
+            Create stunning hand-bound photobooks with Zino's intuitive designer.
+            <strong>Design is free</strong> — bring your vision to life with custom layouts, 
+            then order a professionally printed, hand-bound book delivered to your door.
+          </p>
+          <p class="hero-subtext">
             <template v-if="!authStore.isAuthenticated">
-              Try the demo with a preloaded photobook, or sign in to save and manage your projects.
+              🎨 Try the demo with a sample photobook, or sign in to design your own.
             </template>
             <template v-else>
-              Start fresh, remix your library, or fine-tune layouts in the builder.
+              📚 Create, save, and order your custom photobooks.
             </template>
           </p>
           <div class="hero-cta">
@@ -64,79 +71,118 @@
               <span class="preview-tag">{{ card.tag }}</span>
             </div>
           </div>
+          
+          <!-- Instagram Testimonial Card -->
+          <div class="preview-card instagram-card">
+            <div class="preview-thumb instagram-embed-container">
+              <iframe 
+                src="https://www.instagram.com/p/DQwGZJhCTlP/embed" 
+                frameborder="0" 
+                scrolling="no" 
+                allowtransparency="true"
+                class="instagram-embed-frame"
+              ></iframe>
+            </div>
+            <div class="preview-info">
+              <a href="https://www.instagram.com/p/DQwGZJhCTlP/" target="_blank" class="instagram-link">
+                <span class="preview-name">Handmade Book</span>
+                <span class="preview-tag" style="font-size: 10px; color: var(--text-muted)">@the_talking_streets</span>
+              </a>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="grid">
-        <!-- Logged in users: Full feature access -->
+        <!-- How It Works Section -->
+        <article class="card feature-card">
+          <div class="card-number">01</div>
+          <div class="card-icon">🎨</div>
+          <h3>Design Your Book</h3>
+          <p>Use our free photobook designer to create stunning layouts. Choose from curated templates or build custom spreads with drag-and-drop simplicity.</p>
+        </article>
+
+        <article class="card feature-card">
+          <div class="card-number">02</div>
+          <div class="card-icon">📚</div>
+          <h3>Choose Your Style</h3>
+          <p>Select from premium cover materials, binding styles, and paper finishes. Each book is hand-bound with care and attention to detail.</p>
+          <span class="coming-soon">Coming Soon</span>
+        </article>
+
+        <article class="card feature-card">
+          <div class="card-number">03</div>
+          <div class="card-icon">📦</div>
+          <h3>Delivered to You</h3>
+          <p>We print and hand-bind your photobook, then ship it directly to your door. Quality craftsmanship meets your creative vision.</p>
+          <span class="coming-soon">Coming Soon</span>
+        </article>
+        
+        <!-- Action Cards -->
         <template v-if="authStore.isAuthenticated">
-          <article class="card" @click="$emit('create-new')">
-            <div class="card-icon">🪄</div>
-            <h3>Blank Canvas</h3>
-            <p>Start a new book with postcard presets, guides, and curated layouts ready to drop into place.</p>
+          <article class="card action-card" @click="$emit('create-new')">
+            <div class="card-icon">✨</div>
+            <h3>Start Creating</h3>
+            <p>Begin a new photobook project with full access to layouts and customization.</p>
             <span class="card-link">Create now →</span>
           </article>
 
-          <article class="card" @click="$emit('load-book')">
-            <div class="card-icon">📚</div>
-            <h3>Library</h3>
-            <p>Reopen any saved project from the backend library and pick up right where you left off.</p>
-            <span class="card-link">Browse saved books →</span>
-          </article>
-
-          <article class="card" @click="$emit('open-layout-builder')">
-            <div class="card-icon">🧱</div>
-            <h3>Layout Builder</h3>
-            <p>Compose custom grids, overlays, and text treatments—then export them as reusable layouts.</p>
-            <span class="card-link">Launch builder →</span>
+          <article class="card action-card" @click="$emit('load-book')">
+            <div class="card-icon">📋</div>
+            <h3>Your Projects</h3>
+            <p>Access your saved photobooks and continue where you left off.</p>
+            <span class="card-link">View library →</span>
           </article>
         </template>
         
-        <!-- Non-logged in users: Limited features with login prompts -->
         <template v-else>
-          <article class="card" @click="$emit('try-demo')">
-            <div class="card-icon">🎨</div>
-            <h3>Try Demo</h3>
-            <p>Explore the editor with a preloaded photobook. Experiment with layouts and designs risk-free.</p>
+          <article class="card action-card primary" @click="$emit('try-demo')">
+            <div class="card-icon">🚀</div>
+            <h3>Try the Designer</h3>
+            <p>Explore the photobook editor with a sample project. No sign-up required.</p>
             <span class="card-link">Launch demo →</span>
           </article>
 
-          <article class="card" @click="$emit('require-login', 'library')">
-            <div class="card-icon">📚</div>
-            <h3>Save Your Work</h3>
-            <p>Sign in to save projects, access your library, and sync across devices.</p>
-            <span class="card-link">Sign in to unlock →</span>
-          </article>
-
-          <article class="card" @click="$emit('require-login', 'layouts')">
-            <div class="card-icon">🧱</div>
-            <h3>Custom Layouts</h3>
-            <p>Create and save your own reusable layouts. Requires a free account.</p>
-            <span class="card-link">Sign in to build →</span>
+          <article class="card action-card" @click="$emit('require-login', 'create')">
+            <div class="card-icon">🔑</div>
+            <h3>Sign In to Save</h3>
+            <p>Create an account to save your designs and order printed books.</p>
+            <span class="card-link">Get started →</span>
           </article>
         </template>
-        
-        <!-- Always visible -->
-        <article class="card" @click="$emit('open-docs')">
-          <div class="card-icon">📘</div>
-          <h3>Guides & Examples</h3>
-          <p>Discover best practices for sequencing, typography, and image rhythm to elevate every spread.</p>
-          <span class="card-link">Read the guide →</span>
-        </article>
       </section>
     </main>
 
     <footer class="landing-footer">
-      <span>Made with ✨ by the Zino team • {{ new Date().getFullYear() }}</span>
-      <span class="small">Version 0.1 – Layout engine powered by JSON & Vite</span>
+      <div class="footer-content">
+        <div class="footer-brand">
+          <span class="logo">📸</span>
+          <div>
+            <strong>Zino</strong>
+            <p>Hand-bound photobooks for your stories</p>
+          </div>
+        </div>
+        <div class="footer-links">
+          <a href="https://instagram.com/the_talking_streets" target="_blank" class="footer-link">
+            <span>📷</span> @the_talking_streets
+          </a>
+          <a href="#" class="footer-link" @click.prevent="$emit('open-docs')">
+            <span>📖</span> How to Design
+          </a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <span>© {{ new Date().getFullYear() }} The Talking Streets. Crafted with care in India.</span>
+      </div>
     </footer>
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import { useAuthStore } from '../stores/authStore'
+import UserProfile from './UserProfile.vue'
 
 const props = defineProps({
   loading: { type: Boolean, default: false },
@@ -146,28 +192,35 @@ const props = defineProps({
 const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login'])
 
 const authStore = useAuthStore()
-
 const zineStore = useZineStore()
 
-const theme = computed(() => zineStore.ui.theme)
+// Force auth store initialization on mount
+onMounted(async () => {
+  console.log(' LandingPage mounted')
+  console.log('Auth state check:', {
+    isAuthenticated: authStore.isAuthenticated,
+    user: authStore.user,
+    userName: authStore.userName,
+    userEmail: authStore.userEmail,
+    isInitialized: authStore.isInitialized
+  })
+
+  if (!authStore.isInitialized) {
+    console.log('Initializing auth store...')
+    await authStore.init()
+    console.log('Auth store initialized:', {
+      isAuthenticated: authStore.isAuthenticated,
+      user: authStore.user
+    })
+  }
+})
 
 const toggleTheme = () => {
   zineStore.toggleTheme()
 }
 
 const previewLayouts = [
-  {
-    id: 'grid-hero',
-    name: 'Hero Caption',
-    tag: 'Combined',
-    image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?auto=format&fit=crop&w=400&q=80',
-  },
-  {
-    id: 'grid-asymmetric',
-    name: 'Asymmetric Grid',
-    tag: 'Editorial',
-    image: 'https://images.unsplash.com/photo-1526481280695-3c4693f1b8d9?auto=format&fit=crop&w=400&q=80',
-  },
+  
   {
     id: 'grid-stack',
     name: 'Editorial Stack',
@@ -249,6 +302,31 @@ const previewLayouts = [
   font-size: 15px;
 }
 
+.subtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+}
+
+.tts-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.tts-link:hover {
+  color: color-mix(in srgb, var(--accent) 80%, white);
+  text-decoration: underline;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+  z-index: 10;
+}
+
 .actions .btn {
   display: inline-flex;
   align-items: center;
@@ -268,7 +346,6 @@ const previewLayouts = [
 .hero {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  align-items: center;
   gap: 48px;
 }
 
@@ -283,6 +360,21 @@ const previewLayouts = [
   color: var(--text-muted);
   line-height: 1.6;
   max-width: 520px;
+}
+
+.hero-description {
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.hero-description strong {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.hero-subtext {
+  font-size: 15px;
+  opacity: 0.9;
 }
 
 .hero-cta {
@@ -311,6 +403,7 @@ const previewLayouts = [
   display: flex;
   gap: 16px;
   justify-content: flex-end;
+  align-items: flex-start;
   flex-wrap: wrap;
 }
 
@@ -402,14 +495,186 @@ const previewLayouts = [
   color: var(--accent);
 }
 
+/* Feature Cards */
+.feature-card {
+  position: relative;
+  cursor: default;
+}
+
+.feature-card:hover {
+  transform: translateY(-4px);
+}
+
+.card-number {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 48px;
+  font-weight: 900;
+  color: var(--accent);
+  opacity: 0.15;
+  line-height: 1;
+}
+
+.coming-soon {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 6px;
+}
+
+/* Action Cards */
+.action-card {
+  border: 2px solid var(--border);
+}
+
+.action-card.primary {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 70%, purple));
+  border: none;
+  color: white;
+}
+
+.action-card.primary h3,
+.action-card.primary p {
+  color: white;
+}
+
+.action-card.primary .card-link {
+  color: white;
+  opacity: 0.95;
+}
+
+.action-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--accent);
+}
+
+.action-card.primary:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
 .landing-footer {
-  margin-top: 60px;
+  margin-top: 80px;
+  padding-top: 40px;
+  border-top: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.footer-brand .logo {
+  font-size: 36px;
+}
+
+.footer-brand strong {
+  display: block;
+  font-size: 18px;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.footer-brand p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.footer-link:hover {
+  color: var(--accent);
+}
+
+.footer-link span {
+  font-size: 16px;
+}
+
+.footer-bottom {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+/* Instagram Preview Card */
+.instagram-card {
+  position: relative;
+  transition: all 0.3s ease;
+  width: 270px; /* 1.5x the regular card width (180px) */
+}
+
+.instagram-card:hover {
+  transform: translateY(-8px);
+}
+
+.instagram-embed-container {
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+}
+
+.instagram-embed-frame {
+  width: 100%;
+  height: 160%;
+  border: none;
+  overflow: hidden;
+  pointer-events: auto;
+  position: absolute;
+  top: -10px;
+  left: 0;
+}
+
+.instagram-link {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  color: var(--text-muted);
-  font-size: 13px;
-  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  transition: opacity 0.2s;
+}
+
+.instagram-link:hover {
+  opacity: 0.8;
+}
+
+.instagram-card .preview-tag {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 @media (max-width: 960px) {

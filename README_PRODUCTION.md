@@ -6,6 +6,24 @@
 
 ---
 
+## 🌐 URL Structure
+
+The application is now served from a unified backend with the following paths:
+
+- **Frontend App**: `https://your-domain.com/zino`
+- **Backend API**: `https://your-domain.com/` (root)
+- **Auth Routes**: `https://your-domain.com/auth/*`
+- **Image Uploads**: `https://your-domain.com/uploads/*`
+- **Custom Layouts**: `https://your-domain.com/layouts/custom`
+
+**Key Changes:**
+- Frontend is built with `base: '/zino/'` in Vite config
+- Backend serves static files from `/zino` path
+- All assets (JS, CSS, images) are automatically prefixed with `/zino/`
+- SPA routing handled via fallback to `/zino/index.html`
+
+---
+
 ## 🎯 Quick Start
 
 ### Development Mode (No Auth Required)

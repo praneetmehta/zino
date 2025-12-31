@@ -17,7 +17,13 @@
           <path d="M4 6L8 10L12 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
         <h4>Images {{ isUploading ? '(Uploading...)' : '' }}</h4>
-        <button class="btn-icon" @click.stop="triggerUpload" :disabled="isUploading" :title="isUploading ? 'Uploading...' : 'Add Image'">
+        <button 
+          v-if="!isDemoMode"
+          class="btn-icon" 
+          @click.stop="triggerUpload" 
+          :disabled="isUploading" 
+          :title="isUploading ? 'Uploading...' : 'Add Image'"
+        >
           <svg v-if="!isUploading" width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
@@ -25,6 +31,7 @@
             <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2" stroke-dasharray="15 10" opacity="0.5"/>
           </svg>
         </button>
+        <span v-else class="demo-badge" title="Upload disabled in demo mode">Demo</span>
       </div>
       <input
         ref="fileInput"
@@ -36,6 +43,10 @@
       />
       
       <div v-show="imagesExpanded" class="section-content">
+        <div v-if="isDemoMode" class="demo-info">
+          <span class="demo-icon">ℹ️</span>
+          <p>These are sample images. Sign in to upload your own photos.</p>
+        </div>
         <div class="media-grid">
       <div
         v-for="asset in zineStore.mediaAssets"
@@ -158,6 +169,9 @@ const zineStore = useZineStore()
 const fileInput = ref(null)
 const isCollapsed = ref(false)
 const imagesExpanded = ref(true)
+
+// Check if in demo mode
+const isDemoMode = computed(() => zineStore.projectMeta?.id === 'demo')
 const elementsExpanded = ref(true)
 const isUploading = ref(false)
 
@@ -204,6 +218,13 @@ const findExistingAsset = (file) => {
 }
 
 const handleFileUpload = async (event) => {
+  // Prevent uploads in demo mode
+  if (isDemoMode.value) {
+    alert('Uploads are disabled in demo mode. Sign in to create your own photobook and upload images.')
+    event.target.value = ''
+    return
+  }
+  
   const files = Array.from(event.target.files)
   
   if (files.length === 0) return
@@ -320,6 +341,11 @@ const handleTextTemplateDragStart = (event, elementSpec) => {
 }
 
 const deleteAsset = (id) => {
+  if (isDemoMode.value) {
+    alert('Cannot delete images in demo mode. Sign in to create your own photobook.')
+    return
+  }
+  
   if (confirm('Delete this media asset?')) {
     zineStore.removeMediaAsset(id)
   }
@@ -565,6 +591,43 @@ const deleteAsset = (id) => {
   background: var(--panel-bg-solid);
   color: var(--accent);
   transform: scale(1.1);
+}
+
+.demo-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-radius: 4px;
+  cursor: help;
+}
+
+.demo-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  background: color-mix(in srgb, var(--accent) 10%, var(--panel-bg));
+  border-left: 3px solid var(--accent);
+  margin: 0 20px 10px 20px;
+  border-radius: 6px;
+}
+
+.demo-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.demo-info p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
 }
 
 .section-content {

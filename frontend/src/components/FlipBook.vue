@@ -629,7 +629,6 @@ watch(() => zineStore.pages, () => {
   font-size: 48px;
   font-weight: 700;
   color: var(--text-muted);
-  opacity: 0.3;
 }
 
 .page-number-badge {

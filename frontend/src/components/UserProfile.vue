@@ -6,7 +6,7 @@
       <span>Sign In</span>
     </button>
 
-    <!-- Logged in -->
+    <!-- Logged in - Show profile -->
     <div v-else ref="menuButtonRef" class="user-menu" @click="toggleMenu">
       <div class="user-avatar" :class="{ 'temp-user': authStore.isTemp }">
         {{ userInitials }}
@@ -270,7 +270,7 @@ if (typeof window !== 'undefined') {
   border-radius: 16px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(0, 0, 0, 0.05);
   padding: 16px;
-  z-index: 9999;
+  z-index: 99998;
   animation: menuSlideDown 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   
   /* Ensure colors work when teleported */
