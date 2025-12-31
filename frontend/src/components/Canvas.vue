@@ -1393,8 +1393,7 @@ const handleSetPageMargin = (margin) => {
 }
 
 .pages-stack.spread-view .page-wrapper {
-  flex: 0 0 600px; /* Fixed width per page */
-  max-width: 400px;
+  flex: 0 0 auto; /* Let page determine its own size */
   align-items: flex-start; /* Override center alignment */
 }
 
