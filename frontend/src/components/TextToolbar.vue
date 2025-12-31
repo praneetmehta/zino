@@ -266,7 +266,7 @@ const applyPreset = (preset) => {
 }
 
 .font-select {
-  min-width: 180px;
+  min-width: 200px;
 }
 
 .button-group {

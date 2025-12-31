@@ -1,7 +1,7 @@
 <template>
   <transition name="slide-fade">
-    <div v-if="isVisible && selectedElement" class="context-menu" :style="menuPosition">
-      <div class="menu-header">
+    <div v-if="isVisible && selectedElement" class="context-menu" :style="menuPosition" ref="contextMenuEl">
+      <div class="menu-header" @mousedown="startDrag" style="cursor: move;">
         <div class="header-icon">{{ elementIcon }}</div>
         <h3>{{ elementTitle }}</h3>
         <button class="close-btn" @click="$emit('close')">
@@ -267,7 +267,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 
 const props = defineProps({
   isVisible: Boolean,
@@ -304,13 +304,80 @@ const elementIcon = computed(() => {
   return '⚙️'
 })
 
+// Draggable state
+const contextMenuEl = ref(null)
+const isDragging = ref(false)
+const dragOffset = ref({ x: 0, y: 0 })
+const savedPosition = ref(null)
+
+// Load saved position from localStorage
+onMounted(() => {
+  const saved = localStorage.getItem('contextMenuPosition')
+  if (saved) {
+    try {
+      savedPosition.value = JSON.parse(saved)
+    } catch (e) {
+      console.error('Failed to parse saved position:', e)
+    }
+  }
+})
+
 const menuPosition = computed(() => {
+  // Use saved position if available
+  if (savedPosition.value) {
+    return {
+      left: `${savedPosition.value.left}px`,
+      top: `${savedPosition.value.top}px`,
+    }
+  }
+  
+  // Otherwise use props position or default
   if (!props.position) return { left: 'calc(50% + 420px)', top: '100px' }
   return {
     left: props.position.left || 'calc(50% + 420px)',
     top: `${props.position.top || 100}px`,
   }
 })
+
+const startDrag = (e) => {
+  if (!contextMenuEl.value) return
+  
+  isDragging.value = true
+  const rect = contextMenuEl.value.getBoundingClientRect()
+  dragOffset.value = {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top
+  }
+  
+  document.addEventListener('mousemove', onDrag)
+  document.addEventListener('mouseup', stopDrag)
+  e.preventDefault()
+}
+
+const onDrag = (e) => {
+  if (!isDragging.value) return
+  
+  const newLeft = e.clientX - dragOffset.value.x
+  const newTop = e.clientY - dragOffset.value.y
+  
+  // Keep within viewport bounds
+  const maxLeft = window.innerWidth - 240 // menu width
+  const maxTop = window.innerHeight - 100
+  
+  savedPosition.value = {
+    left: Math.max(0, Math.min(newLeft, maxLeft)),
+    top: Math.max(0, Math.min(newTop, maxTop))
+  }
+  
+  // Save to localStorage
+  localStorage.setItem('contextMenuPosition', JSON.stringify(savedPosition.value))
+}
+
+const stopDrag = () => {
+  isDragging.value = false
+  document.removeEventListener('mousemove', onDrag)
+  document.removeEventListener('mouseup', stopDrag)
+}
 </script>
 
 <style scoped>
