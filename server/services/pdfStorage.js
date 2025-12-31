@@ -9,6 +9,8 @@ const { storageService } = require('./storage')
 
 class PDFStorageService {
   constructor() {
+    // In-memory cache for publication metadata
+    this.metadata = new Map()
   }
 
   /**

@@ -75,36 +75,15 @@
         <div class="preview-3d-container">
           <h3>📦 How Your Book Will Look</h3>
           <p class="preview-hint">Hover to open the book</p>
-          <div class="book-3d-preview" :class="`cover-${selectedCoverType}`">
-            <div class="book-3d">
-              <div class="book-spine" :style="spineStyle">
-                <div class="spine-title">{{ bookTitle }}</div>
-              </div>
-              <div class="book-front-cover" :style="coverStyle">
-                <div class="cover-texture" :style="textureStyle"></div>
-                <div class="cover-title">
-                  <h4>{{ bookTitle }}</h4>
-                  <p class="page-count">{{ pageCount }} pages</p>
-                </div>
-              </div>
-              <div class="book-back-cover" :style="coverStyle"></div>
-              <div class="book-pages">
-                <!-- First page with preview content -->
-                <div class="first-page">
-                  <div class="page-content">
-                    <div class="preview-slot"></div>
-                    <div class="preview-slot"></div>
-                    <div class="preview-text-lines">
-                      <div class="text-line"></div>
-                      <div class="text-line"></div>
-                      <div class="text-line"></div>
-                    </div>
-                  </div>
-                </div>
-                <!-- Multiple page layers for depth -->
-                <div class="page-layer" v-for="i in 8" :key="i" :style="{ transform: `translateZ(${i * 0.3}px)` }"></div>
-              </div>
-            </div>
+          <div class="book-3d-preview">
+            <Book3D
+              :title="bookTitle"
+              :page-count="pageCount"
+              :cover-type="selectedCoverType"
+              :cover-style="coverStyle"
+              :spine-style="spineStyle"
+              :texture-style="textureStyle"
+            />
           </div>
         </div>
 
@@ -227,6 +206,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import { useAuthStore } from '../stores/authStore'
+import Book3D from './Book3D.vue'
 
 const props = defineProps({
   publication: { type: Object, required: true }
@@ -287,16 +267,16 @@ const materialCategories = [
 ]
 
 const selectedMaterialCategory = ref('paper')
-const selectedMaterial = ref('paper-white')
+const selectedMaterial = ref('paper-cream')
 
 // Materials database
 const materials = {
   paper: [
-    { id: 'paper-white', name: 'White', price: 0, swatchStyle: { background: '#ffffff', border: '1px solid #ddd' } },
-    { id: 'paper-cream', name: 'Cream', price: 2, swatchStyle: { background: '#FFF8DC' } },
+    { id: 'paper-cream', name: 'Cream', price: 0, swatchStyle: { background: '#FFF8DC' } },
     { id: 'paper-black', name: 'Black', price: 2, swatchStyle: { background: '#1a1a1a' } },
     { id: 'paper-navy', name: 'Navy', price: 2, swatchStyle: { background: '#001f3f' } },
     { id: 'paper-burgundy', name: 'Burgundy', price: 2, swatchStyle: { background: '#6D071A' } },
+    { id: 'paper-forest', name: 'Forest', price: 2, swatchStyle: { background: '#0B3D0B' } },
   ],
   'cloth-thin': [
     { id: 'thin-linen', name: 'Linen', price: 8, swatchStyle: { background: 'linear-gradient(45deg, #E5D3B3 25%, #D4C4A8 25%, #D4C4A8 50%, #E5D3B3 50%, #E5D3B3 75%, #D4C4A8 75%)', backgroundSize: '4px 4px' } },
@@ -358,7 +338,7 @@ const selectCoverType = (type) => {
     selectedMaterial.value = null
   } else {
     // Default to first material in current category
-    selectedMaterial.value = currentMaterials.value[0]?.id || 'paper-white'
+    selectedMaterial.value = currentMaterials.value[0]?.id || 'paper-cream'
   }
 }
 
@@ -369,7 +349,11 @@ const selectMaterial = (materialId) => {
 // 3D Preview styles
 const coverStyle = computed(() => {
   if (selectedCoverType.value === 'paperback') {
-    return { background: '#ffffff', border: '1px solid #ddd' }
+    // Paperback uses a kraft paper color
+    return { 
+      background: 'linear-gradient(135deg, #e8dcc8 0%, #d4c4a8 100%)',
+      border: '1px solid rgba(0,0,0,0.1)'
+    }
   }
   const mat = Object.values(materials).flat().find(m => m.id === selectedMaterial.value)
   return mat?.swatchStyle || { background: '#ffffff', border: '1px solid #ddd' }
@@ -608,323 +592,10 @@ const placeOrder = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1400px;
-  perspective-origin: 50% 50%;
   overflow: visible;
-  padding: 20px;
-}
-
-.book-3d {
-  width: 160px;
-  height: 220px;
-  position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: bookFloat 6s ease-in-out infinite;
-}
-
-@keyframes bookFloat {
-  0%, 100% {
-    transform: rotateY(-30deg) rotateX(10deg) translateY(0px);
-  }
-  50% {
-    transform: rotateY(-30deg) rotateX(10deg) translateY(-8px);
-  }
-}
-
-.book-3d:hover {
-  animation-play-state: paused;
-  transform: rotateY(-30deg) rotateX(10deg) translateY(-5px) scale(1.08);
-}
-
-/* Open book animation on hover */
-.book-3d:hover .book-front-cover {
-  transform: translateZ(18px) rotateY(-130deg);
-  transform-origin: left center;
-}
-
-.book-3d:hover .book-pages {
-  transform: translateZ(17px) rotateY(-5deg);
-}
-
-.book-front-cover,
-.book-back-cover,
-.book-spine,
-.book-pages {
-  position: absolute;
-  backface-visibility: hidden;
-}
-
-.book-front-cover {
-  width: 160px;
-  height: 220px;
-  transform: translateZ(18px);
-  transform-origin: left center;
-  border-radius: 3px 6px 6px 3px;
-  overflow: hidden;
-  position: relative;
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
-    0 0 0 1px rgba(0,0,0,0.15),
-    2px 0 8px rgba(0,0,0,0.15),
-    4px 0 16px rgba(0,0,0,0.1),
-    inset -2px 0 4px rgba(0,0,0,0.1);
-}
-
-.book-front-cover::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255,255,255,0.1) 50%,
-    transparent 100%
-  );
-  pointer-events: none;
-}
-
-.book-front-cover::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 8px;
-  height: 100%;
-  background: linear-gradient(
-    to right,
-    rgba(0,0,0,0.15),
-    transparent
-  );
-}
-
-.cover-texture {
-  width: 100%;
-  height: 100%;
-  position: absolute;
-  top: 0;
-  left: 0;
-  opacity: 0.8;
-}
-
-.cover-title {
-  position: absolute;
-  bottom: 30px;
-  left: 20px;
-  right: 20px;
-  z-index: 10;
-  color: white;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
-}
-
-.cover-title h4 {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 4px 0;
-  line-height: 1.3;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.cover-title .page-count {
-  font-size: 10px;
-  font-weight: 500;
-  margin: 0;
-  opacity: 0.9;
-}
-
-.book-back-cover {
-  width: 160px;
-  height: 220px;
-  transform: translateZ(-18px) rotateY(180deg);
-  border-radius: 6px 3px 3px 6px;
-  box-shadow: 
-    0 0 0 1px rgba(0,0,0,0.15),
-    -2px 0 8px rgba(0,0,0,0.15);
-}
-
-.book-spine {
-  width: 36px;
-  height: 220px;
-  left: -18px;
-  transform: rotateY(-90deg) translateZ(80px);
-  border-radius: 3px;
-  background: linear-gradient(
-    to right,
-    rgba(0,0,0,0.2) 0%,
-    rgba(0,0,0,0.05) 10%,
-    transparent 20%,
-    transparent 80%,
-    rgba(0,0,0,0.05) 90%,
-    rgba(0,0,0,0.2) 100%
-  );
-  box-shadow: 
-    inset 0 0 8px rgba(0,0,0,0.2),
-    -2px 0 4px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.spine-title {
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  font-size: 11px;
-  font-weight: 700;
-  color: rgba(255, 255, 255, 0.9);
-  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
-  letter-spacing: 1px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-height: 200px;
-  padding: 10px 0;
-}
-
-.book-pages {
-  width: 154px;
-  height: 214px;
-  left: 3px;
-  top: 3px;
-  transform: translateZ(17px);
-  transform-origin: left center;
-  background: linear-gradient(
-    to right,
-    #f8f8f8 0%,
-    #ffffff 5%,
-    #ffffff 95%,
-    #f0f0f0 100%
-  );
-  border-radius: 0 3px 3px 0;
-  box-shadow: 
-    inset -1px 0 2px rgba(0,0,0,0.1),
-    inset 0 0 20px rgba(0,0,0,0.03);
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.book-pages::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 10px,
-    rgba(0,0,0,0.02) 10px,
-    rgba(0,0,0,0.02) 11px
-  );
-  pointer-events: none;
-}
-
-/* First page content */
-.first-page {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 10;
-  opacity: 0;
-  transition: opacity 0.5s ease 0.3s;
-}
-
-.book-3d:hover .first-page {
-  opacity: 1;
-}
-
-.page-content {
-  padding: 20px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  height: 100%;
-}
-
-.preview-slot {
-  width: 100%;
-  height: 50px;
-  background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
-  border-radius: 4px;
-  border: 1px solid rgba(0,0,0,0.08);
-  position: relative;
-  overflow: hidden;
-}
-
-.preview-slot::before {
-  content: '';
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 24px;
-  height: 24px;
-  background: rgba(0,0,0,0.1);
-  border-radius: 4px;
-}
-
-.preview-text-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 8px;
-}
-
-.text-line {
-  height: 3px;
-  background: rgba(0,0,0,0.15);
-  border-radius: 2px;
-}
-
-.text-line:nth-child(1) { width: 90%; }
-.text-line:nth-child(2) { width: 85%; }
-.text-line:nth-child(3) { width: 70%; }
-
-/* Individual page layers */
-.page-layer {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  border-right: 1px solid rgba(0,0,0,0.05);
-  box-shadow: 1px 0 2px rgba(0,0,0,0.05);
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.book-3d:hover .page-layer:nth-child(1) { transform: translateZ(0.3px) rotateY(-2deg) !important; }
-.book-3d:hover .page-layer:nth-child(2) { transform: translateZ(0.6px) rotateY(-4deg) !important; }
-.book-3d:hover .page-layer:nth-child(3) { transform: translateZ(0.9px) rotateY(-6deg) !important; }
-.book-3d:hover .page-layer:nth-child(4) { transform: translateZ(1.2px) rotateY(-8deg) !important; }
-.book-3d:hover .page-layer:nth-child(5) { transform: translateZ(1.5px) rotateY(-10deg) !important; }
-.book-3d:hover .page-layer:nth-child(6) { transform: translateZ(1.8px) rotateY(-12deg) !important; }
-.book-3d:hover .page-layer:nth-child(7) { transform: translateZ(2.1px) rotateY(-14deg) !important; }
-.book-3d:hover .page-layer:nth-child(8) { transform: translateZ(2.4px) rotateY(-16deg) !important; }
-
-/* Hardcover specific styling */
-.cover-hardcover .book-front-cover,
-.cover-hardcover .book-back-cover {
-  box-shadow: 
-    0 0 0 2px rgba(0,0,0,0.2),
-    2px 0 12px rgba(0,0,0,0.2),
-    4px 0 20px rgba(0,0,0,0.15),
-    inset -2px 0 6px rgba(0,0,0,0.15);
-}
-
-.cover-hardcover .book-spine {
-  box-shadow: 
-    inset 0 0 12px rgba(0,0,0,0.3),
-    -3px 0 6px rgba(0,0,0,0.15);
+  padding: 40px 20px;
+  background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  border-radius: 8px;
 }
 
 /* Option Groups */
@@ -1041,52 +712,66 @@ const placeOrder = () => {
 }
 
 .material-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .material-card {
-  padding: 12px;
-  background: var(--bg);
+  padding: 0;
+  background: transparent;
   border: 2px solid var(--border);
-  border-radius: 10px;
+  border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s ease;
   position: relative;
+  overflow: hidden;
 }
 
 .material-card:hover {
   border-color: var(--accent);
+  transform: scale(1.05);
 }
 
 .material-card.selected {
   border-color: var(--accent);
-  background: color-mix(in srgb, var(--accent) 5%, var(--bg));
+  border-width: 3px;
 }
 
 .material-swatch {
-  width: 100%;
-  aspect-ratio: 1;
-  border-radius: 8px;
-  margin-bottom: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
 }
 
 .material-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.7);
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.material-card:hover .material-info {
+  opacity: 1;
 }
 
 .material-info h5 {
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 600;
   margin: 0;
+  color: white;
 }
 
 .material-price {
-  font-size: 12px;
+  font-size: 9px;
   font-weight: 600;
   color: var(--accent);
 }
