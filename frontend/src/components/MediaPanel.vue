@@ -456,14 +456,12 @@ const processFiles = async (imageFiles) => {
     }
   }
   
-  // Upload images in batches of 4
-  const BATCH_SIZE = 4
+  // Upload images sequentially (one at a time)
   const results = []
   
-  for (let i = 0; i < placeholders.length; i += BATCH_SIZE) {
-    const batch = placeholders.slice(i, i + BATCH_SIZE)
-    const batchResults = await Promise.all(batch.map(uploadSingleImage))
-    results.push(...batchResults)
+  for (const placeholder of placeholders) {
+    const result = await uploadSingleImage(placeholder)
+    results.push(result)
   }
   
   // Count results

@@ -13,16 +13,29 @@
           <option value="DM Sans">DM Sans</option>
           <option value="Space Grotesk">Space Grotesk</option>
         </optgroup>
-        <optgroup label="Serif">
+        <optgroup label="Elegant Serif">
           <option value="Playfair Display">Playfair Display</option>
+          <option value="Bodoni Moda">Bodoni Moda</option>
+          <option value="Cormorant Garamond">Cormorant Garamond</option>
+          <option value="EB Garamond">EB Garamond</option>
+          <option value="Cinzel">Cinzel</option>
+          <option value="Spectral">Spectral</option>
           <option value="Lora">Lora</option>
           <option value="Merriweather">Merriweather</option>
           <option value="Crimson Text">Crimson Text</option>
           <option value="Libre Baskerville">Libre Baskerville</option>
+          <option value="Bitter">Bitter</option>
         </optgroup>
-        <optgroup label="Display">
+        <optgroup label="Bold & Impact">
           <option value="Bebas Neue">Bebas Neue</option>
+          <option value="Anton">Anton</option>
+          <option value="Archivo Black">Archivo Black</option>
           <option value="Oswald">Oswald</option>
+          <option value="Staatliches">Staatliches</option>
+          <option value="Righteous">Righteous</option>
+        </optgroup>
+        <optgroup label="Display & Editorial">
+          <option value="Abril Fatface">Abril Fatface</option>
         </optgroup>
         <optgroup label="System">
           <option value="Arial">Arial</option>

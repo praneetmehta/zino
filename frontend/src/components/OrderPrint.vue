@@ -485,7 +485,8 @@ const placeOrder = () => {
 
 .pdf-viewer-container {
   width: 100%;
-  aspect-ratio: 3/2;
+  height: 400px;
+  max-height: 50vh;
   background: var(--muted);
   border-radius: 12px;
   overflow: hidden;
