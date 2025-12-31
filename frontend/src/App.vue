@@ -1,7 +1,8 @@
 <template>
   <div class="app" :class="`theme-${zineStore.ui.theme}`" :data-theme="zineStore.ui.theme">
+    <PortfolioLanding v-if="view === 'portfolio'" />
     <LandingPage
-      v-if="view === 'landing'"
+      v-else-if="view === 'landing'"
       :loading="isLoadingRemote"
       :last-saved-summary="lastSavedSummary"
       @create-new="startNewProject"
@@ -132,6 +133,7 @@ import Canvas from './components/Canvas.vue'
 import PagePanel from './components/PagePanel.vue'
 import CommandBar from './components/CommandBar.vue'
 import FlipBook from './components/FlipBook.vue'
+import PortfolioLanding from './components/PortfolioLanding.vue'
 import LandingPage from './components/LandingPage.vue'
 import LibraryModal from './components/LibraryModal.vue'
 import LayoutBuilder from './components/LayoutBuilder.vue'
@@ -163,7 +165,19 @@ const showFlipbook = ref(false)
 const isSaving = ref(false)
 const isPublishing = ref(false)
 const isLoadingRemote = ref(false)
-const view = ref('landing') // landing | init | editor | order-print
+// Check URL path to determine initial view
+const getInitialView = () => {
+  const path = window.location.pathname
+  if (path === '/zino' || path === '/zino/') return 'landing'
+  return 'portfolio'
+}
+
+const view = ref(getInitialView()) // portfolio | landing | init | editor | order-print
+
+// Handle browser navigation
+window.addEventListener('popstate', () => {
+  view.value = getInitialView()
+})
 const showLibrary = ref(false)
 const showPublications = ref(false)
 const selectedPublication = ref(null)
