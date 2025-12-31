@@ -17,6 +17,7 @@ export const useZineStore = defineStore('zine', {
     
     // Pages
     pages: [],
+    copiedPage: null, // For copy/paste functionality
     
     // Current selection
     selectedPageId: null,
@@ -99,6 +100,13 @@ export const useZineStore = defineStore('zine', {
       }
     },
     
+    updateMediaAssetProgress(id, progress) {
+      const asset = this.mediaAssets.find(a => String(a.id) === String(id))
+      if (asset) {
+        asset.uploadProgress = progress
+      }
+    },
+    
     addPage(layout) {
       const id = String(Date.now() + Math.random())
       console.log('zineStore.addPage - Received slots:', layout.slots)
@@ -134,6 +142,55 @@ export const useZineStore = defineStore('zine', {
       if (page) {
         page.marginOverride = margin
       }
+    },
+    
+    duplicatePage(pageId) {
+      const page = this.getPageById(pageId)
+      if (!page) return null
+      
+      const newId = String(Date.now() + Math.random())
+      const duplicatedPage = {
+        ...page,
+        id: newId,
+        slots: page.slots.map(slot => ({ ...slot })),
+        textElements: page.textElements.map(textEl => ({
+          ...textEl,
+          id: `${newId}-${textEl.id}-${Date.now()}`
+        }))
+      }
+      
+      // Insert after the original page
+      const index = this.pages.findIndex(p => p.id === pageId)
+      this.pages.splice(index + 1, 0, duplicatedPage)
+      this.selectedPageId = newId
+      return newId
+    },
+    
+    copyPage(pageId) {
+      const page = this.getPageById(pageId)
+      if (!page) return
+      
+      // Store in clipboard (we'll use a simple module-level variable)
+      this.copiedPage = JSON.parse(JSON.stringify(page))
+    },
+    
+    pastePage() {
+      if (!this.copiedPage) return null
+      
+      const newId = String(Date.now() + Math.random())
+      const pastedPage = {
+        ...this.copiedPage,
+        id: newId,
+        slots: this.copiedPage.slots.map(slot => ({ ...slot })),
+        textElements: this.copiedPage.textElements.map(textEl => ({
+          ...textEl,
+          id: `${newId}-${textEl.id}-${Date.now()}`
+        }))
+      }
+      
+      this.pages.push(pastedPage)
+      this.selectedPageId = newId
+      return newId
     },
     
     removePage(id) {
@@ -433,6 +490,10 @@ export const useZineStore = defineStore('zine', {
       if (typeof document !== 'undefined') {
         document.body.setAttribute('data-theme', this.ui.theme)
       }
+      // Persist to localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('zino_theme', this.ui.theme)
+      }
     },
 
     toggleTheme() {
@@ -440,6 +501,22 @@ export const useZineStore = defineStore('zine', {
       // Apply theme to body for teleported components (like dropdowns)
       if (typeof document !== 'undefined') {
         document.body.setAttribute('data-theme', this.ui.theme)
+      }
+      // Persist to localStorage
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('zino_theme', this.ui.theme)
+      }
+    },
+    
+    loadThemeFromStorage() {
+      if (typeof localStorage !== 'undefined') {
+        const savedTheme = localStorage.getItem('zino_theme')
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          this.ui.theme = savedTheme
+          if (typeof document !== 'undefined') {
+            document.body.setAttribute('data-theme', savedTheme)
+          }
+        }
       }
     },
 

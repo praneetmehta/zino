@@ -1,87 +1,17 @@
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
-export async function exportToPDF(zineStore) {
+export async function exportToPDF(zineStore, progressCallback = null) {
   const { zineConfig, pages } = zineStore
   const isDarkMode = zineStore.ui.theme === 'dark'
 
   if (!zineConfig || pages.length === 0) {
-    alert('No pages to export!')
-    return
+    throw new Error('No pages to export')
   }
-
-  const overlayBackground = isDarkMode ? 'rgba(4, 6, 15, 0.94)' : 'rgba(0, 0, 0, 0.85)'
-  const spinnerBaseColor = isDarkMode ? 'rgba(226, 232, 240, 0.25)' : 'rgba(255, 255, 255, 0.2)'
-  const spinnerTopColor = isDarkMode ? '#e2e8f0' : '#ffffff'
-  const messageColor = isDarkMode ? '#e2e8f0' : '#ffffff'
-  const progressColor = isDarkMode ? 'rgba(148, 163, 184, 0.85)' : 'rgba(255, 255, 255, 0.7)'
-
-  const overlay = document.createElement('div')
-  const message = document.createElement('div')
-  const progress = document.createElement('div')
-  const spinner = document.createElement('div')
-  const style = document.createElement('style')
 
   document.body.classList.add('pdf-exporting')
 
-  let overlayAppended = false
-  let styleAppended = false
-
   try {
-    overlay.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: ${overlayBackground};
-      backdrop-filter: blur(12px) saturate(180%);
-      z-index: 99999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-direction: column;
-      gap: 20px;
-    `
-
-    message.style.cssText = `
-      color: ${messageColor};
-      font-size: 24px;
-      font-weight: 600;
-      text-align: center;
-    `
-    message.textContent = 'Exporting PDF...'
-
-    progress.style.cssText = `
-      color: ${progressColor};
-      font-size: 16px;
-      font-weight: 500;
-      text-align: center;
-    `
-    progress.textContent = 'Preparing...'
-
-    spinner.style.cssText = `
-      width: 48px;
-      height: 48px;
-      border: 4px solid ${spinnerBaseColor};
-      border-top-color: ${spinnerTopColor};
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    `
-
-    style.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `
-    document.head.appendChild(style)
-    styleAppended = true
-
-    overlay.appendChild(spinner)
-    overlay.appendChild(message)
-    overlay.appendChild(progress)
-    document.body.appendChild(overlay)
-    overlayAppended = true
 
     const rootStyle = getComputedStyle(document.documentElement)
     const appBackgroundColor =
@@ -91,7 +21,11 @@ export async function exportToPDF(zineStore) {
       (rootStyle.getPropertyValue('--page-bg') || '#ffffff').trim() || '#ffffff'
 
     const updateProgress = (current, total) => {
-      progress.textContent = `Processing page ${current} of ${total}...`
+      // Report to progress callback if provided
+      if (progressCallback) {
+        const percent = Math.round((current / total) * 100)
+        progressCallback(0, percent, `Page ${current} of ${total}`)
+      }
     }
 
     let width = zineConfig.width
@@ -230,18 +164,23 @@ export async function exportToPDF(zineStore) {
       }
     }
 
+    if (progressCallback) {
+      progressCallback(1, 100) // Saving step
+    }
+    
     const fileName = `zine_${Date.now()}.pdf`
     pdf.save(fileName)
+    
+    if (progressCallback) {
+      progressCallback(2, 100) // Complete
+    }
+    
+    // Small delay to ensure progress UI updates
+    await new Promise(resolve => setTimeout(resolve, 100))
   } catch (error) {
     console.error('[PDF Export] Failed to export PDF', error)
-    alert('Failed to export PDF. Please try again.')
+    throw error
   } finally {
-    if (overlayAppended && overlay.parentNode) {
-      overlay.parentNode.removeChild(overlay)
-    }
-    if (styleAppended && style.parentNode) {
-      style.parentNode.removeChild(style)
-    }
     document.body.classList.remove('pdf-exporting')
   }
 }

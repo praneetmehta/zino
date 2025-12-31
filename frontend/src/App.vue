@@ -35,6 +35,7 @@
         @reset="handleReset"
         @save="handleSave"
         @load="handleLoad"
+        @flipbook="showFlipbook = true"
       />
       <div class="workspace">
         <MediaPanel @collapsed-change="mediaPanelCollapsed = $event" />
@@ -44,9 +45,15 @@
         />
         <PagePanel @collapsed-change="pagePanelCollapsed = $event" />
       </div>
-      <div class="command-hint" @click="openCommandBar">
-        <kbd>⌘K</kbd>
-        <span>Command Bar</span>
+      <div class="bottom-hints">
+        <div class="command-hint" @click="openCommandBar">
+          <kbd>⌘K</kbd>
+          <span>Command Bar</span>
+        </div>
+        <button class="shortcuts-hint" @click="showKeyboardShortcuts = true" title="Keyboard Shortcuts">
+          <span>⌨️</span>
+          <kbd>?</kbd>
+        </button>
       </div>
     </template>
     <CommandBar
@@ -89,6 +96,22 @@
     <!-- Notification System -->
     <NotificationToast ref="toastRef" />
     <ConfirmDialog ref="confirmRef" />
+    
+    <!-- PDF Progress Modal -->
+    <PDFProgressModal 
+      ref="pdfProgressRef"
+      :is-open="showPDFProgress"
+      :title="pdfProgressTitle"
+      :complete-title="pdfCompleteTitle"
+      :on-view-published="pdfType === 'publish' ? () => showPublications = true : null"
+      @close="showPDFProgress = false"
+    />
+    
+    <!-- Keyboard Shortcuts Modal -->
+    <KeyboardShortcutsModal
+      :is-open="showKeyboardShortcuts"
+      @close="showKeyboardShortcuts = false"
+    />
   </div>
 </template>
 
@@ -111,16 +134,24 @@ import GoogleOneTap from './components/GoogleOneTap.vue'
 import PublishedPDFsModal from './components/PublishedPDFsModal.vue'
 import NotificationToast from './components/NotificationToast.vue'
 import ConfirmDialog from './components/ConfirmDialog.vue'
+import PDFProgressModal from './components/PDFProgressModal.vue'
+import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import { setToastInstance, setConfirmInstance, useNotification } from './composables/useNotification'
 import { exportToPDF } from './utils/pdfExport'
 import { publishToPDF } from './utils/pdfPublish'
 import { listBooks, saveBook, getBook } from './api/books'
+import html2canvas from 'html2canvas'
 
 const zineStore = useZineStore()
 const authStore = useAuthStore()
 const commandBar = ref(null)
 const toastRef = ref(null)
 const confirmRef = ref(null)
+const pdfProgressRef = ref(null)
+const showPDFProgress = ref(false)
+const pdfProgressTitle = ref('Generating PDF')
+const pdfCompleteTitle = ref('PDF Ready!')
+const pdfType = ref('export') // 'export' or 'publish'
 const showFlipbook = ref(false)
 const isSaving = ref(false)
 const isPublishing = ref(false)
@@ -131,6 +162,7 @@ const showPublications = ref(false)
 const mediaPanelCollapsed = ref(false)
 const pagePanelCollapsed = ref(false)
 const hasUnsavedChanges = ref(false)
+const showKeyboardShortcuts = ref(false)
 
 // Track unsaved changes
 watch(
@@ -152,8 +184,126 @@ const handleBeforeUnload = (e) => {
   }
 }
 
+// Keyboard shortcuts handler
+const handleKeyboard = (e) => {
+  // Ignore if typing in input/textarea or contenteditable
+  if (e.target.tagName === 'INPUT' || 
+      e.target.tagName === 'TEXTAREA' || 
+      e.target.isContentEditable) {
+    // Allow Cmd+S to save even when in input
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault()
+      handleSave()
+    }
+    return
+  }
+  
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const cmdKey = isMac ? e.metaKey : e.ctrlKey
+  
+  // ? - Show keyboard shortcuts
+  if (e.key === '?' && !cmdKey) {
+    e.preventDefault()
+    showKeyboardShortcuts.value = true
+    return
+  }
+  
+  // Esc - Close modals/dialogs
+  if (e.key === 'Escape') {
+    if (showKeyboardShortcuts.value) {
+      showKeyboardShortcuts.value = false
+      return
+    }
+    if (showFlipbook.value) {
+      showFlipbook.value = false
+      return
+    }
+  }
+  
+  // Cmd+F - Flipbook preview (only in editor view)
+  if (view.value !== 'landing' && view.value !== 'init' && view.value !== 'layout-library' && view.value !== 'layout-builder') {
+    if (cmdKey && e.key === 'f') {
+      e.preventDefault()
+      if (zineStore.pageCount > 0) {
+        showFlipbook.value = true
+      }
+      return
+    }
+  }
+  
+  // Cmd+S - Save
+  if (cmdKey && e.key === 's') {
+    e.preventDefault()
+    handleSave()
+    return
+  }
+  
+  // Only process page operations in editor view
+  if (view.value !== 'landing' && view.value !== 'init' && view.value !== 'layout-library' && view.value !== 'layout-builder') {
+    // Cmd+C - Copy page
+    if (cmdKey && e.key === 'c') {
+      e.preventDefault() // Always prevent default
+      if (zineStore.selectedPageId) {
+        if (typeof zineStore.copyPage === 'function') {
+          zineStore.copyPage(zineStore.selectedPageId)
+          toast.success('Page copied')
+        } else {
+          console.error('copyPage is not a function', zineStore)
+          toast.error('Copy page function not available')
+        }
+      }
+      return
+    }
+    
+    // Cmd+V - Paste page
+    if (cmdKey && e.key === 'v') {
+      e.preventDefault() // Always prevent default
+      if (zineStore.copiedPage) {
+        if (typeof zineStore.pastePage === 'function') {
+          zineStore.pastePage()
+          toast.success('Page pasted')
+        } else {
+          console.error('pastePage is not a function', zineStore)
+          toast.error('Paste page function not available')
+        }
+      }
+      return
+    }
+    
+    // Cmd+D - Duplicate page
+    if (cmdKey && e.key === 'd') {
+      e.preventDefault() // Always prevent default (browser bookmark)
+      if (zineStore.selectedPageId) {
+        if (typeof zineStore.duplicatePage === 'function') {
+          zineStore.duplicatePage(zineStore.selectedPageId)
+          toast.success('Page duplicated')
+        } else {
+          console.error('duplicatePage is not a function', zineStore)
+          toast.error('Duplicate page function not available')
+        }
+      }
+      return
+    }
+  }
+  
+  // Delete - Delete selected page (only in editor view)
+  if (view.value !== 'landing' && view.value !== 'init' && view.value !== 'layout-library' && view.value !== 'layout-builder') {
+    if ((e.key === 'Delete' || e.key === 'Backspace')) {
+      if (zineStore.selectedPageId && zineStore.pages.length > 0) {
+        e.preventDefault()
+        handleDeletePage(zineStore.selectedPageId)
+      }
+      return
+    }
+  }
+}
+
 onMounted(() => {
   window.addEventListener('beforeunload', handleBeforeUnload)
+  window.addEventListener('keydown', handleKeyboard)
+  
+  // Load saved theme from localStorage
+  zineStore.loadThemeFromStorage()
   
   // Apply theme to body for teleported components (dropdowns, modals, etc.)
   document.body.setAttribute('data-theme', zineStore.ui.theme)
@@ -161,6 +311,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  window.removeEventListener('keydown', handleKeyboard)
 })
 
 const formatRelativeTime = (isoString) => {
@@ -221,8 +372,42 @@ const handleInitialize = async (config) => {
   }
 }
 
-const handleExport = () => {
-  exportToPDF(zineStore)
+const handleExport = async () => {
+  if (!zineStore.isInitialized || zineStore.pageCount === 0) {
+    toast.warning('No pages to export')
+    return
+  }
+  
+  pdfType.value = 'export'
+  pdfProgressTitle.value = 'Exporting PDF'
+  pdfCompleteTitle.value = 'PDF Downloaded!'
+  showPDFProgress.value = true
+  
+  // Set up steps
+  if (pdfProgressRef.value) {
+    pdfProgressRef.value.setSteps([
+      { label: 'Rendering pages', detail: '' },
+      { label: 'Generating PDF', detail: '' },
+      { label: 'Saving file', detail: '' }
+    ])
+  }
+  
+  try {
+    await exportToPDF(zineStore, (stepIndex, progress, detail) => {
+      if (pdfProgressRef.value) {
+        pdfProgressRef.value.updateProgress(stepIndex, progress)
+      }
+    })
+    
+    // Complete progress modal immediately
+    if (pdfProgressRef.value) {
+      const pdfSize = zineStore.pageCount * 500000 // Rough estimate
+      pdfProgressRef.value.complete(pdfSize, zineStore.pageCount)
+    }
+  } catch (error) {
+    showPDFProgress.value = false
+    toast.error(error.message, 'Export Failed')
+  }
 }
 
 const { toast, confirm } = useNotification()
@@ -240,6 +425,20 @@ const handlePublish = async () => {
     return
   }
   
+  pdfType.value = 'publish'
+  pdfProgressTitle.value = 'Publishing PDF'
+  pdfCompleteTitle.value = '🎉 Published Successfully!'
+  showPDFProgress.value = true
+  
+  // Set up steps
+  if (pdfProgressRef.value) {
+    pdfProgressRef.value.setSteps([
+      { label: 'Rendering pages', detail: '' },
+      { label: 'Uploading to server', detail: '' },
+      { label: 'Publishing', detail: '' }
+    ])
+  }
+  
   try {
     isPublishing.value = true
     
@@ -250,27 +449,21 @@ const handlePublish = async () => {
     }
     
     // Publish PDF to server
-    const publication = await publishToPDF(zineStore, token)
+    const publication = await publishToPDF(zineStore, token, (stepIndex, progress, detail) => {
+      if (pdfProgressRef.value) {
+        pdfProgressRef.value.updateProgress(stepIndex, progress)
+      }
+    })
     
     console.log('✅ Published successfully:', publication)
     
-    // Show success message with option to view or order print
-    const action = await confirm(
-      `Your zine "${publication.title}" has been published!\n\nView your published PDFs?`,
-      {
-        title: '🎉 Published Successfully!',
-        type: 'success',
-        confirmText: 'View PDFs',
-        cancelText: 'Continue Editing'
-      }
-    )
-    
-    if (action) {
-      // Show publications modal
-      showPublications.value = true
+    // Complete progress modal immediately
+    if (pdfProgressRef.value) {
+      pdfProgressRef.value.complete(publication.size || 0, publication.pageCount || zineStore.pageCount)
     }
   } catch (error) {
     console.error('Failed to publish:', error)
+    showPDFProgress.value = false
     toast.error(error.message, 'Publish Failed')
   } finally {
     isPublishing.value = false
@@ -292,6 +485,42 @@ const handleReset = async () => {
     zineStore.reset()
     view.value = 'init'
     toast.info('Project reset')
+  }
+}
+
+// Generate thumbnail from first page
+const generateThumbnail = async () => {
+  try {
+    if (zineStore.pages.length === 0) return null
+    
+    const firstPage = zineStore.pages[0]
+    const pageElement = document.querySelector(`.page-canvas[data-page-id="${firstPage.id}"]`)
+    if (!pageElement) return null
+    
+    // Temporarily hide guides
+    pageElement.classList.add('export-mode')
+    const guidesElement = pageElement.querySelector('.guides')
+    const creaseElement = pageElement.querySelector('.page-crease')
+    if (guidesElement) guidesElement.style.display = 'none'
+    if (creaseElement) creaseElement.style.display = 'none'
+    
+    const canvas = await html2canvas(pageElement, {
+      scale: 0.5, // Lower scale for thumbnail
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    })
+    
+    // Restore guides
+    if (guidesElement) guidesElement.style.display = ''
+    if (creaseElement) creaseElement.style.display = ''
+    pageElement.classList.remove('export-mode')
+    
+    return canvas.toDataURL('image/jpeg', 0.8) // Use JPEG with 80% quality for smaller size
+  } catch (error) {
+    console.error('Error generating thumbnail:', error)
+    return null
   }
 }
 
@@ -328,16 +557,21 @@ const handleSave = async () => {
   const id = zineStore.projectMeta.id || `book-${Date.now()}`
   const title = zineStore.projectMeta.title || 'Untitled Zine'
 
+  isSaving.value = true
+  
+  // Generate thumbnail
+  const thumbnail = await generateThumbnail()
+
   const payload = {
     id,
     title,
+    thumbnail, // Include thumbnail
     data: zineStore.exportProjectData(),
     metadata: {
       pageCount: zineStore.pageCount,
       mediaCount: zineStore.mediaAssets.length,
     },
   }
-  isSaving.value = true
   saveBook(payload)
     .then((saved) => {
       zineStore.setProjectMeta({ id: saved.id, title: saved.title, updatedAt: saved.updatedAt })
@@ -356,6 +590,26 @@ const handleSave = async () => {
 
 const handleLoad = () => {
   showLibrary.value = true
+}
+
+const handleDeletePage = async (pageId) => {
+  const pageIndex = zineStore.pages.findIndex(p => p.id === pageId)
+  if (pageIndex === -1) return
+  
+  const confirmed = await confirm(
+    `Delete page ${pageIndex + 1}? This cannot be undone.`,
+    {
+      title: 'Delete Page?',
+      type: 'danger',
+      confirmText: 'Delete',
+      cancelText: 'Cancel'
+    }
+  )
+  
+  if (confirmed) {
+    zineStore.removePage(pageId)
+    toast.info('Page deleted')
+  }
 }
 
 const handleLoadFromLibrary = (book) => {
@@ -587,6 +841,9 @@ onMounted(() => {
   if (confirmRef.value) {
     setConfirmInstance(confirmRef.value)
   }
+  if (pdfProgressRef.value) {
+    // PDF progress ref is ready
+  }
 
   window.addEventListener('show-publications', () => {
     showPublications.value = true
@@ -614,10 +871,17 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
-.command-hint {
+.bottom-hints {
   position: fixed;
   bottom: 24px;
   right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.command-hint {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -630,10 +894,32 @@ onBeforeUnmount(() => {
   box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.2);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 100;
 }
 
 .command-hint:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--accent);
+}
+
+.shortcuts-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--panel-bg);
+  backdrop-filter: var(--glass-blur) var(--glass-saturation);
+  -webkit-backdrop-filter: var(--glass-blur) var(--glass-saturation);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255,255,255,0.2);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.shortcuts-hint:hover {
   transform: translateY(-4px);
   box-shadow: var(--shadow-lg);
   border-color: var(--accent);

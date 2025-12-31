@@ -34,10 +34,19 @@
         <button class="delete-page-btn" @click.stop="deletePage(page.id)">×</button>
       </div>
 
-      <div v-if="zineStore.pages.length === 0" class="empty-state">
-        <p>📄</p>
-        <p>No pages yet</p>
-        <p class="hint">Select a layout from the toolbar to add pages</p>
+      <!-- Enhanced Empty State -->
+      <div v-if="zineStore.pages.length === 0" class="empty-state-enhanced">
+        <div class="empty-icon">
+          <svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+            <rect x="12" y="8" width="40" height="48" rx="2" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+            <rect x="12" y="8" width="40" height="10" fill="currentColor" opacity="0.1"/>
+            <line x1="18" y1="24" x2="46" y2="24" stroke="currentColor" stroke-width="2" opacity="0.2" stroke-linecap="round"/>
+            <line x1="18" y1="32" x2="46" y2="32" stroke="currentColor" stroke-width="2" opacity="0.2" stroke-linecap="round"/>
+            <line x1="18" y1="40" x2="38" y2="40" stroke="currentColor" stroke-width="2" opacity="0.2" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h4>No pages yet</h4>
+        <p class="empty-description">Choose a layout to add your first page</p>
       </div>
     </div>
     </div>
@@ -557,5 +566,58 @@ onMounted(() => {
   font-size: 12px;
   color: var(--text-muted);
   opacity: 0.8;
+}
+
+/* Enhanced Empty State */
+.empty-state-enhanced {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+  min-height: 400px;
+}
+
+.empty-state-enhanced .empty-icon {
+  margin-bottom: 24px;
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.empty-state-enhanced h4 {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 8px;
+}
+
+.empty-state-enhanced .empty-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.empty-state-enhanced .empty-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  padding: 12px 20px;
+  background: var(--muted);
+  border-radius: 8px;
+  border: 1px dashed var(--border);
+}
+
+.empty-state-enhanced .empty-hint svg {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.empty-state-enhanced .empty-hint strong {
+  color: var(--accent);
+  font-weight: 600;
 }
 </style>

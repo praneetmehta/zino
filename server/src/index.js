@@ -167,6 +167,7 @@ app.get('/books', optionalAuth, async (req, res) => {
           updatedAt: book.updatedAt,
           createdAt: book.createdAt,
           userId: book.userId,
+          thumbnail: book.thumbnail || null, // Include thumbnail
         })
       } catch (err) {
         console.error(`Failed to parse book file ${file}:`, err)
@@ -207,7 +208,7 @@ app.get('/books/:id', optionalAuth, async (req, res) => {
 app.post('/books', optionalAuth, async (req, res) => {
   try {
     await ensureDataDir()
-    const { id, title, data, metadata } = req.body || {}
+    const { id, title, data, metadata, thumbnail } = req.body || {}
 
     if (!id) {
       return res.status(400).json({ error: 'Book id is required' })
@@ -220,6 +221,7 @@ app.post('/books', optionalAuth, async (req, res) => {
     const now = new Date().toISOString()
     let createdAt = now
     let userId = req.user?.id || null
+    let existingThumbnail = null
 
     const existing = await fs.stat(filePath).catch(() => null)
     if (existing) {
@@ -227,6 +229,7 @@ app.post('/books', optionalAuth, async (req, res) => {
         const current = await readBookFile(filePath)
         createdAt = current.createdAt || now
         userId = current.userId || userId
+        existingThumbnail = current.thumbnail || null
         
         // Check ownership for updates
         if (req.user && current.userId && current.userId !== req.user.id && req.user.role !== 'admin') {
@@ -242,6 +245,7 @@ app.post('/books', optionalAuth, async (req, res) => {
       title: title || 'Untitled',
       data,
       metadata: metadata || {},
+      thumbnail: thumbnail || existingThumbnail, // Use new thumbnail or keep existing
       userId,
       createdAt,
       updatedAt: now,

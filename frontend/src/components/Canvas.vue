@@ -94,7 +94,35 @@
       </transition>
     </div>
 
+    <!-- Zoom Controls -->
+    <div class="zoom-controls" v-if="zineStore.pages.length > 0">
+      <button class="zoom-btn" @click="zoomOut" :disabled="zoom <= 25" title="Zoom out (-)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 7H9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <div class="zoom-display" @click="resetZoom" title="Click to reset (100%)">
+        {{ zoom }}%
+      </div>
+      <button class="zoom-btn" @click="zoomIn" :disabled="zoom >= 200" title="Zoom in (+)">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 7H9M7 5V9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M11 11L14 14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+      <button class="zoom-btn" @click="fitToScreen" title="Fit to screen">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <rect x="2" y="2" width="12" height="12" rx="1" stroke="currentColor" stroke-width="1.5"/>
+          <path d="M5 2V14M11 2V14M2 5H14M2 11H14" stroke="currentColor" stroke-width="1.5"/>
+        </svg>
+      </button>
+    </div>
+
     <div class="canvas-workspace" :class="{ 'editing-text': isTextBeingEdited }">
+      <div class="canvas-zoom-wrapper" :style="{ transform: `scale(${zoom / 100})`, transformOrigin: 'top center', minHeight: `${(100 / zoom) * 100}%` }">
       <div v-if="zineStore.pages.length === 0" class="empty-canvas">
         <div class="empty-message">
           <h3>👆 Select a layout above to create your first page</h3>
@@ -185,6 +213,7 @@
           </div>
         </transition-group>
       </div>
+      </div>
     </div>
     <TextToolbar
       :isVisible="textToolbarVisible"
@@ -257,6 +286,7 @@ const toolbarMode = ref('layouts')
 const toolbarCollapsed = ref(false)
 const isTextBeingEdited = ref(false)
 const selectedSlot = ref(null)
+const zoom = ref(100) // Zoom level percentage
 const showGuides = computed({
   get: () => zineStore.ui.showGuides,
   set: (value) => { zineStore.ui.showGuides = value }
@@ -542,6 +572,29 @@ const addPageWithLayout = (layout) => {
   })
 }
 
+// Zoom controls
+const zoomIn = () => {
+  if (zoom.value < 200) {
+    zoom.value = Math.min(zoom.value + 25, 200)
+  }
+}
+
+const zoomOut = () => {
+  if (zoom.value > 25) {
+    zoom.value = Math.max(zoom.value - 25, 25)
+  }
+}
+
+const resetZoom = () => {
+  zoom.value = 100
+}
+
+const fitToScreen = () => {
+  // Calculate ideal zoom to fit page in viewport
+  // For now, just set to 75% as a reasonable fit
+  zoom.value = 75
+}
+
 const handleDragOver = (event) => {
   event.preventDefault()
   event.dataTransfer.dropEffect = 'copy'
@@ -684,25 +737,54 @@ const handleClickOutside = (event) => {
   }
 }
 
+// Keyboard shortcuts for zoom
+const handleZoomKeyboard = (e) => {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0
+  const cmdKey = isMac ? e.metaKey : e.ctrlKey
+  
+  // Cmd/Ctrl + Plus = Zoom in
+  if (cmdKey && (e.key === '+' || e.key === '=')) {
+    e.preventDefault()
+    zoomIn()
+    return
+  }
+  
+  // Cmd/Ctrl + Minus = Zoom out
+  if (cmdKey && (e.key === '-' || e.key === '_')) {
+    e.preventDefault()
+    zoomOut()
+    return
+  }
+  
+  // Cmd/Ctrl + 0 = Reset zoom
+  if (cmdKey && e.key === '0') {
+    e.preventDefault()
+    resetZoom()
+    return
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  window.addEventListener('keydown', handleZoomKeyboard)
 })
 
 onUnmounted(() => {
-document.removeEventListener('click', handleClickOutside)
+  document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('keydown', handleZoomKeyboard)
 })
 
 // Debounce timer for style updates
 let styleUpdateTimeout = null
 
 const updateTextStyle = (styleUpdates) => {
-const { pageId, elementId } = currentEditingElement.value
-if (pageId && elementId) {
-// Update local style immediately for responsive UI
-currentTextStyle.value = {
-...currentTextStyle.value,
-...styleUpdates
-}
+  const { pageId, elementId } = currentEditingElement.value
+  if (pageId && elementId) {
+    // Update local style immediately for responsive UI
+    currentTextStyle.value = {
+      ...currentTextStyle.value,
+      ...styleUpdates
+    }
   
 // Debounce the actual store update to avoid excessive re-renders
 if (styleUpdateTimeout) {
@@ -919,6 +1001,69 @@ const handleSetPageMargin = (margin) => {
   background: var(--bg);
   overflow: hidden;
   transition: background var(--transition);
+  position: relative;
+}
+
+/* Zoom Controls */
+.zoom-controls {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zoom-btn:hover:not(:disabled) {
+  background: var(--border);
+  transform: translateY(-1px);
+}
+
+.zoom-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.zoom-display {
+  min-width: 60px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 8px;
+  cursor: pointer;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.zoom-display:hover {
+  color: var(--accent);
 }
 
 .toolbar {
@@ -1166,22 +1311,30 @@ const handleSetPageMargin = (margin) => {
   line-height: 1.2;
   color: var(--text-muted);
 }
-
 .canvas-workspace {
   flex: 1;
   overflow-y: auto;
   background: var(--workspace-bg);
+  transition: background var(--transition);
+  padding: 24px;
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 40px 20px;
-  min-height: 0;
+}
+
+.canvas-zoom-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.2s ease;
 }
 
 /* Disable hover effects when text is being edited */
 .canvas-workspace.editing-text .page-canvas:hover,
 .canvas-workspace.editing-text .slot:hover,
-.canvas-workspace.editing-text .page-canvas {
+.canvas-workspace.editing-text .page-canvas,
+.canvas-workspace.editing-text .slot {
   pointer-events: none;
 }
 
@@ -1291,6 +1444,8 @@ const handleSetPageMargin = (margin) => {
 
 .page-inner {
   position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .slot-inner {
@@ -1299,10 +1454,39 @@ const handleSetPageMargin = (margin) => {
   display: block;
 }
 
-.slot:hover {
+.slot:hover:not(.hide-guides) {
   border-color: var(--accent);
   border-width: 3px;
   box-shadow: inset 0 0 0 1px var(--accent);
+}
+
+/* Enhanced drag feedback - highlight all slots when dragging */
+body.dragging-image .slot {
+  border-color: var(--accent);
+  border-width: 2px;
+  border-style: dashed;
+  background: rgba(99, 102, 241, 0.05);
+  transition: all 0.2s ease;
+}
+
+body.dragging-image .slot:empty::after {
+  content: '📸';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 32px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+body.dragging-image .slot:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: var(--accent);
+  border-width: 3px;
+  border-style: solid;
+  box-shadow: inset 0 0 20px rgba(99, 102, 241, 0.2), 0 0 0 3px rgba(99, 102, 241, 0.3);
+  transform: scale(1.02);
 }
 
 .slot-image-wrapper {
@@ -1318,6 +1502,7 @@ const handleSetPageMargin = (margin) => {
 .slot-image-wrapper.contain {
   /* Contain: image fits within container, may show empty space */
   /* Dimensions set dynamically via JavaScript based on aspect ratio */
+  background: transparent;
 }
 
 .slot-image-wrapper.contain .slot-image {
@@ -1330,6 +1515,7 @@ const handleSetPageMargin = (margin) => {
 .slot-image-wrapper.cover {
   /* Cover: image fills container, may be cropped */
   /* Image dimensions are set dynamically via JavaScript based on aspect ratio */
+  background: transparent;
 }
 
 .slot-image-wrapper.cover .slot-image {

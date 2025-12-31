@@ -4,7 +4,9 @@
     
     <div class="flipbook-viewer">
       <div v-if="isLoading" class="loading-message">
-        <p>Loading pages...</p>
+        <div class="loading-spinner"></div>
+        <p>Rendering high-quality pages...</p>
+        <p class="loading-detail" v-if="loadingProgress">{{ loadingProgress }}</p>
       </div>
       <div v-else class="book-container" :style="bookContainerStyle" data-debug="book-container">
         <div class="book" :class="{ 'open': currentPageIndex > 0 && currentPageIndex <= zineStore.pages.length }" ref="bookElement">
@@ -85,6 +87,7 @@ const emit = defineEmits(['close'])
 const zineStore = useZineStore()
 const currentPageIndex = ref(0)
 const isLoading = ref(true)
+const loadingProgress = ref('')
 
 // Total pages including front cover and editor pages (back cover is on the back of last page)
 const totalPages = computed(() => zineStore.pages.length + 1)
@@ -295,12 +298,13 @@ const capturePage = async (pageId) => {
     if (creaseElement) creaseElement.style.display = 'none'
     
     const canvas = await html2canvas(pageElement, {
-      scale: 0.5,
+      scale: 2, // Higher resolution for better image quality
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      imageTimeout: 0
+      imageTimeout: 0,
+      removeContainer: true // Clean up temporary elements
     })
     
     if (guidesElement) guidesElement.style.display = ''
@@ -317,9 +321,13 @@ const capturePage = async (pageId) => {
 // Render all pages
 const renderPages = async () => {
   isLoading.value = true
+  loadingProgress.value = ''
   pageImages.value = {}
   
-  for (const page of zineStore.pages) {
+  const totalPages = zineStore.pages.length
+  for (let i = 0; i < totalPages; i++) {
+    const page = zineStore.pages[i]
+    loadingProgress.value = `Page ${i + 1} of ${totalPages}`
     const imgData = await capturePage(page.id)
     if (imgData) {
       pageImages.value[page.id] = imgData
@@ -460,11 +468,37 @@ watch(() => zineStore.pages, () => {
 
 .loading-message {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   padding: 40px;
   font-size: 16px;
   color: var(--text-muted);
+  gap: 16px;
+}
+
+.loading-message p {
+  margin: 0;
+  font-weight: 500;
+}
+
+.loading-detail {
+  font-size: 14px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.loading-spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .book-container {

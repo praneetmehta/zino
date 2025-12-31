@@ -39,8 +39,8 @@
               @click="selectBook(book)"
               @dblclick="loadBook(book)"
             >
-              <div class="book-thumbnail">
-                <span class="book-icon">📖</span>
+              <div class="book-thumbnail" :style="book.thumbnail ? { backgroundImage: `url(${book.thumbnail})` } : {}">
+                <span v-if="!book.thumbnail" class="book-icon">📖</span>
                 <div class="book-badge" v-if="isRecent(book)">Recent</div>
               </div>
               <div class="book-info">
@@ -370,6 +370,9 @@ watch(() => props.isOpen, (newVal) => {
   width: 100%;
   aspect-ratio: 3/2;
   background: var(--muted);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -377,6 +380,7 @@ watch(() => props.isOpen, (newVal) => {
   margin-bottom: 16px;
   position: relative;
   overflow: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.1);
 }
 
 .book-icon {

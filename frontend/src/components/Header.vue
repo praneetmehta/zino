@@ -31,12 +31,34 @@
     
     <div class="header-right">
       <div class="toggles">
-        <label class="switch" title="Toggle dark mode">
-          <input type="checkbox" :checked="zineStore.ui.theme==='dark'" @change="zineStore.toggleTheme()" />
-          <span class="slider"></span>
-          <span class="label">Dark</span>
-        </label>
+        <!-- Theme Toggle with Sun/Moon Icons -->
+        <button 
+          class="btn btn-icon theme-toggle" 
+          @click="zineStore.toggleTheme()" 
+          :title="zineStore.ui.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        >
+          <svg v-if="zineStore.ui.theme === 'light'" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1V2M9 16V17M17 9H16M2 9H1M14.5 14.5L13.79 13.79M4.21 4.21L3.5 3.5M14.5 3.5L13.79 4.21M4.21 13.79L3.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M16 10.5C15.1 11.3 13.9 11.8 12.6 11.8C9.5 11.8 7 9.3 7 6.2C7 4.9 7.5 3.7 8.3 2.8C5.1 3.3 2.6 6 2.6 9.4C2.6 13.1 5.6 16.1 9.3 16.1C12.7 16.1 15.4 13.6 15.9 10.4L16 10.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
 
+        <!-- Flipbook Preview Button -->
+        <button 
+          class="btn btn-icon" 
+          @click="$emit('flipbook')" 
+          :disabled="zineStore.pageCount === 0"
+          title="Preview flipbook (Cmd+F)"
+        >
+          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M3 3H11L15 7V15H3V3Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M11 3V7H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 9H12M6 12H12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </button>
       </div>
       <button class="btn btn-outline" @click="$emit('save')" data-action="save" :disabled="!zineStore.isInitialized || saving">
         <span v-if="saving">⏳ Saving…</span>
@@ -68,7 +90,7 @@ const props = defineProps({
 })
 
 const zineStore = useZineStore()
-defineEmits(['export', 'publish', 'reset', 'save', 'load', 'go-home'])
+defineEmits(['export', 'publish', 'reset', 'save', 'load', 'go-home', 'flipbook'])
 
 const projectTitle = computed(() => zineStore.projectMeta.title?.trim() || '')
 
@@ -252,5 +274,47 @@ const lastSaved = computed(() => {
   font-weight: 500;
   color: var(--text-muted);
   transition: color var(--transition);
+}
+
+/* Icon Buttons */
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover:not(:disabled) {
+  background: var(--border);
+  transform: translateY(-1px);
+}
+
+.btn-icon:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-icon:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.theme-toggle {
+  position: relative;
+}
+
+.theme-toggle svg {
+  transition: all 0.3s ease;
+}
+
+.theme-toggle:hover:not(:disabled) svg {
+  transform: rotate(20deg) scale(1.1);
 }
 </style>

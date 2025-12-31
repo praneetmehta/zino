@@ -55,14 +55,14 @@
         </div>
 
         <div class="form-group">
-          <label>Margin (Safe Area) ({{ config.unit }})</label>
+          <label>Margin (Safe Area) ({{ config.unit }}) <span class="percentage-hint" v-if="marginPercentage">≈ {{ marginPercentage }}% of page width</span></label>
           <input
             v-model.number="config.margin"
             type="number"
             placeholder="0"
             min="0"
           />
-          <small>Keep content within this distance from edges. Creates spacing between placeholders and around page edges. Typical: 5-10mm.</small>
+          <small>Keep content within this distance from edges. Creates spacing between placeholders and around page edges. Recommended: 2-5mm.</small>
         </div>
 
         <div class="form-group">
@@ -155,7 +155,10 @@
               Postcard (148×100mm)
             </button>
             <button type="button" class="btn btn-outline" @click="applyPreset('a4')">
-              A4 (210×297mm)
+              A4 Portrait (210×297mm)
+            </button>
+            <button type="button" class="btn btn-outline" @click="applyPreset('a4landscape')">
+              A4 Landscape (297×210mm)
             </button>
             <button type="button" class="btn btn-outline" @click="applyPreset('a5')">
               A5 (148×210mm)
@@ -184,7 +187,7 @@ const config = reactive({
   height: 100,
   unit: 'mm',
   bleed: 3,
-  margin: 10,
+  margin: 2,
   slotInnerMarginPercent: 0,
   bindingType: 'folded',
 })
@@ -192,6 +195,7 @@ const config = reactive({
 const presets = {
   postcard: { width: 148, height: 100, unit: 'mm' },
   a4: { width: 210, height: 297, unit: 'mm' },
+  a4landscape: { width: 297, height: 210, unit: 'mm' },
   a5: { width: 148, height: 210, unit: 'mm' },
   letter: { width: 216, height: 279, unit: 'mm' },
   square: { width: 200, height: 200, unit: 'mm' },
@@ -230,6 +234,13 @@ const marginPercent = computed(() => {
   // Calculate margin as percentage of page dimension
   const avgDimension = (config.width + config.height) / 2
   return (config.margin / avgDimension) * 100
+})
+
+const marginPercentage = computed(() => {
+  // Calculate margin as percentage of page width
+  if (!config.width || !config.margin) return null
+  const percentage = (config.margin / config.width) * 100
+  return percentage.toFixed(1)
 })
 </script>
 
@@ -321,6 +332,13 @@ const marginPercent = computed(() => {
   color: var(--text);
   font-weight: 600;
   font-size: 14px;
+}
+
+.percentage-hint {
+  font-weight: 500;
+  color: var(--accent);
+  font-size: 13px;
+  margin-left: 8px;
 }
 
 .form-group input,

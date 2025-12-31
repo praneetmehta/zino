@@ -18,20 +18,22 @@
         </svg>
         <h4>Images {{ isUploading ? '(Uploading...)' : '' }}</h4>
         <button 
-          v-if="!isDemoMode"
-          class="btn-icon" 
+          v-if="!isDemoMode && zineStore.mediaAssets.length > 0"
+          class="btn-add-image" 
           @click.stop="triggerUpload" 
           :disabled="isUploading" 
-          :title="isUploading ? 'Uploading...' : 'Add Image'"
+          :title="isUploading ? 'Uploading...' : 'Add More Images'"
         >
-          <svg v-if="!isUploading" width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M7 1V13M1 7H13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          <svg v-if="!isUploading" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M8 3V13M3 8H13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
           </svg>
-          <svg v-else class="spinner" width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <circle cx="7" cy="7" r="5" stroke="currentColor" stroke-width="2" stroke-dasharray="15 10" opacity="0.5"/>
+          <svg v-else class="spinner" width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="2" stroke-dasharray="18 12" opacity="0.5"/>
           </svg>
+          <span v-if="!isUploading">Add Images</span>
+          <span v-else>Uploading...</span>
         </button>
-        <span v-else class="demo-badge" title="Upload disabled in demo mode">Demo</span>
+        <span v-else-if="zineStore.mediaAssets.length > 0" class="demo-badge" title="Upload disabled in demo mode">Demo</span>
       </div>
       <input
         ref="fileInput"
@@ -55,6 +57,7 @@
         :class="{ 'in-use': isAssetInUse(asset.id), 'uploading': asset.isUploading }"
         :draggable="!asset.isUploading"
         @dragstart="handleDragStart($event, asset)"
+        @dragend="handleDragEnd"
       >
         <!-- Show image (or placeholder if uploading) -->
         <img 
@@ -63,9 +66,26 @@
           :alt="asset.name"
         />
         
-        <!-- Spinner overlay while uploading -->
+        <!-- Enhanced upload overlay with progress -->
         <div v-if="asset.isUploading" class="upload-overlay">
-          <div class="spinner-small"></div>
+          <div class="upload-progress-ring">
+            <svg width="40" height="40" viewBox="0 0 40 40">
+              <circle cx="20" cy="20" r="16" fill="none" stroke="currentColor" stroke-width="3" opacity="0.2"/>
+              <circle 
+                cx="20" 
+                cy="20" 
+                r="16" 
+                fill="none" 
+                stroke="var(--accent)" 
+                stroke-width="3"
+                stroke-dasharray="100"
+                :stroke-dashoffset="100 - (asset.uploadProgress || 0)"
+                stroke-linecap="round"
+                class="progress-circle"
+              />
+            </svg>
+            <div class="upload-percent">{{ Math.round(asset.uploadProgress || 0) }}%</div>
+          </div>
         </div>
         
         <div class="usage-badge" v-if="!asset.isUploading && isAssetInUse(asset.id)">
@@ -77,10 +97,48 @@
         <div class="media-name">{{ asset.name }}</div>
       </div>
 
-          <div v-if="zineStore.mediaAssets.length === 0" class="empty-state">
-            <p>📁</p>
-            <p>No images yet</p>
-            <p class="hint">Click + to upload</p>
+          <!-- Enhanced Empty State -->
+          <div 
+            v-if="zineStore.mediaAssets.length === 0" 
+            class="empty-state-enhanced"
+            @dragover.prevent="isDraggingOver = true"
+            @dragleave="isDraggingOver = false"
+            @drop.prevent="handleDrop"
+            :class="{ 'dragging-over': isDraggingOver }"
+          >
+            <div class="empty-icon">
+              <svg viewBox="0 0 64 64" fill="none">
+                <rect x="8" y="12" width="48" height="40" rx="4" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                <path d="M8 42L20 30L28 38L40 26L56 42" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.3"/>
+                <circle cx="22" cy="22" r="3" fill="currentColor" opacity="0.3"/>
+              </svg>
+            </div>
+            <h4>No images yet</h4>
+            <p class="empty-description">Upload images to start designing your zine</p>
+            
+            <button 
+              v-if="!isDemoMode"
+              class="btn btn-primary btn-upload-large" 
+              @click="triggerUpload"
+              :disabled="isUploading"
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                <path d="M10 14V6M10 6L6 10M10 6L14 10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M4 16H16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Upload Images
+            </button>
+            
+            <div class="empty-formats">
+              <span>JPG, PNG, WebP, GIF, SVG</span>
+            </div>
+            
+            <div class="empty-drag-hint">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path d="M8 1V15M1 8H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+              </svg>
+              Or drag and drop files here
+            </div>
           </div>
         </div>
       </div>
@@ -132,6 +190,7 @@
             class="collapsed-item"
             draggable="true"
             @dragstart="handleDragStart($event, asset)"
+            @dragend="handleDragEnd"
             :title="asset.name"
           >
             <img :src="asset.thumbnail" :alt="asset.name" />
@@ -160,20 +219,24 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
-import { useZineStore } from '../stores/zineStore'
-import { getElementSpecsByCategory } from '../utils/elementSpecs'
-import { uploadImage } from '../api/images'
+import { computed, ref, watch, onMounted } from 'vue'
+import { useZineStore } from '@/stores/zineStore'
+import { useAuthStore } from '@/stores/authStore'
+import { uploadImage } from '@/api/images'
+import { useNotification } from '@/composables/useNotification'
+import { getElementSpecsByCategory } from '@/utils/elementSpecs'
 
 const zineStore = useZineStore()
-const fileInput = ref(null)
+const authStore = useAuthStore()
+const { toast } = useNotification()
 const isCollapsed = ref(false)
+const isUploading = ref(false)
 const imagesExpanded = ref(true)
+const elementsExpanded = ref(true)
+const isDraggingOver = ref(false)
 
 // Check if in demo mode
 const isDemoMode = computed(() => zineStore.projectMeta?.id === 'demo')
-const elementsExpanded = ref(true)
-const isUploading = ref(false)
 
 const emit = defineEmits(['collapsed-change'])
 
@@ -209,6 +272,23 @@ const triggerUpload = () => {
   fileInput.value?.click()
 }
 
+// Handle drag and drop
+const handleDrop = (event) => {
+  isDraggingOver.value = false
+  
+  if (isDemoMode.value) {
+    return
+  }
+  
+  const files = Array.from(event.dataTransfer.files)
+  const imageFiles = files.filter(file => file.type.startsWith('image/'))
+  
+  if (imageFiles.length === 0) return
+  
+  // Trigger upload with these files
+  processFiles(imageFiles)
+}
+
 const findExistingAsset = (file) => {
   // Check if file already exists by name
   return zineStore.mediaAssets.find(asset => 
@@ -217,26 +297,9 @@ const findExistingAsset = (file) => {
   )
 }
 
-const handleFileUpload = async (event) => {
-  // Prevent uploads in demo mode
-  if (isDemoMode.value) {
-    alert('Uploads are disabled in demo mode. Sign in to create your own photobook and upload images.')
-    event.target.value = ''
-    return
-  }
-  
-  const files = Array.from(event.target.files)
-  
-  if (files.length === 0) return
-  
-  // Filter for images only
-  const imageFiles = files.filter(file => file.type.startsWith('image/'))
-  
-  if (imageFiles.length === 0) {
-    alert('Please select image files only')
-    event.target.value = ''
-    return
-  }
+// Process files (shared by upload button and drag-drop)
+const processFiles = async (imageFiles) => {
+  if (imageFiles.length === 0) return
   
   isUploading.value = true
   
@@ -247,6 +310,7 @@ const handleFileUpload = async (event) => {
     if (existingAsset) {
       // Mark existing asset as re-uploading (overwrite mode)
       existingAsset.isUploading = true
+      existingAsset.uploadProgress = 0
       return { file, placeholderId: existingAsset.id, isOverwrite: true }
     } else {
       // Create new placeholder
@@ -258,7 +322,8 @@ const handleFileUpload = async (event) => {
         url: '', // Will be replaced
         thumbnail: '',
         type: file.type,
-        isUploading: true
+        isUploading: true,
+        uploadProgress: 0
       })
       
       return { file, placeholderId, isOverwrite: false }
@@ -272,9 +337,29 @@ const handleFileUpload = async (event) => {
   
   for (const { file, placeholderId, isOverwrite } of placeholders) {
     try {
+      // Start progress simulation
+      zineStore.updateMediaAssetProgress(placeholderId, 5) // Show initial progress immediately
+      
+      let currentProgress = 5
+      
+      const progressInterval = setInterval(() => {
+        if (currentProgress < 85) {
+          currentProgress += Math.random() * 20 + 5 // Random increment between 5-25%
+          zineStore.updateMediaAssetProgress(placeholderId, Math.min(currentProgress, 85))
+        }
+      }, 150)
+      
       const imageMetadata = await uploadImage(file, {
         bookId: zineStore.projectMeta?.id || null
       })
+      
+      clearInterval(progressInterval)
+      
+      // Complete progress with a smooth transition
+      zineStore.updateMediaAssetProgress(placeholderId, 95)
+      await new Promise(resolve => setTimeout(resolve, 100))
+      zineStore.updateMediaAssetProgress(placeholderId, 100)
+      await new Promise(resolve => setTimeout(resolve, 200))
       
       if (isOverwrite) {
         // Overwrite: Keep same ID, just update URLs
@@ -319,17 +404,86 @@ const handleFileUpload = async (event) => {
   }
   
   isUploading.value = false
-  event.target.value = ''
   
-  // Only show alert if there were failures
-  if (failCount > 0) {
-    alert(`Upload complete: ${newCount + overwriteCount} succeeded, ${failCount} failed`)
+  // Show success notification
+  if (newCount + overwriteCount > 0) {
+    const total = newCount + overwriteCount
+    toast.success(
+      `${total} image${total > 1 ? 's' : ''} uploaded and auto-saved`,
+      'Images Ready'
+    )
   }
+  
+  // Show error if there were failures
+  if (failCount > 0) {
+    toast.error(`${failCount} image${failCount > 1 ? 's' : ''} failed to upload`, 'Upload Error')
+  }
+}
+
+const handleFileUpload = async (event) => {
+  // Prevent uploads in demo mode
+  if (isDemoMode.value) {
+    alert('Uploads are disabled in demo mode. Sign in to create your own photobook and upload images.')
+    event.target.value = ''
+    return
+  }
+  
+  const files = Array.from(event.target.files)
+  
+  if (files.length === 0) return
+  
+  // Filter for images only
+  const imageFiles = files.filter(file => file.type.startsWith('image/'))
+  
+  if (imageFiles.length === 0) {
+    alert('Please select image files only')
+    event.target.value = ''
+    return
+  }
+  
+  await processFiles(imageFiles)
+  event.target.value = '' // Reset input
 }
 
 const handleDragStart = (event, asset) => {
   event.dataTransfer.effectAllowed = 'copy'
   event.dataTransfer.setData('assetId', asset.id.toString())
+  
+  // Create custom drag image
+  const dragImage = document.createElement('div')
+  dragImage.style.cssText = `
+    position: absolute;
+    top: -1000px;
+    width: 120px;
+    height: 120px;
+    background: var(--panel-bg);
+    border: 2px solid var(--accent);
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  `
+  
+  const img = document.createElement('img')
+  img.src = asset.thumbnail
+  img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;'
+  dragImage.appendChild(img)
+  
+  document.body.appendChild(dragImage)
+  event.dataTransfer.setDragImage(dragImage, 60, 60)
+  
+  // Clean up drag image after a short delay
+  setTimeout(() => document.body.removeChild(dragImage), 0)
+  
+  // Add dragging class to body for global styling
+  document.body.classList.add('dragging-image')
+}
+
+const handleDragEnd = () => {
+  document.body.classList.remove('dragging-image')
 }
 
 const handleTextTemplateDragStart = (event, elementSpec) => {
@@ -762,6 +916,131 @@ const deleteAsset = (id) => {
   opacity: 0.8;
 }
 
+/* Enhanced Empty State */
+.empty-state-enhanced {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 40px 48px 60px;
+  min-height: 320px;
+  border: 2px dashed var(--border);
+  border-radius: 16px;
+  margin: 16px;
+  background: var(--muted);
+  transition: all 0.3s ease;
+  max-width: 100%;
+}
+
+.empty-state-enhanced.dragging-over {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--muted));
+  transform: scale(1.02);
+}
+
+.empty-icon {
+  margin-bottom: 24px;
+  color: var(--text-muted);
+  opacity: 0.4;
+}
+
+.empty-icon svg {
+  width: 56px;
+  height: 56px;
+}
+
+.empty-state-enhanced h4 {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0;
+  margin-bottom: 8px;
+}
+
+.empty-description {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0;
+  margin-bottom: 28px;
+  text-align: center;
+  line-height: 1.5;
+  max-width: 280px;
+}
+
+.btn-upload-large {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 32px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.btn-upload-large svg {
+  flex-shrink: 0;
+}
+
+.empty-formats {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 16px;
+  background: var(--panel-bg);
+  border-radius: 8px;
+  margin-bottom: 20px;
+  font-weight: 500;
+}
+
+.empty-drag-hint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+  opacity: 0.5;
+  margin-top: 4px;
+}
+
+.empty-drag-hint svg {
+  opacity: 0.5;
+}
+
+/* Enhanced Add Images Button */
+.btn-add-image {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.btn-add-image:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 90%, black);
+  transform: translateY(-1px);
+}
+
+.btn-add-image:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-add-image:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-add-image svg {
+  flex-shrink: 0;
+}
+
 /* Elements Grid */
 .elements-grid {
   padding: 16px;
@@ -861,5 +1140,31 @@ const deleteAsset = (id) => {
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+/* Upload Progress Ring */
+.upload-progress-ring {
+  position: relative;
+  width: 40px;
+  height: 40px;
+}
+
+.upload-progress-ring svg {
+  transform: rotate(-90deg);
+}
+
+.progress-circle {
+  transition: stroke-dashoffset 0.3s ease;
+}
+
+.upload-percent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 </style>

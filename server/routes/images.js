@@ -6,6 +6,69 @@ const express = require('express')
 const router = express.Router()
 const { imageService } = require('../services/imageService')
 const { optionalAuth } = require('../middleware/auth')
+const fs = require('fs/promises')
+const path = require('path')
+
+// Helper to update book's mediaAssets
+// Use Railway volume path if available, otherwise local data directory
+const VOLUME_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH || path.join(__dirname, '..', 'data')
+const DATA_DIR = path.join(VOLUME_PATH, 'books')
+
+const updateBookMediaAssets = async (bookId, imageMetadata) => {
+  if (!bookId) return
+  
+  try {
+    const bookPath = path.join(DATA_DIR, `${bookId}.json`)
+    
+    // Check if book exists first
+    try {
+      await fs.access(bookPath)
+    } catch {
+      // Book doesn't exist yet - will be created on first manual save
+      console.log(`⏭️  Skipping auto-save for ${bookId} (book not saved yet)`)
+      return
+    }
+    
+    const bookData = JSON.parse(await fs.readFile(bookPath, 'utf8'))
+    
+    // Initialize mediaAssets if it doesn't exist
+    if (!bookData.data) bookData.data = {}
+    if (!bookData.data.mediaAssets) bookData.data.mediaAssets = []
+    
+    // Add or update the image in mediaAssets
+    const existingIndex = bookData.data.mediaAssets.findIndex(a => a.imageId === imageMetadata.id)
+    
+    const assetData = {
+      id: imageMetadata.id,
+      imageId: imageMetadata.id,
+      name: imageMetadata.originalName,
+      url: imageMetadata.variants.display.url,
+      thumbnail: imageMetadata.variants.thumbnail.url,
+      type: imageMetadata.mimeType,
+      originalUrl: imageMetadata.variants.original.url,
+      isUploading: false
+    }
+    
+    if (existingIndex >= 0) {
+      // Update existing
+      bookData.data.mediaAssets[existingIndex] = assetData
+    } else {
+      // Add new
+      bookData.data.mediaAssets.push(assetData)
+    }
+    
+    // Update metadata
+    bookData.metadata = bookData.metadata || {}
+    bookData.metadata.mediaCount = bookData.data.mediaAssets.length
+    bookData.updatedAt = new Date().toISOString()
+    
+    // Save back
+    await fs.writeFile(bookPath, JSON.stringify(bookData, null, 2), 'utf8')
+    console.log(`✅ Auto-saved image ${imageMetadata.id} to book ${bookId}`)
+  } catch (error) {
+    console.error(`Failed to update book ${bookId} with new image:`, error)
+  }
+}
 
 // Simple in-memory storage for file uploads
 // We'll process the buffer and pass it to the storage service
@@ -48,6 +111,9 @@ router.post('/upload', optionalAuth, upload.single('image'), async (req, res) =>
     }
 
     const imageMetadata = await imageService.uploadImage(req.file, metadata)
+    
+    // Auto-save to book if bookId provided
+    await updateBookMediaAssets(metadata.bookId, imageMetadata)
 
     res.status(201).json({
       success: true,
@@ -85,6 +151,9 @@ router.post('/upload-multiple', optionalAuth, upload.array('images', 20), async 
       try {
         const imageMetadata = await imageService.uploadImage(file, metadata)
         uploadedImages.push(imageMetadata)
+        
+        // Auto-save to book if bookId provided
+        await updateBookMediaAssets(metadata.bookId, imageMetadata)
       } catch (error) {
         errors.push({
           filename: file.originalname,
