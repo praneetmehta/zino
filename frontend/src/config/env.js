@@ -11,7 +11,7 @@ export const env = {
   appUrl: import.meta.env.VITE_APP_URL || 'http://localhost:5173',
 
   // API
-  apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:4876',
+  apiUrl: import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? window.location.origin : 'http://localhost:4876'),
   apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT) || 30000,
 
   // Authentication

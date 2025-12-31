@@ -206,6 +206,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import { useAuthStore } from '../stores/authStore'
+import { env } from '@/config/env'
 import Book3D from './Book3D.vue'
 
 const props = defineProps({
@@ -215,7 +216,7 @@ const props = defineProps({
 const emit = defineEmits(['back'])
 const zineStore = useZineStore()
 const authStore = useAuthStore()
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4876'
+const API_BASE_URL = env.apiUrl
 
 // Book info from publication
 const bookTitle = computed(() => props.publication?.title || 'Untitled Zine')

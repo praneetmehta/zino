@@ -1,8 +1,9 @@
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 import axios from 'axios'
+import { env } from '@/config/env'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4876'
+const API_BASE_URL = env.apiUrl
 
 /**
  * Publish PDF to server

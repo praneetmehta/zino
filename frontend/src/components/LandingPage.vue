@@ -10,10 +10,18 @@
         </div>
       </div>
       <div class="actions">
-        <button class="btn btn-outline" @click="toggleTheme">
-          <span v-if="theme === 'light'">🌙</span>
-          <span v-else>☀️</span>
-          <span class="label">{{ theme === 'light' ? 'Dark Mode' : 'Light Mode' }}</span>
+        <button 
+          class="btn btn-icon theme-toggle" 
+          @click="toggleTheme" 
+          :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+        >
+          <svg v-if="theme === 'light'" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M9 1V2M9 16V17M17 9H16M2 9H1M14.5 14.5L13.79 13.79M4.21 4.21L3.5 3.5M14.5 3.5L13.79 4.21M4.21 13.79L3.5 14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            <circle cx="9" cy="9" r="3.5" stroke="currentColor" stroke-width="1.5"/>
+          </svg>
+          <svg v-else width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <path d="M16 10.5C15.1 11.3 13.9 11.8 12.6 11.8C9.5 11.8 7 9.3 7 6.2C7 4.9 7.5 3.7 8.3 2.8C5.1 3.3 2.6 6 2.6 9.4C2.6 13.1 5.6 16.1 9.3 16.1C12.7 16.1 15.4 13.6 15.9 10.4L16 10.5Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
         </button>
         <UserProfile />
       </div>

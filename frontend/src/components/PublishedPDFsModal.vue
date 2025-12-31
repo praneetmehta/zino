@@ -78,6 +78,7 @@ import { ref, watch } from 'vue'
 import axios from 'axios'
 import download from 'downloadjs'
 import { useAuthStore } from '@/stores/authStore'
+import { env } from '@/config/env'
 
 const props = defineProps({
   isOpen: { type: Boolean, default: false }
@@ -86,7 +87,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'order-print'])
 
 const authStore = useAuthStore()
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4876'
+const API_BASE_URL = env.apiUrl
 
 const publications = ref([])
 const loading = ref(false)
