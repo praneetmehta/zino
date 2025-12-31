@@ -81,15 +81,19 @@ app.use('/uploads', express.static(path.join(__dirname, '..', 'data', 'uploads')
 app.use('/auth', authRoutes)
 
 // Image upload routes
-app.use('/api/images', imageRoutes)
 
 // Serve frontend static files from /zino path
 const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')
-app.use('/zino', express.static(FRONTEND_DIST))
+app.use('/zino', express.static(FRONTEND_DIST, {
+  // Don't serve index.html for assets
+  index: false
+}))
 
-async function ensureDataDir() {
-  await fs.mkdir(DATA_DIR, { recursive: true })
-}
+// Fallback: serve index.html for SPA routes
+// Use regex to exclude asset paths
+app.get(/^\/zino\/(?!assets\/|favicon|.*\.(ico|png|jpg|jpeg|svg|woff|woff2|ttf|eot)$).*/, (req, res) => {
+  res.sendFile(path.join(FRONTEND_DIST, 'index.html'))
+})
 
 async function ensureLayoutsDir() {
   await fs.mkdir(LAYOUTS_DIR, { recursive: true })
