@@ -166,6 +166,15 @@ ul {
   transform: rotateY(-15deg) translateZ(-8px);
 }
 
+/* Paperback - much thinner positioning */
+.cover-paperback .hardcover_front {
+  transform: rotateY(-34deg) translateZ(4px);
+}
+
+.cover-paperback .hardcover_back {
+  transform: rotateY(-15deg) translateZ(-4px);
+}
+
 .page li:nth-child(1) {
   transform: rotateY(-28deg);
 }
@@ -228,6 +237,23 @@ ul {
 
 .hardcover_back li:last-child {
   transform: translateZ(-2px);
+}
+
+/* Paperback - thinner covers */
+.cover-paperback .hardcover_front li:first-child {
+  transform: translateZ(1px);
+}
+
+.cover-paperback .hardcover_front li:last-child {
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+.cover-paperback .hardcover_back li:first-child {
+  transform: translateZ(1px);
+}
+
+.cover-paperback .hardcover_back li:last-child {
+  transform: translateZ(-1px);
 }
 
 /* Thickness of cover */
@@ -321,6 +347,19 @@ ul {
 
 .book_spine li:last-child {
   transform: translateZ(-2px);
+}
+
+/* Paperback spine positioning */
+.cover-paperback .book_spine {
+  transform: rotateY(60deg) translateX(-5px) translateZ(-8px);
+}
+
+.cover-paperback .book_spine li:first-child {
+  transform: translateZ(1px);
+}
+
+.cover-paperback .book_spine li:last-child {
+  transform: translateZ(-1px);
 }
 
 /* Thickness of book spine */

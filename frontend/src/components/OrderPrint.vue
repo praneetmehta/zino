@@ -195,7 +195,7 @@
             </svg>
             Place Order - €{{ totalPrice.toFixed(2) }}
           </button>
-          <p class="order-note">🚚 Estimated delivery: 5-7 business days</p>
+          <p class="order-note">🚚 Estimated delivery: 2-3 weeks</p>
         </div>
       </div>
     </div>
@@ -267,16 +267,16 @@ const materialCategories = [
 ]
 
 const selectedMaterialCategory = ref('paper')
-const selectedMaterial = ref('paper-cream')
+const selectedMaterial = ref('paper-navy')
 
 // Materials database
 const materials = {
   paper: [
-    { id: 'paper-cream', name: 'Cream', price: 0, swatchStyle: { background: '#FFF8DC' } },
+    { id: 'paper-navy', name: 'Navy', price: 0, swatchStyle: { background: '#001f3f' } },
     { id: 'paper-black', name: 'Black', price: 2, swatchStyle: { background: '#1a1a1a' } },
-    { id: 'paper-navy', name: 'Navy', price: 2, swatchStyle: { background: '#001f3f' } },
     { id: 'paper-burgundy', name: 'Burgundy', price: 2, swatchStyle: { background: '#6D071A' } },
     { id: 'paper-forest', name: 'Forest', price: 2, swatchStyle: { background: '#0B3D0B' } },
+    { id: 'paper-cream', name: 'Cream', price: 2, swatchStyle: { background: '#FFF8DC' } },
   ],
   'cloth-thin': [
     { id: 'thin-linen', name: 'Linen', price: 8, swatchStyle: { background: 'linear-gradient(45deg, #E5D3B3 25%, #D4C4A8 25%, #D4C4A8 50%, #E5D3B3 50%, #E5D3B3 75%, #D4C4A8 75%)', backgroundSize: '4px 4px' } },
@@ -338,7 +338,7 @@ const selectCoverType = (type) => {
     selectedMaterial.value = null
   } else {
     // Default to first material in current category
-    selectedMaterial.value = currentMaterials.value[0]?.id || 'paper-cream'
+    selectedMaterial.value = currentMaterials.value[0]?.id || 'paper-navy'
   }
 }
 
@@ -830,6 +830,7 @@ const placeOrder = () => {
   border: 2px solid var(--border);
   border-radius: 12px;
   padding: 20px;
+  margin-bottom: 140px;
   position: sticky;
   top: 0;
 }
