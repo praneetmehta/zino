@@ -331,6 +331,10 @@ const fontCategories = [
   {
     name: 'Display & Editorial',
     fonts: ['Abril Fatface']
+  },
+  {
+    name: 'Cursive & Calligraphy',
+    fonts: ['Dancing Script', 'Pacifico', 'Great Vibes', 'Allura', 'Satisfy', 'Caveat', 'Kaushan Script', 'Lobster']
   }
 ]
 

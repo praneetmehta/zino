@@ -37,6 +37,16 @@
         <optgroup label="Display & Editorial">
           <option value="Abril Fatface">Abril Fatface</option>
         </optgroup>
+        <optgroup label="Cursive & Calligraphy">
+          <option value="Dancing Script">Dancing Script</option>
+          <option value="Pacifico">Pacifico</option>
+          <option value="Great Vibes">Great Vibes</option>
+          <option value="Allura">Allura</option>
+          <option value="Satisfy">Satisfy</option>
+          <option value="Caveat">Caveat</option>
+          <option value="Kaushan Script">Kaushan Script</option>
+          <option value="Lobster">Lobster</option>
+        </optgroup>
         <optgroup label="System">
           <option value="Arial">Arial</option>
           <option value="Helvetica">Helvetica</option>
