@@ -298,14 +298,70 @@ const findExistingAsset = (file) => {
   )
 }
 
+// Convert HEIF/HEIC to JPEG
+const convertHeifToJpeg = async (file) => {
+  try {
+    // Use heic2any library for conversion
+    const heic2any = (await import('heic2any')).default
+    
+    const convertedBlob = await heic2any({
+      blob: file,
+      toType: 'image/jpeg',
+      quality: 0.9
+    })
+    
+    // Create a new File object from the blob
+    const convertedFile = new File(
+      [convertedBlob],
+      file.name.replace(/\.(heic|heif)$/i, '.jpg'),
+      { type: 'image/jpeg' }
+    )
+    
+    return convertedFile
+  } catch (error) {
+    console.error('HEIF conversion failed:', error)
+    throw error
+  }
+}
+
 // Process files (shared by upload button and drag-drop)
 const processFiles = async (imageFiles) => {
   if (imageFiles.length === 0) return
   
   isUploading.value = true
   
+  // Convert HEIF/HEIC files to JPEG
+  const processedFiles = await Promise.all(
+    imageFiles.map(async (file) => {
+      const isHeif = file.type === 'image/heif' || 
+                     file.type === 'image/heic' ||
+                     file.name.toLowerCase().endsWith('.heif') ||
+                     file.name.toLowerCase().endsWith('.heic')
+      
+      if (isHeif) {
+        try {
+          toast.info(`Converting ${file.name} to JPEG...`, 'Converting', { duration: 2000 })
+          return await convertHeifToJpeg(file)
+        } catch (error) {
+          toast.error(`Failed to convert ${file.name}. Please convert manually.`, 'Conversion Failed')
+          return null
+        }
+      }
+      
+      return file
+    })
+  )
+  
+  // Filter out failed conversions
+  const validFiles = processedFiles.filter(f => f !== null)
+  
+  if (validFiles.length === 0) {
+    isUploading.value = false
+    return
+  }
+  
   // Create placeholders for each file immediately
-  const placeholders = imageFiles.map(file => {
+  const placeholders = validFiles.map(file => {
     const existingAsset = findExistingAsset(file)
     
     if (existingAsset) {
@@ -331,12 +387,8 @@ const processFiles = async (imageFiles) => {
     }
   })
   
-  // Upload images one by one
-  let newCount = 0
-  let overwriteCount = 0
-  let failCount = 0
-  
-  for (const { file, placeholderId, isOverwrite } of placeholders) {
+  // Upload function for a single image
+  const uploadSingleImage = async ({ file, placeholderId, isOverwrite }) => {
     try {
       // Start progress simulation
       zineStore.updateMediaAssetProgress(placeholderId, 5) // Show initial progress immediately
@@ -374,7 +426,7 @@ const processFiles = async (imageFiles) => {
           imageId: imageMetadata.id,
           isUploading: false
         })
-        overwriteCount++
+        return { success: true, isOverwrite: true }
       } else {
         // New upload: Use new ID from backend
         zineStore.replaceMediaAsset(placeholderId, {
@@ -387,7 +439,7 @@ const processFiles = async (imageFiles) => {
           imageId: imageMetadata.id,
           isUploading: false
         })
-        newCount++
+        return { success: true, isOverwrite: false }
       }
     } catch (error) {
       console.error(`Failed to upload ${file.name}:`, error)
@@ -400,9 +452,24 @@ const processFiles = async (imageFiles) => {
         const asset = zineStore.mediaAssets.find(a => a.id === placeholderId)
         if (asset) asset.isUploading = false
       }
-      failCount++
+      return { success: false, isOverwrite }
     }
   }
+  
+  // Upload images in batches of 4
+  const BATCH_SIZE = 4
+  const results = []
+  
+  for (let i = 0; i < placeholders.length; i += BATCH_SIZE) {
+    const batch = placeholders.slice(i, i + BATCH_SIZE)
+    const batchResults = await Promise.all(batch.map(uploadSingleImage))
+    results.push(...batchResults)
+  }
+  
+  // Count results
+  const newCount = results.filter(r => r.success && !r.isOverwrite).length
+  const overwriteCount = results.filter(r => r.success && r.isOverwrite).length
+  const failCount = results.filter(r => !r.success).length
   
   isUploading.value = false
   
