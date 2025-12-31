@@ -86,15 +86,36 @@ class FilesystemStorage extends StorageInterface {
    */
   async deleteFile(id) {
     try {
-      // Find file by ID (could be just ID or ID with extension)
+      // First try the root directory
       const files = await fs.readdir(this.uploadDir)
-      const file = files.find(f => f.startsWith(id))
+      let file = files.find(f => f.startsWith(id))
+      let filePath
       
-      if (!file) {
+      if (file) {
+        // Found in root directory
+        filePath = path.join(this.uploadDir, file)
+      } else {
+        // Search in subdirectories (like book-xxx/)
+        const entries = await fs.readdir(this.uploadDir, { withFileTypes: true })
+        
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const subDir = path.join(this.uploadDir, entry.name)
+            const subFiles = await fs.readdir(subDir)
+            file = subFiles.find(f => f.startsWith(id))
+            
+            if (file) {
+              filePath = path.join(subDir, file)
+              break
+            }
+          }
+        }
+      }
+      
+      if (!filePath) {
         return false
       }
 
-      const filePath = path.join(this.uploadDir, file)
       await fs.unlink(filePath)
       return true
     } catch (error) {
@@ -121,14 +142,37 @@ class FilesystemStorage extends StorageInterface {
    * Get file stream
    */
   async getFileStream(id) {
-    const files = await fs.readdir(this.uploadDir)
-    const file = files.find(f => f.startsWith(id))
+    // First try the root directory
+    let files = await fs.readdir(this.uploadDir)
+    let file = files.find(f => f.startsWith(id))
     
-    if (!file) {
+    let filePath
+    
+    if (file) {
+      // Found in root directory
+      filePath = path.join(this.uploadDir, file)
+    } else {
+      // Search in subdirectories (like book-xxx/)
+      const entries = await fs.readdir(this.uploadDir, { withFileTypes: true })
+      
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          const subDir = path.join(this.uploadDir, entry.name)
+          const subFiles = await fs.readdir(subDir)
+          file = subFiles.find(f => f.startsWith(id))
+          
+          if (file) {
+            filePath = path.join(subDir, file)
+            break
+          }
+        }
+      }
+    }
+    
+    if (!filePath) {
       throw new Error('File not found')
     }
 
-    const filePath = path.join(this.uploadDir, file)
     return fsSync.createReadStream(filePath)
   }
 

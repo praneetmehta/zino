@@ -13,7 +13,7 @@ const { pdfStorageService } = require('../services/pdfStorage')
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 50 * 1024 * 1024, // 50MB max
+    fileSize: parseInt(process.env.MAX_PDF_SIZE || 200) * 1024 * 1024, // Default 200MB max
   },
   fileFilter: (req, file, cb) => {
     if (file.mimetype === 'application/pdf') {
@@ -36,7 +36,17 @@ router.post('/upload', authenticateJWT, upload.single('pdf'), async (req, res) =
     }
 
     const userId = req.user.id
-    const { title, bookId, pageCount } = req.body
+    const { title, bookId, pageCount, metadata } = req.body
+
+    // Parse metadata if provided
+    let parsedMetadata = null
+    if (metadata) {
+      try {
+        parsedMetadata = JSON.parse(metadata)
+      } catch (err) {
+        console.warn('Failed to parse metadata:', err)
+      }
+    }
 
     // Publish PDF using storage service
     const publication = await pdfStorageService.publishPDF(req.file.buffer, {
@@ -44,6 +54,7 @@ router.post('/upload', authenticateJWT, upload.single('pdf'), async (req, res) =
       title: title || 'Untitled Zine',
       bookId: bookId || null,
       pageCount: parseInt(pageCount) || 0,
+      metadata: parsedMetadata,
     })
 
     res.status(201).json({
@@ -53,7 +64,9 @@ router.post('/upload', authenticateJWT, upload.single('pdf'), async (req, res) =
         title: publication.title,
         pageCount: publication.pageCount,
         size: publication.size,
+        url: publication.url,
         publishedAt: publication.publishedAt,
+        metadata: publication.metadata,
       }
     })
   } catch (error) {
@@ -97,18 +110,44 @@ router.get('/:id/download', authenticateJWT, async (req, res) => {
     const userId = req.user.id
     const publicationId = req.params.id
     
+    console.log(`📥 Download request for ${publicationId} by user ${userId}`)
+    
     // Download PDF using storage service
     const download = await pdfStorageService.downloadPDF(publicationId, userId)
+    
+    console.log(`📄 Found PDF: ${download.filename}, size: ${download.size} bytes`)
     
     // Sanitize filename
     const sanitizedTitle = download.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()
     
     res.setHeader('Content-Type', 'application/pdf')
     res.setHeader('Content-Disposition', `attachment; filename="${sanitizedTitle}.pdf"`)
-    res.setHeader('Content-Length', download.size)
+    res.setHeader('Cache-Control', 'no-cache')
     
-    // Pipe the stream to response
+    console.log(`📤 Streaming PDF to client...`)
+    
+    
+    // Handle stream errors
+    download.stream.on('error', (error) => {
+      console.error(`❌ Stream error for ${publicationId}:`, error)
+      if (!res.headersSent) {
+        res.status(500).json({ error: 'Stream error' })
+      }
+    })
+
+    // Handle client disconnection
+    req.on('close', () => {
+        if (!res.writableEnded) {
+            download.stream.destroy()
+        }
+    })
+
     download.stream.pipe(res)
+    
+    // Handle stream end
+    download.stream.on('end', () => {
+      console.log(`✅ Download completed for ${publicationId}`)
+    })
   } catch (error) {
     console.error(`[GET /api/published/${req.params.id}/download] error:`, error)
     

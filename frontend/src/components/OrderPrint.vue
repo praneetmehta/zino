@@ -74,14 +74,36 @@
         <!-- 3D Preview -->
         <div class="preview-3d-container">
           <h3>📦 How Your Book Will Look</h3>
+          <p class="preview-hint">Hover to open the book</p>
           <div class="book-3d-preview" :class="`cover-${selectedCoverType}`">
-            <div class="book-3d" :style="book3DStyle">
-              <div class="book-spine" :style="spineStyle"></div>
+            <div class="book-3d">
+              <div class="book-spine" :style="spineStyle">
+                <div class="spine-title">{{ bookTitle }}</div>
+              </div>
               <div class="book-front-cover" :style="coverStyle">
                 <div class="cover-texture" :style="textureStyle"></div>
+                <div class="cover-title">
+                  <h4>{{ bookTitle }}</h4>
+                  <p class="page-count">{{ pageCount }} pages</p>
+                </div>
               </div>
               <div class="book-back-cover" :style="coverStyle"></div>
-              <div class="book-pages"></div>
+              <div class="book-pages">
+                <!-- First page with preview content -->
+                <div class="first-page">
+                  <div class="page-content">
+                    <div class="preview-slot"></div>
+                    <div class="preview-slot"></div>
+                    <div class="preview-text-lines">
+                      <div class="text-line"></div>
+                      <div class="text-line"></div>
+                      <div class="text-line"></div>
+                    </div>
+                  </div>
+                </div>
+                <!-- Multiple page layers for depth -->
+                <div class="page-layer" v-for="i in 8" :key="i" :style="{ transform: `translateZ(${i * 0.3}px)` }"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -102,7 +124,7 @@
                 <h4>{{ cover.name }}</h4>
                 <p>{{ cover.description }}</p>
                 <div class="option-price">
-                  <span class="price-amount">+${{ cover.price }}</span>
+                  <span class="price-amount">+€{{ cover.price }}</span>
                 </div>
               </div>
               <div class="selected-indicator" v-if="selectedCoverType === cover.id">✓</div>
@@ -136,7 +158,7 @@
               <div class="material-swatch" :style="material.swatchStyle"></div>
               <div class="material-info">
                 <h5>{{ material.name }}</h5>
-                <span class="material-price">+${{ material.price }}</span>
+                <span class="material-price">+€{{ material.price }}</span>
               </div>
               <div class="selected-indicator" v-if="selectedMaterial === material.id">✓</div>
             </div>
@@ -160,15 +182,15 @@
           <div class="price-breakdown">
             <div class="price-item">
               <span>Base Price ({{ pageCount }} pages)</span>
-              <span class="price-value">${{ basePrice.toFixed(2) }}</span>
+              <span class="price-value">€{{ basePrice.toFixed(2) }}</span>
             </div>
             <div class="price-item" v-if="coverPriceAdd > 0">
               <span>{{ selectedCoverName }}</span>
-              <span class="price-value price-add">+${{ coverPriceAdd.toFixed(2) }}</span>
+              <span class="price-value price-add">+€{{ coverPriceAdd.toFixed(2) }}</span>
             </div>
             <div class="price-item" v-if="materialPriceAdd > 0">
               <span>{{ selectedMaterialName }}</span>
-              <span class="price-value price-add">+${{ materialPriceAdd.toFixed(2) }}</span>
+              <span class="price-value price-add">+€{{ materialPriceAdd.toFixed(2) }}</span>
             </div>
             <div class="price-item quantity-line" v-if="quantity > 1">
               <span>Quantity × {{ quantity }}</span>
@@ -178,7 +200,7 @@
             <div class="price-item price-total">
               <span>Total</span>
               <span class="price-value total-amount" key="total">
-                <span class="price-currency">$</span>
+                <span class="price-currency">€</span>
                 <transition name="price-change" mode="out-in">
                   <span :key="totalPrice">{{ totalPrice.toFixed(2) }}</span>
                 </transition>
@@ -192,7 +214,7 @@
               <circle cx="8" cy="18" r="1" fill="currentColor"/>
               <circle cx="14" cy="18" r="1" fill="currentColor"/>
             </svg>
-            Place Order - ${{ totalPrice.toFixed(2) }}
+            Place Order - €{{ totalPrice.toFixed(2) }}
           </button>
           <p class="order-note">🚚 Estimated delivery: 5-7 business days</p>
         </div>
@@ -240,16 +262,16 @@ const margin = computed(() => {
 const pdfUrl = ref(null)
 
 onMounted(() => {
-  // Use the published PDF URL
-  if (props.publication?.id) {
-    pdfUrl.value = `${API_BASE_URL}/api/published/${props.publication.id}/download`
+  // Use the direct PDF URL for preview (not the download endpoint)
+  if (props.publication?.url) {
+    pdfUrl.value = props.publication.url
   }
 })
 
 // Cover types
 const coverTypes = [
   { id: 'paperback', name: 'Paperback', description: 'Flexible, lightweight cover', icon: '📄', price: 0 },
-  { id: 'hardcover', name: 'Hardcover', description: 'Rigid, durable cover', icon: '📕', price: 15 },
+  { id: 'hardcover', name: 'Hardcover', description: 'Rigid, durable cover', icon: '📕', price: 20 },
 ]
 
 const selectedCoverType = ref('paperback')
@@ -310,8 +332,8 @@ const decreaseQuantity = () => {
 
 // Pricing
 const basePrice = computed(() => {
-  // Base price calculation: $0.50 per page
-  return pageCount.value * 0.5
+  // Base price: €20 + €1 per page
+  return 20 + (pageCount.value * 1)
 })
 
 const coverPriceAdd = computed(() => {
@@ -345,16 +367,12 @@ const selectMaterial = (materialId) => {
 }
 
 // 3D Preview styles
-const book3DStyle = computed(() => ({
-  transform: 'rotateY(-25deg) rotateX(10deg)',
-}))
-
 const coverStyle = computed(() => {
-  const mat = Object.values(materials).flat().find(m => m.id === selectedMaterial.value)
-  if (!mat && selectedCoverType.value === 'paperback') {
-    return { background: '#ffffff' }
+  if (selectedCoverType.value === 'paperback') {
+    return { background: '#ffffff', border: '1px solid #ddd' }
   }
-  return mat?.swatchStyle || { background: '#ffffff' }
+  const mat = Object.values(materials).flat().find(m => m.id === selectedMaterial.value)
+  return mat?.swatchStyle || { background: '#ffffff', border: '1px solid #ddd' }
 })
 
 const spineStyle = computed(() => coverStyle.value)
@@ -370,9 +388,24 @@ const textureStyle = computed(() => {
 })
 
 // Actions
-const downloadPDF = () => {
-  // TODO: Implement PDF download
-  console.log('Download PDF')
+const downloadPDF = async () => {
+  try {
+    const response = await fetch(props.publication.url)
+    if (!response.ok) throw new Error('Failed to fetch PDF')
+    
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${bookTitle.value}.pdf`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    window.URL.revokeObjectURL(url)
+  } catch (error) {
+    console.error('Download failed:', error)
+    alert('Failed to download PDF')
+  }
 }
 
 const placeOrder = () => {
@@ -554,28 +587,64 @@ const placeOrder = () => {
   background: var(--bg);
   border-radius: 12px;
   border: 1px solid var(--border);
+  overflow: visible;
 }
 
 .preview-3d-container h3 {
   font-size: 16px;
   font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.preview-hint {
+  font-size: 13px;
+  color: var(--text-muted);
   margin: 0 0 20px 0;
+  text-align: center;
 }
 
 .book-3d-preview {
-  height: 200px;
+  height: 320px;
   display: flex;
   align-items: center;
   justify-content: center;
-  perspective: 1000px;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+  overflow: visible;
+  padding: 20px;
 }
 
 .book-3d {
-  width: 140px;
-  height: 180px;
+  width: 160px;
+  height: 220px;
   position: relative;
   transform-style: preserve-3d;
-  transition: transform 0.5s ease;
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  animation: bookFloat 6s ease-in-out infinite;
+}
+
+@keyframes bookFloat {
+  0%, 100% {
+    transform: rotateY(-30deg) rotateX(10deg) translateY(0px);
+  }
+  50% {
+    transform: rotateY(-30deg) rotateX(10deg) translateY(-8px);
+  }
+}
+
+.book-3d:hover {
+  animation-play-state: paused;
+  transform: rotateY(-30deg) rotateX(10deg) translateY(-5px) scale(1.08);
+}
+
+/* Open book animation on hover */
+.book-3d:hover .book-front-cover {
+  transform: translateZ(18px) rotateY(-130deg);
+  transform-origin: left center;
+}
+
+.book-3d:hover .book-pages {
+  transform: translateZ(17px) rotateY(-5deg);
 }
 
 .book-front-cover,
@@ -583,17 +652,53 @@ const placeOrder = () => {
 .book-spine,
 .book-pages {
   position: absolute;
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.2);
+  backface-visibility: hidden;
 }
 
 .book-front-cover {
-  width: 140px;
-  height: 180px;
-  transform: translateZ(12px);
-  border-radius: 2px;
+  width: 160px;
+  height: 220px;
+  transform: translateZ(18px);
+  transform-origin: left center;
+  border-radius: 3px 6px 6px 3px;
   overflow: hidden;
   position: relative;
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.15),
+    2px 0 8px rgba(0,0,0,0.15),
+    4px 0 16px rgba(0,0,0,0.1),
+    inset -2px 0 4px rgba(0,0,0,0.1);
+}
+
+.book-front-cover::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.1) 50%,
+    transparent 100%
+  );
+  pointer-events: none;
+}
+
+.book-front-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.15),
+    transparent
+  );
 }
 
 .cover-texture {
@@ -602,31 +707,224 @@ const placeOrder = () => {
   position: absolute;
   top: 0;
   left: 0;
+  opacity: 0.8;
+}
+
+.cover-title {
+  position: absolute;
+  bottom: 30px;
+  left: 20px;
+  right: 20px;
+  z-index: 10;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+}
+
+.cover-title h4 {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 4px 0;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.cover-title .page-count {
+  font-size: 10px;
+  font-weight: 500;
+  margin: 0;
+  opacity: 0.9;
 }
 
 .book-back-cover {
-  width: 140px;
-  height: 180px;
-  transform: translateZ(-12px) rotateY(180deg);
-  border-radius: 2px;
+  width: 160px;
+  height: 220px;
+  transform: translateZ(-18px) rotateY(180deg);
+  border-radius: 6px 3px 3px 6px;
+  box-shadow: 
+    0 0 0 1px rgba(0,0,0,0.15),
+    -2px 0 8px rgba(0,0,0,0.15);
 }
 
 .book-spine {
-  width: 24px;
-  height: 180px;
-  left: -12px;
-  transform: rotateY(-90deg) translateZ(70px);
-  background: linear-gradient(to right, rgba(0,0,0,0.1) 0%, transparent 20%, transparent 80%, rgba(0,0,0,0.1) 100%);
+  width: 36px;
+  height: 220px;
+  left: -18px;
+  transform: rotateY(-90deg) translateZ(80px);
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    rgba(0,0,0,0.2) 0%,
+    rgba(0,0,0,0.05) 10%,
+    transparent 20%,
+    transparent 80%,
+    rgba(0,0,0,0.05) 90%,
+    rgba(0,0,0,0.2) 100%
+  );
+  box-shadow: 
+    inset 0 0 8px rgba(0,0,0,0.2),
+    -2px 0 4px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.spine-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.9);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+  letter-spacing: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-height: 200px;
+  padding: 10px 0;
 }
 
 .book-pages {
-  width: 136px;
-  height: 176px;
-  left: 2px;
-  top: 2px;
-  transform: translateZ(11px);
-  background: #f5f5f5;
-  box-shadow: inset 0 0 20px rgba(0,0,0,0.05);
+  width: 154px;
+  height: 214px;
+  left: 3px;
+  top: 3px;
+  transform: translateZ(17px);
+  transform-origin: left center;
+  background: linear-gradient(
+    to right,
+    #f8f8f8 0%,
+    #ffffff 5%,
+    #ffffff 95%,
+    #f0f0f0 100%
+  );
+  border-radius: 0 3px 3px 0;
+  box-shadow: 
+    inset -1px 0 2px rgba(0,0,0,0.1),
+    inset 0 0 20px rgba(0,0,0,0.03);
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.book-pages::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 10px,
+    rgba(0,0,0,0.02) 10px,
+    rgba(0,0,0,0.02) 11px
+  );
+  pointer-events: none;
+}
+
+/* First page content */
+.first-page {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.5s ease 0.3s;
+}
+
+.book-3d:hover .first-page {
+  opacity: 1;
+}
+
+.page-content {
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+}
+
+.preview-slot {
+  width: 100%;
+  height: 50px;
+  background: linear-gradient(135deg, #e8e8e8 0%, #f5f5f5 100%);
+  border-radius: 4px;
+  border: 1px solid rgba(0,0,0,0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-slot::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 24px;
+  height: 24px;
+  background: rgba(0,0,0,0.1);
+  border-radius: 4px;
+}
+
+.preview-text-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.text-line {
+  height: 3px;
+  background: rgba(0,0,0,0.15);
+  border-radius: 2px;
+}
+
+.text-line:nth-child(1) { width: 90%; }
+.text-line:nth-child(2) { width: 85%; }
+.text-line:nth-child(3) { width: 70%; }
+
+/* Individual page layers */
+.page-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff;
+  border-right: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 1px 0 2px rgba(0,0,0,0.05);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.book-3d:hover .page-layer:nth-child(1) { transform: translateZ(0.3px) rotateY(-2deg) !important; }
+.book-3d:hover .page-layer:nth-child(2) { transform: translateZ(0.6px) rotateY(-4deg) !important; }
+.book-3d:hover .page-layer:nth-child(3) { transform: translateZ(0.9px) rotateY(-6deg) !important; }
+.book-3d:hover .page-layer:nth-child(4) { transform: translateZ(1.2px) rotateY(-8deg) !important; }
+.book-3d:hover .page-layer:nth-child(5) { transform: translateZ(1.5px) rotateY(-10deg) !important; }
+.book-3d:hover .page-layer:nth-child(6) { transform: translateZ(1.8px) rotateY(-12deg) !important; }
+.book-3d:hover .page-layer:nth-child(7) { transform: translateZ(2.1px) rotateY(-14deg) !important; }
+.book-3d:hover .page-layer:nth-child(8) { transform: translateZ(2.4px) rotateY(-16deg) !important; }
+
+/* Hardcover specific styling */
+.cover-hardcover .book-front-cover,
+.cover-hardcover .book-back-cover {
+  box-shadow: 
+    0 0 0 2px rgba(0,0,0,0.2),
+    2px 0 12px rgba(0,0,0,0.2),
+    4px 0 20px rgba(0,0,0,0.15),
+    inset -2px 0 6px rgba(0,0,0,0.15);
+}
+
+.cover-hardcover .book-spine {
+  box-shadow: 
+    inset 0 0 12px rgba(0,0,0,0.3),
+    -3px 0 6px rgba(0,0,0,0.15);
 }
 
 /* Option Groups */

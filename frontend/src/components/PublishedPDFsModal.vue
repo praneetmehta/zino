@@ -76,6 +76,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import axios from 'axios'
+import download from 'downloadjs'
 import { useAuthStore } from '@/stores/authStore'
 
 const props = defineProps({
@@ -121,37 +122,32 @@ async function loadPublications() {
   }
 }
 
-import download from 'downloadjs'
-
 async function downloadPublication(pub) {
   try {
     downloading.value = pub.id
+    console.log('Downloading from URL:', pub.url)
 
-    const response = await axios.get(
-      `${API_BASE_URL}/api/published/${pub.id}/download`,
-      {
-        headers: {
-          Authorization: `Bearer ${authStore.token}`
-        },
-        responseType: 'blob'
-      }
-    ).then ((response) => {
-        download(response.data, `${pub.title}.pdf`, 'application/pdf');
-    }).catch(error => console.log(error));
-
+    // Fetch the PDF directly from the static URL
+    const response = await fetch(pub.url)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch PDF: ${response.status}`)
+    }
+    
+    const blob = await response.blob()
+    console.log('Downloaded blob size:', blob.size)
+    
+    // Use downloadjs to trigger download
+    download(blob, `${pub.title}.pdf`, 'application/pdf')
 
     console.log('✅ Downloaded:', pub.title)
-    
-    // Reload to update download count
-    await loadPublications()
   } catch (err) {
-    console.error('Failed to download:', err)
-    alert('Failed to download PDF')
+    console.error('Download failed:', err)
+    error.value = 'Failed to download publication'
   } finally {
     downloading.value = null
   }
 }
-
 function orderPrint(pub) {
   emit('order-print', pub)
 }

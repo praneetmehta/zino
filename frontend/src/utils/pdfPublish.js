@@ -160,6 +160,11 @@ export async function publishToPDF(zineStore, userToken, progressCallback = null
     formData.append('title', zineStore.projectMeta.title || 'Untitled Zine')
     formData.append('bookId', zineStore.projectMeta.id || '')
     formData.append('pageCount', pageElements.length)
+    
+    // Include zineConfig metadata for Order Print page
+    formData.append('metadata', JSON.stringify({
+      config: zineConfig
+    }))
 
     if (progressCallback) {
       progressCallback(1, 75, 'Uploading to server')

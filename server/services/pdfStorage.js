@@ -4,23 +4,21 @@
  * Can use Railway volumes or AWS S3
  */
 const path = require('path')
+const fs = require('fs/promises')
 const { storageService } = require('./storage')
 
 class PDFStorageService {
   constructor() {
-    this.metadata = new Map() // In-memory metadata cache (would use DB in production)
   }
 
   /**
    * Upload and publish a PDF
    */
-  async publishPDF(pdfBuffer, metadata) {
-    const { userId, title, bookId, pageCount } = metadata
+  async publishPDF(pdfBuffer, { userId, title, bookId, pageCount, metadata = {} }) {
 
     if (!pdfBuffer || !Buffer.isBuffer(pdfBuffer)) {
       throw new Error('Invalid PDF buffer')
     }
-
     if (!userId) {
       throw new Error('User ID is required')
     }
@@ -54,6 +52,7 @@ class PDFStorageService {
         pageCount: parseInt(pageCount) || 0,
         publishedAt: new Date().toISOString(),
         downloadCount: 0,
+        metadata: metadata || null, // Store zineConfig and other metadata
       }
 
       // Store metadata (in memory for now, would use database)
@@ -191,11 +190,54 @@ class PDFStorageService {
    */
   async init() {
     console.log('📚 Initializing PDF Storage Service...')
+    console.log('__dirname:', __dirname)
     
-    // In a real implementation, this would load metadata from database
-    // For filesystem storage, we could scan for *_meta.json files
-    
-    console.log('✅ PDF Storage Service initialized')
+    try {
+      // Get uploads directory - use environment variable or default path
+      const VOLUME_PATH = process.env.RAILWAY_VOLUME_MOUNT_PATH || require('path').join(__dirname, '../../data')
+      const uploadsDir = require('path').join(VOLUME_PATH, 'uploads')
+      
+      console.log(`Checking uploads directory: ${uploadsDir}`)
+      
+      // Check if directory exists
+      try {
+        await fs.access(uploadsDir)
+        console.log('✅ Uploads directory found')
+      } catch (err) {
+        console.log('⚠️  Uploads directory not found, skipping PDF metadata loading')
+        console.log('   Error:', err.message)
+        console.log('   Path:', uploadsDir)
+        console.log('✅ PDF Storage Service initialized (empty)')
+        return
+      }
+      
+      // Scan for metadata files
+      const files = await fs.readdir(uploadsDir)
+      const metadataFiles = files.filter(f => f.endsWith('_meta.json'))
+      
+      console.log(`Found ${metadataFiles.length} publication metadata files`)
+      
+      // Load each metadata file
+      for (const metaFile of metadataFiles) {
+        try {
+          const metaPath = path.join(uploadsDir, metaFile)
+          const metaContent = await fs.readFile(metaPath, 'utf8')
+          const publication = JSON.parse(metaContent)
+          
+          // Store in memory cache
+          this.metadata.set(publication.id, publication)
+          console.log(`  ✅ Loaded: ${publication.title} (${publication.id})`)
+        } catch (err) {
+          console.warn(`  ⚠️  Failed to load ${metaFile}:`, err.message)
+        }
+      }
+      
+      console.log(`✅ PDF Storage Service initialized with ${this.metadata.size} publications`)
+    } catch (error) {
+      console.error('Failed to initialize PDF Storage Service:', error)
+      console.error('Stack:', error.stack)
+      console.log('✅ PDF Storage Service initialized (empty)')
+    }
   }
 }
 

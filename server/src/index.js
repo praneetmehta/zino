@@ -14,6 +14,7 @@ const publishedRoutes = require('../routes/published')
 const { storageService } = require('../services/storage')
 const { databaseService } = require('../services/database')
 const { googleAuthService } = require('../services/auth/googleAuth')
+const { pdfStorageService } = require('../services/pdfStorage')
 
 const PORT = process.env.PORT || 4876
 
@@ -70,6 +71,9 @@ async function initializeServices() {
   // Initialize storage service
   storageService.init(process.env.STORAGE_PROVIDER)
 
+  // Initialize PDF storage service (loads published PDFs metadata)
+  await pdfStorageService.init()
+
   // Initialize database
   try {
     await databaseService.init()
@@ -84,6 +88,9 @@ async function initializeServices() {
 // Static file serving for uploads (filesystem storage)
 const UPLOADS_PATH = path.join(VOLUME_PATH, 'uploads')
 console.log(`📁 Uploads directory: ${UPLOADS_PATH}`)
+
+// Public uploads for now (images need to be accessible in <img> tags)
+// TODO: Implement signed URLs or session-based auth for better security
 app.use('/uploads', express.static(UPLOADS_PATH))
 
 // Auth routes (no auth required for these)
