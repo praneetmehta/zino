@@ -31,15 +31,28 @@ export async function exportToPDF(zineStore, progressCallback = null) {
     let width = zineConfig.width
     let height = zineConfig.height
 
+    // Convert to mm if needed
     if (zineConfig.unit === 'px') {
       width = width * 0.264583
       height = height * 0.264583
+    } else if (zineConfig.unit === 'in') {
+      width = width * 25.4
+      height = height * 25.4
     }
 
+    // Add gutter for flat binding (left edge binding margin)
+    const gutterMm = zineConfig.bindingType === 'flat' 
+      ? (zineConfig.gutter || 0.25) * 25.4  // Convert inches to mm
+      : 0
+
+    // Add gutter to width for flat binding
+    const pdfWidth = width + gutterMm
+    const pdfHeight = height
+
     const pdf = new jsPDF({
-      orientation: width > height ? 'landscape' : 'portrait',
+      orientation: pdfWidth > pdfHeight ? 'landscape' : 'portrait',
       unit: 'mm',
-      format: [width, height],
+      format: [pdfWidth, pdfHeight],
     })
 
     const pageElements = document.querySelectorAll('.page-canvas')
@@ -57,7 +70,7 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       await new Promise(resolve => setTimeout(resolve, 50))
 
       if (i > 0) {
-        pdf.addPage([width, height])
+        pdf.addPage([pdfWidth, pdfHeight])
       }
 
       const pageElement = pageElements[i]
@@ -121,8 +134,33 @@ export async function exportToPDF(zineStore, progressCallback = null) {
           logging: false,
         })
 
-        const imgData = canvas.toDataURL('image/png', 1.0)
-        pdf.addImage(imgData, 'PNG', 0, 0, width, height)
+        // For flat binding with normalized left-edge binding:
+        // - Odd pages (0, 2, 4...) are right-hand pages → no flip
+        // - Even pages (1, 3, 5...) are left-hand pages → flip horizontally
+        let finalCanvas = canvas
+        const isLeftPage = i % 2 === 1 // Even index (1, 3, 5...) = left page in spread
+        
+        if (zineConfig.bindingType === 'flat' && isLeftPage) {
+          // Create a new canvas and flip the image horizontally
+          const flippedCanvas = document.createElement('canvas')
+          flippedCanvas.width = canvas.width
+          flippedCanvas.height = canvas.height
+          const ctx = flippedCanvas.getContext('2d')
+          
+          // Flip horizontally
+          ctx.translate(canvas.width, 0)
+          ctx.scale(-1, 1)
+          ctx.drawImage(canvas, 0, 0)
+          
+          finalCanvas = flippedCanvas
+        }
+
+        const imgData = finalCanvas.toDataURL('image/png', 1.0)
+        
+        // For flat binding, offset content to the right by gutter amount
+        // This creates the binding margin on the left edge
+        const xOffset = gutterMm
+        pdf.addImage(imgData, 'PNG', xOffset, 0, width, height)
       } finally {
         bodyElement.style.removeProperty('background')
         if (originalBodyBackground) {

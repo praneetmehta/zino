@@ -54,6 +54,7 @@ export const useZineStore = defineStore('zine', {
         bleedBottom: config.bleedBottom ?? bleedValue,
         bleedLeft: config.bleedLeft ?? bleedValue,
         margin: config.margin || 0,
+        gutter: config.gutter || 0.25, // Binding margin for flat binding (inches)
         slotInnerMarginPercent: config.slotInnerMarginPercent ?? 0,
         bindingType: config.bindingType || 'folded',
       }
@@ -123,6 +124,8 @@ export const useZineStore = defineStore('zine', {
             fit: 'cover',
             innerMarginPx: 0, // Absolute pixel margin
             backgroundColor: slot.backgroundColor || null, // Optional solid color
+            imageOffsetX: slot.imageOffsetX || 50, // Image position X (0-100%, default centered)
+            imageOffsetY: slot.imageOffsetY || 50, // Image position Y (0-100%, default centered)
           }
           console.log(`Slot ${index}:`, mappedSlot)
           return mappedSlot
@@ -241,6 +244,15 @@ export const useZineStore = defineStore('zine', {
       const page = this.getPageById(pageId)
       if (page && page.slots[slotIndex]) {
         page.slots[slotIndex].backgroundColor = color
+      }
+    },
+
+    setSlotImagePosition(pageId, slotIndex, offsetX, offsetY) {
+      const page = this.getPageById(pageId)
+      if (page && page.slots[slotIndex]) {
+        // Clamp values between 0-100%
+        page.slots[slotIndex].imageOffsetX = Math.max(0, Math.min(100, offsetX))
+        page.slots[slotIndex].imageOffsetY = Math.max(0, Math.min(100, offsetY))
       }
     },
 
@@ -560,6 +572,7 @@ export const useZineStore = defineStore('zine', {
         unit: payload.zineConfig.unit,
         bleed: payload.zineConfig.bleed || 0,
         margin: payload.zineConfig.margin || 0,
+        gutter: payload.zineConfig.gutter || 0.25,
         slotInnerMarginPercent: payload.zineConfig.slotInnerMarginPercent ?? 0,
         bindingType: payload.zineConfig.bindingType || 'folded', // 'folded' or 'flat'
       }

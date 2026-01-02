@@ -2,8 +2,13 @@
   <transition name="slide-fade">
     <div v-if="isVisible && selectedElement" class="context-menu" :style="menuPosition" ref="contextMenuEl">
       <div class="menu-header" @mousedown="startDrag" style="cursor: move;">
-        <div class="header-icon">{{ elementIcon }}</div>
-        <h3>{{ elementTitle }}</h3>
+        <div class="header-content">
+          <div class="header-icon">{{ elementIcon }}</div>
+          <div class="header-text">
+            <h3>{{ elementTitle }}</h3>
+            <p v-if="elementLocation" class="element-location">{{ elementLocation }}</p>
+          </div>
+        </div>
         <button class="close-btn" @click="$emit('close')">
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
             <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
@@ -64,6 +69,50 @@
               </button>
             </div>
           </div>
+
+          <!-- Image Position Controls (only for cover mode) -->
+          <template v-if="selectedElement.fit === 'cover' && selectedElement.assetId">
+            <div class="menu-divider"></div>
+            
+            <div class="menu-section">
+              <label class="section-label">Image Position</label>
+              <div class="position-controls">
+                <div class="position-grid">
+                  <div></div>
+                  <button class="arrow-btn" @click="nudgeImage(0, -2)" title="Move Up">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 9V3M6 3L3 6M6 3L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div></div>
+                  
+                  <button class="arrow-btn" @click="nudgeImage(2, 0)" title="Move Left">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M9 6H3M3 6L6 3M3 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <button class="reset-btn" @click="resetImagePosition" title="Reset to Center">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <circle cx="6" cy="6" r="2" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                  </button>
+                  <button class="arrow-btn" @click="nudgeImage(-2, 0)" title="Move Right">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M3 6H9M9 6L6 3M9 6L6 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  
+                  <div></div>
+                  <button class="arrow-btn" @click="nudgeImage(0, 2)" title="Move Down">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 3V9M6 9L3 6M6 9L9 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                  <div></div>
+                </div>
+              </div>
+            </div>
+          </template>
 
           <div class="menu-divider"></div>
 
@@ -283,9 +332,11 @@ const props = defineProps({
   selectedElement: Object,
   elementType: String, // 'slot' or 'text'
   position: Object,
+  pageNumber: Number, // Page number (1-indexed)
+  slotIndex: Number, // Slot index (0-indexed)
 })
 
-defineEmits([
+const emit = defineEmits([
   'close',
   'bring-to-front',
   'send-to-back',
@@ -297,6 +348,8 @@ defineEmits([
   'delete',
   'toggle-margin-override',
   'set-page-margin',
+  'nudge-image',
+  'reset-image-position',
 ])
 
 const elementTitle = computed(() => {
@@ -311,6 +364,16 @@ const elementIcon = computed(() => {
   if (props.elementType === 'text') return '📝'
   if (props.elementType === 'page') return '📄'
   return '⚙️'
+})
+
+const elementLocation = computed(() => {
+  if (props.elementType === 'slot' && props.pageNumber !== undefined && props.slotIndex !== undefined) {
+    return `Page ${props.pageNumber}, Slot ${props.slotIndex + 1}`
+  }
+  if (props.elementType === 'text' && props.pageNumber !== undefined) {
+    return `Page ${props.pageNumber}`
+  }
+  return null
 })
 
 // Font dropdown state
@@ -417,6 +480,15 @@ const stopDrag = () => {
   document.removeEventListener('mousemove', onDrag)
   document.removeEventListener('mouseup', stopDrag)
 }
+
+// Image position controls
+const nudgeImage = (deltaX, deltaY) => {
+  emit('nudge-image', { deltaX, deltaY })
+}
+
+const resetImagePosition = () => {
+  emit('reset-image-position')
+}
 </script>
 
 <style scoped>
@@ -459,21 +531,42 @@ const stopDrag = () => {
   border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 8px;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .header-icon {
   font-size: 18px;
   line-height: 1;
+  flex-shrink: 0;
+}
+
+.header-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .menu-header h3 {
-  flex: 1;
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-strong);
   margin: 0;
-  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.3;
+}
+
+.element-location {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin: 2px 0 0 0;
+  line-height: 1;
 }
 
 .close-btn {
@@ -644,11 +737,58 @@ const stopDrag = () => {
 .fit-btn:hover {
   background: rgba(255, 255, 255, 0.5);
 }
-
 .fit-btn.active {
   background: var(--panel-bg-solid);
   color: var(--accent);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.position-controls {
+  padding: 4px 0;
+}
+
+.position-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  max-width: 120px;
+  margin: 0 auto;
+}
+
+.arrow-btn,
+.reset-btn {
+  width: 36px;
+  height: 36px;
+  background: var(--panel-bg-solid);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  color: var(--text);
+}
+
+.arrow-btn:hover,
+.reset-btn:hover {
+  background: var(--bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+.arrow-btn:active,
+.reset-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+.reset-btn {
+  background: var(--bg);
+}
+
+.reset-btn:hover {
+  background: var(--panel-bg-solid);
   transform: scale(1.02);
 }
 

@@ -149,11 +149,13 @@
                   <div v-if="slot.assetId" class="slot-image-wrapper" :class="slot.fit">
                     <img
                       class="slot-image"
+                      :class="{ 'repositionable': slot.fit === 'cover' }"
                       :src="getAssetUrl(slot.assetId)"
                       :style="getImageStyle(slot)"
                       :data-slot-id="`${page.id}-${index}`"
                       :data-fit="slot.fit"
                       @load="handleImageLoad($event, slot)"
+                      @mousedown.stop="slot.fit === 'cover' ? startImageDrag($event, page.id, index, slot) : null"
                       alt="Slot image"
                       draggable="false"
                     />
@@ -201,6 +203,8 @@
       :selected-element="selectedElement"
       :element-type="selectedElementType"
       :position="contextMenuPosition"
+      :page-number="selectedPageNumber"
+      :slot-index="selectedSlotIndex"
       @close="closeContextMenu"
       @bring-to-front="handleContextBringToFront"
       @send-to-back="handleContextSendToBack"
@@ -210,8 +214,10 @@
       @update-style="handleContextUpdateStyle"
       @toggle-lock="handleContextToggleLock"
       @delete="handleContextDelete"
-      @toggle-margin-override="handleTogglePageMarginOverride"
-      @set-page-margin="handleSetPageMargin"
+      @toggle-margin-override="handleContextToggleMarginOverride"
+      @set-page-margin="handleContextSetPageMargin"
+      @nudge-image="handleNudgeImage"
+      @reset-image-position="handleResetImagePosition"
     />
   </div>
 </template>
@@ -349,6 +355,20 @@ const selectedElement = ref(null)
 const selectedElementType = ref(null)
 const selectedElementRef = ref(null) // { pageId, index } or { pageId, elementId }
 const contextMenuPosition = ref({ right: '320px', top: '100px' })
+
+// Computed properties for context menu info
+const selectedPageNumber = computed(() => {
+  if (!selectedElementRef.value?.pageId) return undefined
+  const pageIndex = zineStore.pages.findIndex(p => p.id === selectedElementRef.value.pageId)
+  return pageIndex >= 0 ? pageIndex + 1 : undefined
+})
+
+const selectedSlotIndex = computed(() => {
+  if (selectedElementType.value === 'slot' && selectedElementRef.value?.index !== undefined) {
+    return selectedElementRef.value.index
+  }
+  return undefined
+})
 let contextMenuTransitionTimeout = null
 
 const pageStyle = computed(() => {
@@ -501,9 +521,20 @@ const getAssetUrl = (assetId) => {
 }
 
 const getImageStyle = (slot) => {
-  // For contain mode, CSS handles it well
-  // For cover mode, we'll set dimensions after image loads
-  return {}
+  // For cover mode with custom positioning, use object-position
+  if (slot.fit === 'cover' && (slot.imageOffsetX !== undefined || slot.imageOffsetY !== undefined)) {
+    const offsetX = Math.max(0, Math.min(100, slot.imageOffsetX !== undefined ? slot.imageOffsetX : 50))
+    const offsetY = Math.max(0, Math.min(100, slot.imageOffsetY !== undefined ? slot.imageOffsetY : 50))
+    
+    return {
+      objectPosition: `${offsetX}% ${offsetY}%`
+    }
+  }
+  
+  // Default: center
+  return {
+    objectPosition: '50% 50%'
+  }
 }
 
 const handleImageLoad = (event, slot) => {
@@ -517,18 +548,14 @@ const handleImageLoad = (event, slot) => {
   const wrapperAspect = wrapperWidth / wrapperHeight
   
   if (slot.fit === 'cover') {
-    // For cover: fill container, allow overflow
-    if (imgAspect > wrapperAspect) {
-      // Image is wider - fit height, let width overflow
-      img.style.width = 'auto'
-      img.style.height = '100%'
-    } else {
-      // Image is taller - fit width, let height overflow
-      img.style.width = '100%'
-      img.style.height = 'auto'
-    }
+    // Use object-fit: cover with object-position for proper positioning
+    img.style.objectFit = 'cover'
+    img.style.width = '100%'
+    img.style.height = '100%'
+    // object-position is set reactively by getImageStyle()
   } else {
     // For contain: fit entire image within container
+    img.style.objectFit = 'contain'
     if (imgAspect > wrapperAspect) {
       // Image is wider - fit width, let height be smaller
       img.style.width = '100%'
@@ -538,6 +565,7 @@ const handleImageLoad = (event, slot) => {
       img.style.width = 'auto'
       img.style.height = '100%'
     }
+    // No object-position for contain mode
   }
 }
 
@@ -547,6 +575,87 @@ const addPageWithLayout = (layout) => {
     slots: layout.slots,
     textElements: layout.textElements,
   })
+}
+
+// Image repositioning for cover mode
+const imageDragState = ref(null)
+
+const startImageDrag = (event, pageId, slotIndex, slot) => {
+  event.preventDefault()
+  event.stopPropagation()
+  
+  console.log('🖱️ Starting image drag', { pageId, slotIndex, fit: slot.fit })
+  
+  const img = event.target
+  const wrapper = img.parentElement
+  if (!wrapper) {
+    console.warn('No wrapper found for image')
+    return
+  }
+  
+  // Calculate the draggable range based on image overflow
+  const wrapperRect = wrapper.getBoundingClientRect()
+  const imgRect = img.getBoundingClientRect()
+  
+  console.log('Drag bounds:', {
+    wrapper: { w: wrapperRect.width, h: wrapperRect.height },
+    img: { w: imgRect.width, h: imgRect.height },
+    overflow: {
+      x: imgRect.width - wrapperRect.width,
+      y: imgRect.height - wrapperRect.height
+    }
+  })
+  
+  imageDragState.value = {
+    pageId,
+    slotIndex,
+    startX: event.clientX,
+    startY: event.clientY,
+    initialOffsetX: slot.imageOffsetX || 50,
+    initialOffsetY: slot.imageOffsetY || 50,
+    wrapperWidth: wrapperRect.width,
+    wrapperHeight: wrapperRect.height,
+    imgWidth: imgRect.width,
+    imgHeight: imgRect.height,
+  }
+  
+  // Add global listeners
+  document.addEventListener('mousemove', handleImageDrag)
+  document.addEventListener('mouseup', stopImageDrag)
+  
+  // Change cursor
+  document.body.style.cursor = 'grabbing'
+}
+
+const handleImageDrag = (event) => {
+  if (!imageDragState.value) return
+  
+  const state = imageDragState.value
+  const deltaX = event.clientX - state.startX
+  const deltaY = event.clientY - state.startY
+  
+  // For object-fit: cover, object-position percentages work perfectly
+  // We can allow the full 0-100% range since it will always show part of the image
+  // and never create empty space
+  
+  // Simple calculation: map drag distance to percentage
+  // For natural feel: dragging in a direction shows more of that side of the image
+  const dragSensitivity = 2 // pixels per percent
+  const percentX = Math.max(0, Math.min(100, state.initialOffsetX + deltaX / dragSensitivity))
+  const percentY = Math.max(0, Math.min(100, state.initialOffsetY - deltaY / dragSensitivity))
+  
+  // Update store
+  zineStore.setSlotImagePosition(state.pageId, state.slotIndex, percentX, percentY)
+}
+
+const stopImageDrag = () => {
+  if (!imageDragState.value) return
+  
+  document.removeEventListener('mousemove', handleImageDrag)
+  document.removeEventListener('mouseup', stopImageDrag)
+  document.body.style.cursor = ''
+  
+  imageDragState.value = null
 }
 
 // Zoom controls - DISABLED for now
@@ -977,6 +1086,36 @@ const handleContextSetBackgroundColor = (color) => {
 const handleContextSetInnerMargin = (value) => {
   if (selectedElementType.value === 'slot' && selectedElementRef.value) {
     setSlotInnerMargin(selectedElementRef.value.pageId, selectedElementRef.value.index, value)
+  }
+}
+
+const handleNudgeImage = ({ deltaX, deltaY }) => {
+  if (selectedElementType.value === 'slot' && selectedElementRef.value) {
+    const slot = selectedElement.value
+    const currentX = slot.imageOffsetX || 50
+    const currentY = slot.imageOffsetY || 50
+    
+    // Clamp to 0-100% range
+    const newX = Math.max(0, Math.min(100, currentX + deltaX))
+    const newY = Math.max(0, Math.min(100, currentY + deltaY))
+    
+    zineStore.setSlotImagePosition(
+      selectedElementRef.value.pageId,
+      selectedElementRef.value.index,
+      newX,
+      newY
+    )
+  }
+}
+
+const handleResetImagePosition = () => {
+  if (selectedElementType.value === 'slot' && selectedElementRef.value) {
+    zineStore.setSlotImagePosition(
+      selectedElementRef.value.pageId,
+      selectedElementRef.value.index,
+      50,
+      50
+    )
   }
 }
 
@@ -1536,11 +1675,10 @@ body.dragging-image .slot:hover {
 }
 
 .slot-image-wrapper.cover .slot-image {
-  /* Dimensions set dynamically on load */
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  /* No positioning needed - object-fit: cover and object-position handle everything */
+  position: static;
+  width: 100%;
+  height: 100%;
 }
 
 .slot-image {
@@ -1548,6 +1686,14 @@ body.dragging-image .slot:hover {
   user-select: none;
   -webkit-user-select: none;
   -webkit-user-drag: none;
+}
+
+.slot-image.repositionable {
+  cursor: grab;
+}
+
+.slot-image.repositionable:active {
+  cursor: grabbing;
 }
 
 .slot-placeholder {
