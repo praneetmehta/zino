@@ -1259,7 +1259,10 @@ const handlePublishTemplate = async (metadata) => {
         type: page.type,
         layoutId: page.type,
         slots: page.slots,
-        textElements: page.textElements || []
+        textElements: (page.textElements || []).map(text => ({
+          ...text,
+          locked: true // Lock all text elements in template
+        }))
       })),
       demoImages: zineStore.mediaAssets, // Include demo images in template
       metadata: {

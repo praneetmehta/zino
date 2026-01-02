@@ -137,7 +137,7 @@
               :style="pageStyle"
               :data-page-id="page.id"
               @click="zineStore.selectPage(page.id)"
-              @contextmenu.prevent="openPageContextMenu(page)"
+              @contextmenu.prevent="!isTemplatePreview && openPageContextMenu(page)"
               @dragover.prevent="handlePageDragOver"
               @drop="handlePageDrop($event, page.id)"
             >

@@ -146,7 +146,7 @@ router.post('/books/:id/clone', authenticateJWT, async (req, res) => {
             // Preserve any other styling properties
             style: slot.style
           })),
-          // Keep all text elements as-is
+          // Keep all text elements but unlock them for editing
           textElements: (page.textElements || []).map((text, textIndex) => ({
             id: text.id || `text-${Date.now()}-${index}-${textIndex}`,
             type: 'text',
@@ -155,7 +155,8 @@ router.post('/books/:id/clone', authenticateJWT, async (req, res) => {
             y: text.y,
             width: text.width,
             height: text.height,
-            style: text.style || {}
+            style: text.style || {},
+            locked: false // Unlock text elements when cloning
           }))
         }))
       },
