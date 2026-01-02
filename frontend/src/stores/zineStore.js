@@ -139,9 +139,9 @@ export const useZineStore = defineStore('zine', {
             ...slot,
             type: 'image', // All slots are now image-only
             zIndex: slot.zIndex !== undefined ? slot.zIndex : index,
-            assetId: null,
-            fit: 'cover',
-            innerMarginPx: 0, // Absolute pixel margin
+            assetId: slot.assetId || null, // Preserve existing assetId if present
+            fit: slot.fit || 'cover',
+            innerMarginPx: slot.innerMarginPx !== undefined ? slot.innerMarginPx : 0, // Absolute pixel margin
             backgroundColor: slot.backgroundColor || null, // Optional solid color
             imageOffsetX: slot.imageOffsetX || 50, // Image position X (0-100%, default centered)
             imageOffsetY: slot.imageOffsetY || 50, // Image position Y (0-100%, default centered)
