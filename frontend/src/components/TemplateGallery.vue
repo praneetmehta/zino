@@ -177,8 +177,15 @@ async function selectTemplate(template) {
       if (!response.ok) throw new Error('Failed to clone template')
 
       const data = await response.json()
-      toast.success(`Created "${data.book.name}"`, 'Template Cloned')
-      emit('template-selected', { type: 'book', data: data.book })
+      
+      // Emit the template data to open it immediately
+      // The parent will handle prompting for name and saving/deleting
+      emit('template-selected', { 
+        type: 'book', 
+        data: data.book,
+        templateName: template.name,
+        requiresNaming: true // Flag to indicate this needs user confirmation
+      })
       emit('close')
     } else {
       // Apply cover template

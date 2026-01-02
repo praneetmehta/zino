@@ -60,26 +60,63 @@
           </svg>
         </button>
       </div>
-      <button class="btn btn-outline" @click="$emit('save')" data-action="save" :disabled="!zineStore.isInitialized || saving">
-        <span v-if="saving">⏳ Saving…</span>
-        <span v-else>💾 Save</span>
-      </button>
-      <button class="btn btn-outline" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
-        📥 Export PDF
-      </button>
-      <button class="btn btn-primary" @click="$emit('publish')" :disabled="zineStore.pageCount === 0 || publishing">
-        <span v-if="publishing">⏳ Publishing…</span>
-        <span v-else>🚀 Publish</span>
-      </button>
+      <!-- Template Builder Mode -->
+      <template v-if="isTemplateBuilder">
+        <button class="btn btn-primary" @click="showPublishTemplateModal = true" :disabled="zineStore.pageCount === 0 || publishing">
+          <span v-if="publishing">⏳ Publishing…</span>
+          <span v-else>🚀 Publish Template</span>
+        </button>
+      </template>
+      
+      <!-- Template Preview Mode -->
+      <template v-else-if="isTemplatePreview">
+        <button class="btn btn-outline" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
+          📥 Export PDF
+        </button>
+        <button class="btn btn-primary" @click="$emit('use-template')">
+          ✨ Use Template
+        </button>
+      </template>
+      
+      <!-- Normal Editor Mode -->
+      <template v-else>
+        <button class="btn btn-outline" @click="$emit('save')" data-action="save" :disabled="!zineStore.isInitialized || saving">
+          <span v-if="saving">⏳ Saving…</span>
+          <span v-else>💾 Save</span>
+        </button>
+        <button class="btn btn-outline" @click="$emit('export')" :disabled="zineStore.pageCount === 0">
+          📥 Export PDF
+        </button>
+        <button class="btn btn-primary" @click="$emit('publish')" :disabled="zineStore.pageCount === 0 || publishing">
+          <span v-if="publishing">⏳ Publishing…</span>
+          <span v-else>🚀 Publish</span>
+        </button>
+      </template>
       <UserProfile />
     </div>
   </header>
+  
+  <!-- Publish Template Modal -->
+  <PublishTemplateModal
+    :is-open="showPublishTemplateModal"
+    @close="showPublishTemplateModal = false"
+    @publish="handlePublishTemplate"
+  />
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import UserProfile from './UserProfile.vue'
+import PublishTemplateModal from './PublishTemplateModal.vue'
+
+const showPublishTemplateModal = ref(false)
+const emit = defineEmits(['export', 'publish', 'publish-template', 'use-template', 'reset', 'save', 'load', 'go-home', 'flipbook'])
+
+const handlePublishTemplate = (metadata) => {
+  emit('publish-template', metadata)
+  showPublishTemplateModal.value = false
+}
 
 const props = defineProps({
   saving: { type: Boolean, default: false },
@@ -87,10 +124,11 @@ const props = defineProps({
   loading: { type: Boolean, default: false },
   showBack: { type: Boolean, default: false },
   hasUnsavedChanges: { type: Boolean, default: false },
+  isTemplateBuilder: { type: Boolean, default: false },
+  isTemplatePreview: { type: Boolean, default: false },
 })
 
 const zineStore = useZineStore()
-defineEmits(['export', 'publish', 'reset', 'save', 'load', 'go-home', 'flipbook'])
 
 const projectTitle = computed(() => zineStore.projectMeta.title?.trim() || '')
 

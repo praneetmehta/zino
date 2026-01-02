@@ -26,14 +26,16 @@ router.post('/google', async (req, res) => {
     if (!googleAuthService.isConfigured()) {
       // Fallback to mock user if no OAuth configured
       const mockUser = {
-        id: `dev-user-${Date.now()}`,
-        email: 'dev@ziner.local',
-        name: 'Development User',
-        role: 'user',
+        id: 'dev-user-alice',
+        email: 'alice@ziner.local',
+        name: 'Alice (Admin)',
+        role: 'admin',
       }
 
       const token = generateToken(mockUser, '24h')
       const expiresIn = 24 * 60 * 60 * 1000
+
+      console.log('🔐 Dev login - returning admin user:', mockUser)
 
       return res.json({
         user: mockUser,

@@ -110,20 +110,20 @@ export class AuthService {
     // Create realistic mock user for development
     const mockUsers = [
       {
-        id: 'dev-user-1',
-        email: 'alice.dev@ziner.local',
-        name: 'Alice Developer',
+        id: 'dev-admin-alice',
+        email: 'alice@ziner.local',
+        name: 'Alice (Admin)',
+        role: 'admin',
+        isTemp: true,
+        avatar: '⚡',
+      },
+      {
+        id: 'dev-user-bob',
+        email: 'bob@ziner.local',
+        name: 'Bob (User)',
         role: 'user',
         isTemp: true,
         avatar: '🎨',
-      },
-      {
-        id: 'dev-admin-1',
-        email: 'admin.dev@ziner.local',
-        name: 'Admin Developer',
-        role: 'admin',
-        isTemp: true,
-        avatar: '⚙️',
       }
     ]
 
@@ -134,7 +134,7 @@ export class AuthService {
     if (savedUserId) {
       selectedUser = mockUsers.find(u => u.id === savedUserId) || mockUsers[0]
     } else {
-      selectedUser = mockUsers[0] // Default to regular user
+      selectedUser = mockUsers[0] // Default to Alice (admin)
       localStorage.setItem('dev_user_id', selectedUser.id)
     }
 

@@ -1,0 +1,150 @@
+{
+  "id": "template-1767389972953",
+  "name": "Random Template 1",
+  "description": "jsasdfas",
+  "category": "magazine",
+  "price": 30,
+  "thumbnail": "",
+  "tags": [],
+  "config": {
+    "width": 148,
+    "height": 100,
+    "unit": "mm",
+    "margin": 2,
+    "bindingType": "flat",
+    "slotInnerMarginPercent": 0,
+    "bleed": 3,
+    "bleedTop": 3,
+    "bleedRight": 3,
+    "bleedBottom": 3,
+    "bleedLeft": 3
+  },
+  "pages": [
+    {
+      "id": "1767389871970.1533",
+      "slots": [],
+      "textElements": []
+    },
+    {
+      "id": "1767389873585.6511",
+      "slots": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 100,
+          "height": 100,
+          "type": "image",
+          "zIndex": 0,
+          "assetId": "demo-18",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        }
+      ],
+      "textElements": []
+    },
+    {
+      "id": "1767389903269.3716",
+      "slots": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 33.33,
+          "height": 100,
+          "type": "image",
+          "zIndex": 0,
+          "assetId": "demo-19",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        },
+        {
+          "x": 33.33,
+          "y": 0,
+          "width": 66.67,
+          "height": 100,
+          "type": "image",
+          "zIndex": 1,
+          "assetId": "demo-20",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        }
+      ],
+      "textElements": []
+    },
+    {
+      "id": "1767389901003.5745",
+      "slots": [
+        {
+          "x": 0,
+          "y": 0,
+          "width": 35,
+          "height": 50,
+          "type": "image",
+          "zIndex": 0,
+          "assetId": "demo-27",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        },
+        {
+          "x": 35,
+          "y": 0,
+          "width": 65,
+          "height": 50,
+          "type": "image",
+          "zIndex": 1,
+          "assetId": "demo-29",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        },
+        {
+          "x": 0,
+          "y": 50,
+          "width": 70,
+          "height": 50,
+          "type": "image",
+          "zIndex": 2,
+          "assetId": "demo-30",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        },
+        {
+          "x": 70,
+          "y": 50,
+          "width": 30,
+          "height": 50,
+          "type": "image",
+          "zIndex": 3,
+          "assetId": "demo-25",
+          "fit": "cover",
+          "innerMarginPx": 0,
+          "backgroundColor": null,
+          "imageOffsetX": 50,
+          "imageOffsetY": 50
+        }
+      ],
+      "textElements": []
+    }
+  ],
+  "metadata": {
+    "author": "Alice (Admin)",
+    "version": "1.0",
+    "createdAt": "2026-01-02T21:39:32.954Z"
+  }
+}

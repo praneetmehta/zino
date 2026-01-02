@@ -11,8 +11,13 @@
       @open-docs="navigateToDocs"
       @try-demo="startDemoMode"
       @require-login="handleRequireLogin"
+      @create-template="startTemplateBuilder"
     />
-    <InitModal v-else-if="view === 'init' && !zineStore.isInitialized" @initialize="handleInitialize" />
+    <InitModal 
+      v-else-if="view === 'init' && !zineStore.isInitialized" 
+      :is-template-builder="pendingTemplateBuilder"
+      @initialize="(config) => handleInitialize(config, pendingTemplateBuilder)" 
+    />
     <LayoutLibrary
       v-else-if="view === 'layout-library'"
       @close="view = 'editor'"
@@ -30,23 +35,36 @@
         :loading="isLoadingRemote"
         :show-back="view !== 'landing'"
         :has-unsaved-changes="hasUnsavedChanges"
+        :is-template-builder="isTemplateBuilderMode"
+        :is-template-preview="isTemplatePreviewMode"
         @go-home="goHome"
         @export="handleExport"
         @publish="handlePublish"
+        @publish-template="handlePublishTemplate"
+        @use-template="handleUseTemplate"
         @reset="handleReset"
         @save="handleSave"
         @load="handleLoad"
         @flipbook="showFlipbook = true"
       />
       <div class="workspace">
-        <MediaPanel @collapsed-change="mediaPanelCollapsed = $event" />
-        <Canvas 
-          :media-panel-collapsed="mediaPanelCollapsed" 
-          :page-panel-collapsed="pagePanelCollapsed" 
+        <MediaPanel 
+          v-if="!isTemplatePreviewMode"
+          :is-template-preview="isTemplatePreviewMode"
+          @collapsed-change="mediaPanelCollapsed = $event" 
         />
-        <PagePanel @collapsed-change="pagePanelCollapsed = $event" />
+        <Canvas 
+          :media-panel-collapsed="isTemplatePreviewMode ? true : mediaPanelCollapsed" 
+          :page-panel-collapsed="isTemplatePreviewMode ? true : pagePanelCollapsed"
+          :is-template-preview="isTemplatePreviewMode"
+        />
+        <PagePanel 
+          v-if="!isTemplatePreviewMode"
+          :is-template-preview="isTemplatePreviewMode"
+          @collapsed-change="pagePanelCollapsed = $event" 
+        />
       </div>
-      <div class="bottom-hints">
+      <div v-if="!isTemplatePreviewMode" class="bottom-hints">
         <div class="command-hint" @click="openCommandBar">
           <kbd>⌘K</kbd>
           <span>Command Bar</span>
@@ -89,14 +107,12 @@
       @close="showLibrary = false"
       @load-book="handleLoadFromLibrary"
       @create-new="startNewProject"
-      @open-templates="showTemplateGallery = true"
     />
 
-    <!-- Template Gallery -->
-    <TemplateGallery
-      v-if="showTemplateGallery"
-      mode="book"
-      @close="showTemplateGallery = false"
+    <!-- Template Store -->
+    <TemplateStore
+      v-if="view === 'template-store'"
+      @close="view = 'landing'"
       @template-selected="handleTemplateSelected"
     />
 
@@ -145,7 +161,7 @@ import FlipBook from './components/FlipBook.vue'
 import PortfolioLanding from './components/PortfolioLanding.vue'
 import LandingPage from './components/LandingPage.vue'
 import LibraryModal from './components/LibraryModal.vue'
-import TemplateGallery from './components/TemplateGallery.vue'
+import TemplateStore from './components/TemplateStore.vue'
 import LayoutBuilder from './components/LayoutBuilder.vue'
 import LayoutLibrary from './components/LayoutLibrary.vue'
 import GoogleOneTap from './components/GoogleOneTap.vue'
@@ -178,18 +194,40 @@ const isLoadingRemote = ref(false)
 // Check URL path to determine initial view
 const getInitialView = () => {
   const path = window.location.pathname
+  const params = new URLSearchParams(window.location.search)
+  
+  if (path === '/zino/editor' && params.get('bookId')) {
+    return 'editor'
+  }
+  if (path === '/zino/template-builder') {
+    return 'template-builder'
+  }
+  if (path === '/zino/templateStore' || path === '/zino/template-store') {
+    return 'template-store'
+  }
   if (path === '/zino' || path === '/zino/') return 'landing'
   return 'portfolio'
 }
 
-const view = ref(getInitialView()) // portfolio | landing | init | editor | order-print
+const view = ref(getInitialView()) // portfolio | landing | init | editor | template-builder | order-print
+const isTemplateBuilderMode = computed(() => view.value === 'template-builder')
+const isTemplatePreviewMode = ref(false)
+const pendingTemplateBuilder = ref(false)
 
 // Handle browser navigation
 window.addEventListener('popstate', () => {
   view.value = getInitialView()
+  
+  // If navigating to editor, load the book
+  if (view.value === 'editor') {
+    const params = new URLSearchParams(window.location.search)
+    const bookId = params.get('bookId')
+    if (bookId) {
+      loadBookFromUrl(bookId)
+    }
+  }
 })
 const showLibrary = ref(false)
-const showTemplateGallery = ref(false)
 const showPublications = ref(false)
 const selectedPublication = ref(null)
 const mediaPanelCollapsed = ref(false)
@@ -361,11 +399,38 @@ const formatRelativeTime = (isoString) => {
   return `${days} day${days === 1 ? '' : 's'} ago`
 }
 
-const handleInitialize = async (config) => {
+const handleInitialize = async (config, isTemplateBuilder = false) => {
   // Initialize zine with config
   zineStore.initializeZine(config)
   
-  // Generate book ID and save immediately
+  if (isTemplateBuilder) {
+    // Template builder mode - load demo images and go to template-builder view
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/templates/demo-images`)
+      if (response.ok) {
+        const demoImages = await response.json()
+        demoImages.forEach(img => zineStore.addMediaAsset(img))
+      }
+    } catch (error) {
+      console.error('Failed to load demo images:', error)
+    }
+    
+    zineStore.setProjectMeta({
+      id: `template-builder-${Date.now()}`,
+      title: config.title || 'New Template',
+      updatedAt: new Date().toISOString()
+    })
+    
+    hasUnsavedChanges.value = false
+    pendingTemplateBuilder.value = false
+    window.history.pushState({}, '', '/zino/template-builder')
+    view.value = 'template-builder'
+    
+    toast.info('Template Builder - Design your template with 30 demo images')
+    return
+  }
+  
+  // Normal book creation
   const bookId = `book-${Date.now()}`
   const title = config.title || 'Untitled Zine'
   
@@ -661,6 +726,51 @@ const handleDeletePage = async (pageId) => {
   }
 }
 
+const loadBookFromUrl = async (bookId) => {
+  try {
+    isLoadingRemote.value = true
+    const book = await getBook(bookId)
+    
+    if (!book || !book.data) {
+      throw new Error('Invalid book data')
+    }
+    
+    zineStore.importFromJSON(book.data, {
+      meta: {
+        id: book.id,
+        title: book.title,
+        updatedAt: book.updatedAt,
+      },
+    })
+    hasUnsavedChanges.value = false
+    
+    // Apply proper image styling
+    nextTick(() => {
+      const allImages = document.querySelectorAll('img[data-slot-id]')
+      allImages.forEach(img => {
+        const slotId = img.getAttribute('data-slot-id')
+        if (slotId) {
+          const [pageId, slotIndex] = slotId.split('-')
+          const page = zineStore.pages.find(p => p.id === pageId)
+          const slot = page?.slots[parseInt(slotIndex)]
+          if (slot && slot.assetId) {
+            img.style.objectFit = slot.fit === 'cover' ? 'cover' : 'contain'
+            img.style.width = '100%'
+            img.style.height = '100%'
+            img.style.objectPosition = '50% 50%'
+          }
+        }
+      })
+    })
+  } catch (error) {
+    console.error('Failed to load book from URL:', error)
+    toast.error('Failed to load book', 'Error')
+    view.value = 'landing'
+  } finally {
+    isLoadingRemote.value = false
+  }
+}
+
 const handleLoadFromLibrary = (book) => {
   if (!book || !book.data) {
     toast.error('Invalid book data')
@@ -676,6 +786,9 @@ const handleLoadFromLibrary = (book) => {
       },
     })
     hasUnsavedChanges.value = false // Loaded project starts as saved
+    
+    // Navigate to editor with book ID in URL
+    window.history.pushState({}, '', `/zino/editor?bookId=${book.id}`)
     view.value = 'editor'
     showLibrary.value = false
     
@@ -711,9 +824,57 @@ const handleLoadFromLibrary = (book) => {
   }
 }
 
-const handleTemplateSelected = (result) => {
-  if (result.type === 'book') {
-    // Load the cloned book from template
+const handleTemplateSelected = async (result) => {
+  if (result.type === 'preview') {
+    // Preview template as a demo book (like demo mode)
+    try {
+      console.log('Previewing template:', result)
+      
+      const template = result.template
+      const templateId = result.templateId || template.id
+      
+      if (!templateId) {
+        throw new Error('Template ID is missing')
+      }
+      
+      // Initialize zine with template config
+      zineStore.initializeZine(template.config)
+      zineStore.setProjectMeta({
+        id: `template-preview-${templateId}`,
+        title: `Preview: ${result.templateName}`,
+        updatedAt: new Date().toISOString(),
+        templateId: templateId // Store template ID for "Use Template"
+      })
+      
+      console.log('Template ID stored:', templateId)
+      
+      // Load template pages
+      if (template.pages && template.pages.length > 0) {
+        template.pages.forEach(page => {
+          zineStore.addPage({
+            type: page.layoutId || page.type,
+            slots: page.slots || [],
+            textElements: page.textElements || []
+          })
+        })
+      }
+      
+      // Add template demo images if provided
+      if (template.demoImages && template.demoImages.length > 0) {
+        template.demoImages.forEach(img => zineStore.addMediaAsset(img))
+      }
+      
+      hasUnsavedChanges.value = false
+      isTemplatePreviewMode.value = true // Enable preview mode restrictions
+      view.value = 'editor'
+      
+      toast.info(`Previewing "${result.templateName}" - Click "Use Template" to customize`)
+    } catch (error) {
+      console.error('Failed to preview template:', error)
+      toast.error(`Failed to preview template: ${error.message}`, 'Error')
+    }
+  } else if (result.type === 'book') {
+    // Load the cloned book from template (old flow)
     try {
       console.log('Loading template:', result.data)
       
@@ -722,6 +883,7 @@ const handleTemplateSelected = (result) => {
         throw new Error('Invalid book structure')
       }
       
+      // Load the template into the editor
       zineStore.importFromJSON(result.data.data, {
         meta: {
           id: result.data.id,
@@ -729,9 +891,11 @@ const handleTemplateSelected = (result) => {
           updatedAt: result.data.updatedAt,
         },
       })
-      hasUnsavedChanges.value = false
+      
+      // Navigate to editor with book ID in URL
+      const bookId = result.data.id
+      window.history.pushState({}, '', `/zino/editor?bookId=${bookId}`)
       view.value = 'editor'
-      showTemplateGallery.value = false
       
       // Apply proper image styling for backward compatibility
       nextTick(() => {
@@ -753,7 +917,55 @@ const handleTemplateSelected = (result) => {
         })
       })
       
-      toast.success(`Loaded "${result.data.title || result.data.name}"`)
+      // If this requires naming (new template flow), prompt for name
+      if (result.requiresNaming) {
+        // Wait a bit for the editor to render
+        await nextTick()
+        
+        // Prompt user for a name
+        const bookName = prompt(
+          `Name your book based on "${result.templateName}":`,
+          `My ${result.templateName}`
+        )
+        
+        if (bookName && bookName.trim()) {
+          // User provided a name, save the book
+          zineStore.projectMeta.title = bookName.trim()
+          hasUnsavedChanges.value = true
+          
+          // Auto-save with the new name
+          await handleSave()
+          toast.success(`Created "${bookName.trim()}" from template`)
+        } else {
+          // User cancelled, delete the cloned book and go back to home
+          try {
+            // Delete the cloned book from server
+            const token = localStorage.getItem('token')
+            if (token) {
+              await fetch(
+                `${import.meta.env.VITE_API_URL}/api/books/${result.data.id}`,
+                {
+                  method: 'DELETE',
+                  headers: {
+                    'Authorization': `Bearer ${token}`
+                  }
+                }
+              )
+            }
+          } catch (error) {
+            console.error('Failed to delete template copy:', error)
+          }
+          
+          // Reset and go back to home
+          zineStore.reset()
+          view.value = 'landing'
+          toast.info('Template cancelled')
+        }
+      } else {
+        // Old flow, just mark as loaded
+        hasUnsavedChanges.value = false
+        toast.success(`Loaded "${result.data.title || result.data.name}"`)
+      }
     } catch (error) {
       console.error('Failed to load template:', error)
       toast.error(`Failed to load template: ${error.message}`, 'Error')
@@ -781,6 +993,30 @@ const startNewProject = async () => {
     if (!confirmed) return
   }
   hasUnsavedChanges.value = false
+  view.value = 'init'
+}
+
+const startTemplateBuilder = async () => {
+  if (!authStore.isAdmin) {
+    toast.error('Admin access required')
+    return
+  }
+  
+  if (hasUnsavedChanges.value && zineStore.isInitialized) {
+    const confirmed = await confirm(
+      'You have unsaved changes that will be lost.',
+      {
+        title: 'Unsaved Changes',
+        type: 'warning',
+        confirmText: 'Start Template Builder',
+        cancelText: 'Cancel'
+      }
+    )
+    if (!confirmed) return
+  }
+  
+  hasUnsavedChanges.value = false
+  pendingTemplateBuilder.value = true
   view.value = 'init'
 }
 
@@ -967,6 +1203,149 @@ const handleSaveLayout = async (layout) => {
   }
 }
 
+const handlePublishTemplate = async (metadata) => {
+  if (!zineStore.isInitialized) {
+    toast.warning('No template to publish')
+    return
+  }
+  
+  try {
+    isPublishing.value = true
+    
+    const token = authStore.token
+    if (!token) {
+      throw new Error('Authentication required')
+    }
+    
+    // Prepare template data with demo images
+    const templateData = {
+      id: metadata.id || `template-${Date.now()}`,
+      name: metadata.name,
+      description: metadata.description,
+      category: metadata.category,
+      price: metadata.price,
+      thumbnail: metadata.thumbnail,
+      tags: metadata.tags || [],
+      config: {
+        width: zineStore.zineConfig.width,
+        height: zineStore.zineConfig.height,
+        unit: zineStore.zineConfig.unit,
+        bleed: zineStore.zineConfig.bleed,
+        margin: zineStore.zineConfig.margin,
+        slotInnerMarginPercent: zineStore.zineConfig.slotInnerMarginPercent,
+        bindingType: zineStore.zineConfig.bindingType, // Include binding type!
+        gutter: zineStore.zineConfig.gutter
+      },
+      pages: zineStore.pages.map(page => ({
+        id: page.id,
+        type: page.type,
+        layoutId: page.type,
+        slots: page.slots,
+        textElements: page.textElements || []
+      })),
+      demoImages: zineStore.mediaAssets, // Include demo images in template
+      metadata: {
+        author: authStore.userName,
+        version: '1.0',
+        createdAt: new Date().toISOString()
+      }
+    }
+    
+    // Save template to backend
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/templates/books`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(templateData)
+      }
+    )
+    
+    if (!response.ok) throw new Error('Failed to publish template')
+    
+    const result = await response.json()
+    
+    toast.success(`Template "${metadata.name}" published successfully!`)
+    
+    // Navigate back to template store
+    window.history.pushState({}, '', '/zino/templateStore')
+    window.location.href = '/zino/templateStore'
+  } catch (error) {
+    console.error('Failed to publish template:', error)
+    toast.error(error.message, 'Publish Failed')
+  } finally {
+    isPublishing.value = false
+  }
+}
+
+const handleUseTemplate = async () => {
+  if (!isTemplatePreviewMode.value) {
+    return
+  }
+  
+  try {
+    const templateId = zineStore.projectMeta.templateId
+    console.log('Using template, ID:', templateId, 'Project meta:', zineStore.projectMeta)
+    
+    if (!templateId) {
+      throw new Error('Template ID not found in project metadata')
+    }
+    
+    const token = authStore.token
+    if (!token) {
+      toast.warning('Please sign in to use this template')
+      return
+    }
+    
+    // Clone the template (creates a new user book without demo images)
+    const response = await fetch(
+      `${import.meta.env.VITE_API_URL}/api/templates/books/${templateId}/clone`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      }
+    )
+    
+    if (!response.ok) throw new Error('Failed to use template')
+    
+    const data = await response.json()
+    
+    console.log('Cloned book data:', data.book.data)
+    console.log('Binding type from server:', data.book.data.zineConfig.bindingType)
+    
+    // Load the new book
+    zineStore.importFromJSON(data.book.data, {
+      meta: {
+        id: data.book.id,
+        title: data.book.title,
+        updatedAt: data.book.updatedAt,
+      },
+    })
+    
+    // Clear demo images
+    zineStore.mediaAssets = []
+    
+    // Exit preview mode
+    isTemplatePreviewMode.value = false
+    hasUnsavedChanges.value = false
+    
+    // Navigate to editor with new book ID
+    window.history.pushState({}, '', `/zino/editor?bookId=${data.book.id}`)
+    view.value = 'editor'
+    
+    toast.success(`Template loaded! Start customizing your book`)
+  } catch (error) {
+    console.error('Failed to use template:', error)
+    toast.error(error.message, 'Error')
+  }
+}
+
 const lastSavedSummary = computed(() => {
   if (!zineStore.projectMeta?.id) return ''
   const updated = formatRelativeTime(zineStore.projectMeta.updatedAt)
@@ -990,6 +1369,13 @@ onMounted(() => {
   window.addEventListener('show-publications', () => {
     showPublications.value = true
   })
+  
+  // Check if we should load a book from URL
+  const params = new URLSearchParams(window.location.search)
+  const bookId = params.get('bookId')
+  if (bookId && view.value === 'editor') {
+    loadBookFromUrl(bookId)
+  }
 })
 
 onBeforeUnmount(() => {

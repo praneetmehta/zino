@@ -1,6 +1,6 @@
 <template>
   <div class="canvas-container">
-    <div class="toolbar" :class="{ collapsed: toolbarCollapsed }">
+    <div v-if="!props.isTemplatePreview" class="toolbar" :class="{ collapsed: toolbarCollapsed }">
       <div class="toolbar-header">
         <div class="toolbar-mode-tabs">
           <button 
@@ -28,6 +28,10 @@
           <label class="toggle-guides">
             <input type="checkbox" v-model="showPrintGuides" />
             <span>Print Guides</span>
+          </label>
+          <label class="toggle-guides">
+            <input type="checkbox" v-model="showPageNumbers" />
+            <span>Page Numbers</span>
           </label>
           <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
             {{ toolbarCollapsed ? '▼' : '▲' }}
@@ -109,11 +113,24 @@
       <div v-else class="pages-container">
         <transition-group name="page-fade" tag="div" class="pages-stack" :class="{ 'spread-view': isSpreadView }">
           <div
-            v-for="page in zineStore.pages"
+            v-for="(page, index) in zineStore.pages"
             :key="page.id"
             class="page-wrapper"
             :class="scaleClass"
           >
+            <!-- Page number chips (not printed) -->
+            <div v-if="showPageNumbers" class="page-numbers no-print">
+              <template v-if="zineStore.zineConfig?.bindingType === 'folded'">
+                <!-- Folded: show two page numbers (left and right) -->
+                <div class="page-number-chip left">{{ (index * 2) + 1 }}</div>
+                <div class="page-number-chip right">{{ (index * 2) + 2 }}</div>
+              </template>
+              <template v-else>
+                <!-- Flat: show single page number -->
+                <div class="page-number-chip single">{{ index + 1 }}</div>
+              </template>
+            </div>
+            
             <div
               class="page page-canvas"
               :class="{ active: page.id === zineStore.selectedPageId }"
@@ -246,14 +263,27 @@ const props = defineProps({
   pagePanelCollapsed: {
     type: Boolean,
     default: false
+  },
+  isTemplatePreview: {
+    type: Boolean,
+    default: false
   }
 })
 
-// Computed scale factor based on collapsed panels
+// Computed scale factor based on collapsed panels and binding type
 const scaleFactor = computed(() => {
   const bothCollapsed = props.mediaPanelCollapsed && props.pagePanelCollapsed
   const oneCollapsed = props.mediaPanelCollapsed || props.pagePanelCollapsed
+  const isFlat = zineStore.zineConfig.bindingType === 'flat'
 
+  // For flat (no fold) binding, use smaller scale factors
+  if (isFlat) {
+    if (bothCollapsed) return 1.2
+    if (oneCollapsed) return 1.1
+    return 1.0
+  }
+
+  // For folded binding, use original scale factors
   if (bothCollapsed) return 1.3
   if (oneCollapsed) return 1.2
   return 1.1
@@ -293,6 +323,11 @@ const showGuides = computed({
 const showPrintGuides = computed({
   get: () => zineStore.ui.showPrintGuides,
   set: (value) => { zineStore.ui.showPrintGuides = value }
+})
+
+const showPageNumbers = computed({
+  get: () => zineStore.ui.showPageNumbers,
+  set: (value) => { zineStore.ui.showPageNumbers = value }
 })
 
 // Check if we should show spread view (2 pages per row)
@@ -2022,6 +2057,7 @@ body.dragging-image .slot:hover {
   align-items: center;
   justify-content: center;
   margin-bottom: 40px;
+  padding: 0 20px;
   transition: margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   /* Ensure children don't affect layout when positioned absolutely */
   isolation: isolate;
@@ -2029,6 +2065,54 @@ body.dragging-image .slot:hover {
 
 .page-wrapper:first-child {
   margin-top: 40px;
+}
+
+/* Page number chips */
+.page-numbers {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.page-number-chip {
+  position: absolute;
+  background: var(--accent);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  min-width: 28px;
+  text-align: center;
+}
+
+.page-number-chip.left {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  right: 50%;
+  margin-right: 10px;
+}
+
+.page-number-chip.right {
+  background: linear-gradient(135deg, var(--accent-strong) 0%, var(--accent) 100%);
+  right: 30px;
+}
+
+.page-number-chip.single {
+  background: var(--accent);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+/* Hide page numbers when printing */
+@media print {
+  .no-print,
+  .page-numbers {
+    display: none !important;
+  }
 }
 
 .add-text-pill {

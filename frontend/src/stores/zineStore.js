@@ -27,6 +27,7 @@ export const useZineStore = defineStore('zine', {
       theme: 'light', // 'light' | 'dark'
       showGuides: true,
       showPrintGuides: false, // Additional guides for printing
+      showPageNumbers: true, // Show page number chips
     },
   }),
   
@@ -112,9 +113,26 @@ export const useZineStore = defineStore('zine', {
     addPage(layout) {
       const id = String(Date.now() + Math.random())
       console.log('zineStore.addPage - Received slots:', layout.slots)
+      
+      // Generate default tag based on page number and binding type
+      let defaultTag
+      if (this.zineConfig.bindingType === 'flat') {
+        // Flat/no-fold: each page is separate (1-left, 2-right, 3-left, etc.)
+        const pageNum = this.pages.length + 1
+        const side = pageNum % 2 === 1 ? 'left' : 'right'
+        defaultTag = `${pageNum}-${side}`
+      } else {
+        // Folded: each physical page shows 2 logical pages (1-left + 2-right, 3-left + 4-right, etc.)
+        const physicalPageNum = this.pages.length + 1
+        const leftPageNum = (physicalPageNum - 1) * 2 + 1
+        const rightPageNum = leftPageNum + 1
+        defaultTag = `${leftPageNum}-left + ${rightPageNum}-right`
+      }
+      
       const page = {
         id,
         layout: layout.type,
+        tag: layout.tag || defaultTag, // Custom page tag/label
         marginOverride: null, // Per-page margin override (null = use global)
         slots: layout.slots.map((slot, index) => {
           const mappedSlot = {
@@ -145,6 +163,13 @@ export const useZineStore = defineStore('zine', {
       const page = this.getPageById(pageId)
       if (page) {
         page.marginOverride = margin
+      }
+    },
+    
+    setPageTag(pageId, tag) {
+      const page = this.getPageById(pageId)
+      if (page) {
+        page.tag = tag
       }
     },
     
@@ -546,6 +571,7 @@ export const useZineStore = defineStore('zine', {
         id: meta.id ?? this.projectMeta.id ?? null,
         title: meta.title ?? this.projectMeta.title ?? '',
         updatedAt: meta.updatedAt ?? this.projectMeta.updatedAt ?? null,
+        templateId: meta.templateId ?? this.projectMeta.templateId ?? null,
       }
     },
 
@@ -588,10 +614,27 @@ export const useZineStore = defineStore('zine', {
         type: a.type,
         thumbnail: a.thumbnail || a.url,
       }))
-      this.pages = (payload.pages || []).map(p => ({
-        id: p.id,
-        layout: p.layout,
-        slots: (p.slots || []).map((s, index) => ({
+      this.pages = (payload.pages || []).map((p, index) => {
+        // Generate default tag if not present based on binding type
+        let defaultTag
+        if (this.zineConfig.bindingType === 'flat') {
+          // Flat/no-fold: each page is separate (1-left, 2-right, 3-left, etc.)
+          const pageNum = index + 1
+          const side = pageNum % 2 === 1 ? 'left' : 'right'
+          defaultTag = `${pageNum}-${side}`
+        } else {
+          // Folded: each physical page shows 2 logical pages (1-left + 2-right, 3-left + 4-right, etc.)
+          const physicalPageNum = index + 1
+          const leftPageNum = (physicalPageNum - 1) * 2 + 1
+          const rightPageNum = leftPageNum + 1
+          defaultTag = `${leftPageNum}-left + ${rightPageNum}-right`
+        }
+        
+        return {
+          id: p.id,
+          layout: p.layout,
+          tag: p.tag || defaultTag,
+          slots: (p.slots || []).map((s, index) => ({
           x: s.x,
           y: s.y,
           width: s.width,
@@ -606,7 +649,8 @@ export const useZineStore = defineStore('zine', {
           imageOffsetY: s.imageOffsetY !== undefined ? s.imageOffsetY : 50, // Default center for backward compatibility
         })),
         textElements: p.textElements || [],
-      }))
+        }
+      })
       this.isInitialized = true
       this.selectedPageId = this.pages[0]?.id || null
       if (options.meta) {

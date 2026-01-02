@@ -52,6 +52,9 @@
               <button class="btn btn-primary" @click="$emit('try-demo')">
                 🎨 Try Demo
               </button>
+              <button class="btn btn-ghost" @click="navigateToTemplateStore">
+                📚 Browse Templates
+              </button>
               <button class="btn btn-ghost" @click="$emit('require-login', 'create')">
                 Sign In to Create
               </button>
@@ -64,8 +67,15 @@
                 <span v-if="loading">🔍 Loading…</span>
                 <span v-else>📂 Open from Library</span>
               </button>
+              <button class="btn btn-ghost" @click="navigateToTemplateStore">
+                📚 Browse Store
+              </button>
               <button class="btn btn-ghost" @click="$emit('open-layout-builder')">
                 🎨 Layout Builder
+              </button>
+              <!-- Admin only: Template Builder -->
+              <button v-if="authStore.isAdmin" class="btn btn-ghost" @click="$emit('create-template')" style="border: 2px solid var(--accent); color: var(--accent);">
+                ⚡ Template Builder
               </button>
             </template>
           </div>
@@ -200,10 +210,15 @@ const props = defineProps({
   lastSavedSummary: { type: String, default: '' },
 })
 
-const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login'])
+const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login', 'create-template'])
 
 const authStore = useAuthStore()
 const zineStore = useZineStore()
+
+const navigateToTemplateStore = () => {
+  window.history.pushState({}, '', '/zino/templateStore')
+  window.location.href = '/zino/templateStore'
+}
 
 // Force auth store initialization on mount
 onMounted(async () => {

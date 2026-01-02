@@ -58,10 +58,32 @@ router.get('/books/:id', optionalAuth, async (req, res) => {
     const data = await fs.readFile(filePath, 'utf-8')
     const template = JSON.parse(data)
     
+    // Load demo images
+    const demoImagesPath = path.join(__dirname, '../data/demo-images.json')
+    const demoImagesData = await fs.readFile(demoImagesPath, 'utf-8')
+    const demoImages = JSON.parse(demoImagesData)
+    
+    // Add demo images to template
+    template.demoImages = demoImages
+    
     res.json({ template })
   } catch (error) {
     console.error('Error fetching book template:', error)
     res.status(404).json({ error: 'Template not found' })
+  }
+})
+
+// GET /api/demo-images - Get demo images for template builder
+router.get('/demo-images', optionalAuth, async (req, res) => {
+  try {
+    const demoImagesPath = path.join(__dirname, '../data/demo-images.json')
+    const data = await fs.readFile(demoImagesPath, 'utf-8')
+    const demoImages = JSON.parse(data)
+    
+    res.json(demoImages)
+  } catch (error) {
+    console.error('Error fetching demo images:', error)
+    res.status(500).json({ error: 'Failed to load demo images' })
   }
 })
 
@@ -91,8 +113,8 @@ router.post('/books/:id/clone', authenticateJWT, async (req, res) => {
           unit: template.config.unit,
           bleed: template.config.bleed || 0,
           margin: template.config.margin || 0,
-          slotInnerMarginPercent: 0,
-          bindingType: template.config.binding === 'perfect' ? 'flat' : 'folded'
+          slotInnerMarginPercent: template.config.slotInnerMarginPercent || 0,
+          bindingType: template.config.bindingType || template.config.binding || 'folded'
         },
         mediaAssets: [],
         pages: template.pages.map((page, index) => ({
@@ -160,11 +182,6 @@ router.get('/covers', optionalAuth, async (req, res) => {
         templates.push({
           id: template.id,
           name: template.name,
-          description: template.description,
-          thumbnail: template.thumbnail,
-          category: template.category || 'general',
-          tags: template.tags || [],
-          coverType: template.coverType // 'hardcover' or 'softcover'
         })
       }
     }

@@ -31,6 +31,14 @@
             :height="150 * ((zineStore.zineConfig?.height || 210) / (zineStore.zineConfig?.width || 148))"
           ></canvas>
         </div>
+        <input 
+          :value="page.tag"
+          class="page-tag-input"
+          @click.stop
+          @input="updatePageTag(page.id, $event.target.value)"
+          @keydown.enter="$event.target.blur()"
+          :placeholder="getDefaultTag(index)"
+        />
         <button class="delete-page-btn" @click.stop="deletePage(page.id)">×</button>
       </div>
 
@@ -126,6 +134,25 @@ const handleDrop = (event, dropIndex) => {
 const deletePage = (id) => {
   if (confirm('Delete this page?')) {
     zineStore.removePage(id)
+  }
+}
+
+const updatePageTag = (pageId, newTag) => {
+  zineStore.setPageTag(pageId, newTag)
+}
+
+const getDefaultTag = (index) => {
+  if (zineStore.zineConfig.bindingType === 'flat') {
+    // Flat/no-fold: each page is separate (1-left, 2-right, 3-left, etc.)
+    const pageNum = index + 1
+    const side = pageNum % 2 === 1 ? 'left' : 'right'
+    return `${pageNum}-${side}`
+  } else {
+    // Folded: each physical page shows 2 logical pages (1-left + 2-right, 3-left + 4-right, etc.)
+    const physicalPageNum = index + 1
+    const leftPageNum = (physicalPageNum - 1) * 2 + 1
+    const rightPageNum = leftPageNum + 1
+    return `${leftPageNum}-left + ${rightPageNum}-right`
   }
 }
 
@@ -536,6 +563,36 @@ onMounted(() => {
 
 .page-thumbnail:hover .delete-page-btn {
   display: flex;
+}
+
+.page-tag-input {
+  width: 100%;
+  padding: 4px 8px;
+  margin-top: 4px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text);
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.page-tag-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--panel-bg);
+}
+
+.page-thumbnail.active .page-tag-input {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+  color: white;
+}
+
+.page-thumbnail.active .page-tag-input:focus {
+  background: white;
+  color: var(--text);
 }
 
 .delete-page-btn:hover {

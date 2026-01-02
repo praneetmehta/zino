@@ -4,14 +4,14 @@
       <div class="modal-container">
         <div class="modal-header">
           <h2>📚 Your Library</h2>
-          <button class="btn-templates" @click="$emit('open-templates')" title="Browse Templates">
+          <button class="btn-templates" @click="navigateToTemplateStore" title="Browse Templates">
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
               <rect x="3" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
               <rect x="11" y="3" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
               <rect x="3" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
               <rect x="11" y="11" width="6" height="6" rx="1" stroke="currentColor" stroke-width="1.5"/>
             </svg>
-            Templates
+            Template Store
           </button>
           <button class="close-btn" @click="close">✕</button>
         </div>
@@ -106,6 +106,11 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['close', 'load-book', 'create-new'])
+
+const navigateToTemplateStore = () => {
+  window.history.pushState({}, '', '/zino/templateStore')
+  window.location.href = '/zino/templateStore'
+}
 
 const books = ref([])
 const selectedBook = ref(null)

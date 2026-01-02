@@ -2,8 +2,8 @@
   <div class="modal-overlay">
     <div class="modal modal-with-preview">
       <div class="modal-content">
-        <h2>Create New Zine</h2>
-        <p class="modal-description">Name your zine and configure dimensions. All settings can be adjusted later.</p>
+        <h2>{{ isTemplateBuilder ? 'Create New Template' : 'Create New Zine' }}</h2>
+        <p class="modal-description">{{ isTemplateBuilder ? 'Configure template dimensions and settings.' : 'Name your zine and configure dimensions. All settings can be adjusted later.' }}</p>
         <form @submit.prevent="handleSubmit">
         <div class="form-group">
           <label>Zine Title</label>
@@ -78,7 +78,9 @@
         </div>
 
         <div class="modal-actions">
-          <button type="submit" class="btn btn-primary">Create Zine</button>
+          <button type="submit" class="btn btn-primary">
+            {{ isTemplateBuilder ? 'Create Template' : 'Create Zine' }}
+          </button>
         </div>
       </form>
       </div>
@@ -177,7 +179,11 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { ref, reactive, computed } from 'vue'
+
+const props = defineProps({
+  isTemplateBuilder: { type: Boolean, default: false }
+})
 
 const emit = defineEmits(['initialize'])
 
