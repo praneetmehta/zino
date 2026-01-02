@@ -35,8 +35,6 @@ router.post('/google', async (req, res) => {
       const token = generateToken(mockUser, '24h')
       const expiresIn = 24 * 60 * 60 * 1000
 
-      console.log('🔐 Dev login - returning admin user:', mockUser)
-
       return res.json({
         user: mockUser,
         token,
@@ -69,6 +67,17 @@ router.post('/google', async (req, res) => {
         name: googleProfile.name,
         avatar: googleProfile.picture,
         role: 'user',
+      }
+    }
+
+    // Auto-promote specific email to admin
+    if (user.email === 'praneet.mehta@gmail.com' && user.role !== 'admin') {
+      console.log('🔐 Auto-promoting praneet.mehta@gmail.com to admin')
+      user.role = 'admin'
+      
+      // If database is connected, update the role in DB
+      if (databaseService.isConnected()) {
+        await User.updateRole(user.id, 'admin')
       }
     }
 
