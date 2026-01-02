@@ -155,10 +155,10 @@ export async function exportToPDF(zineStore, progressCallback = null) {
         })
 
         // For flat binding with normalized left-edge binding:
-        // - Odd pages (0, 2, 4...) are right-hand pages → no flip
-        // - Even pages (1, 3, 5...) are left-hand pages → flip horizontally
+        // - Even pages (0, 2, 4...) are left-hand pages → flip horizontally  
+        // - Odd pages (1, 3, 5...) are right-hand pages → no flip
         let finalCanvas = canvas
-        const isLeftPage = i % 2 === 1 // Even index (1, 3, 5...) = left page in spread
+        const isLeftPage = i % 2 === 0 // Even index (0, 2, 4...) = left page in spread
         
         if (zineConfig.bindingType === 'flat' && isLeftPage) {
           // Create a new canvas and flip the image horizontally
