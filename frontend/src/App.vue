@@ -132,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useZineStore } from './stores/zineStore'
 import { useAuthStore } from './stores/authStore'
 import InitModal from './components/InitModal.vue'
