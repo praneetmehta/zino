@@ -132,9 +132,21 @@ router.post('/books/:id/clone', authenticateJWT, async (req, res) => {
             width: slot.width,
             height: slot.height,
             fit: slot.fit || 'cover',
+            // Strip images but keep colors and other properties
             imageId: null,
-            url: null
+            url: null,
+            assetId: null,
+            // Preserve color properties
+            backgroundColor: slot.backgroundColor,
+            color: slot.color,
+            borderColor: slot.borderColor,
+            borderWidth: slot.borderWidth,
+            borderRadius: slot.borderRadius,
+            opacity: slot.opacity,
+            // Preserve any other styling properties
+            style: slot.style
           })),
+          // Keep all text elements as-is
           textElements: (page.textElements || []).map((text, textIndex) => ({
             id: text.id || `text-${Date.now()}-${index}-${textIndex}`,
             type: 'text',
