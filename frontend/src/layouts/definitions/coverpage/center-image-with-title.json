@@ -3,7 +3,8 @@
   "name": "Image Focus + Title",
   "icon": "🖼️",
   "category": "cover",
-  "description": "Large image with title overlay",
+  "bindingTypes": ["flat", "folded"],
+  "description": "Large image with title overlay - works for both binding types",
   "slots": [
     {
       "x": 0,
@@ -32,4 +33,3 @@
     }
   ]
 }
-  

@@ -342,6 +342,8 @@ loadCustomLayouts()
 // Filter categories to only show enabled layouts (built-in + custom)
 const categories = computed(() => {
   const filtered = {}
+  const currentBindingType = zineStore.zineConfig?.bindingType || 'folded'
+  
   Object.keys(layoutCategories).forEach(key => {
     if (key === 'custom') {
       // Custom category: use layouts from API
@@ -356,7 +358,16 @@ const categories = computed(() => {
       // Built-in categories: use layouts from layoutLoader
       const enabledLayouts = layoutCategories[key].layouts
         .map(layoutId => getLayoutById(layoutId))
-        .filter(layout => layout && enabledLayoutIds.value.has(layout.id))
+        .filter(layout => {
+          if (!layout) return false
+          
+          // Check if layout is enabled
+          if (!enabledLayoutIds.value.has(layout.id)) return false
+          
+          // Check binding type compatibility
+          if (!layout.bindingTypes) return true // Backward compatibility - no bindingTypes means compatible with all
+          return layout.bindingTypes.includes(currentBindingType)
+        })
       
       filtered[key] = {
         ...layoutCategories[key],
@@ -1429,7 +1440,7 @@ const handleSetPageMargin = (margin) => {
 
 .toolbar-tabs {
   display: flex;
-  gap: 4px;
+  gap: 8px;
   padding: 0 24px;
   border-bottom: 1px solid var(--border);
 }

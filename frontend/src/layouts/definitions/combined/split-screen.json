@@ -70,7 +70,15 @@
   ],
   "metadata": {
     "author": "Zine Editor",
-    "tags": ["split", "numbered", "feature"],
+    "tags": [
+      "split",
+      "numbered",
+      "feature"
+    ],
     "description": "Split screen layout with image on left and numbered feature text on right"
-  }
+  },
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ]
 }

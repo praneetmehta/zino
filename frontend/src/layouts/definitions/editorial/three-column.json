@@ -25,5 +25,9 @@
       "height": 100,
       "type": "image"
     }
+  ],
+  "bindingTypes": [
+    "flat",
+    "folded"
   ]
 }

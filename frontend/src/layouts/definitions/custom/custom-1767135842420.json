@@ -18,5 +18,9 @@
       "height": 80.32183465022163,
       "type": "image"
     }
+  ],
+  "bindingTypes": [
+    "flat",
+    "folded"
   ]
 }

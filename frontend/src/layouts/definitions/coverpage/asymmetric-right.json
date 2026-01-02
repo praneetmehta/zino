@@ -1,0 +1,53 @@
+{
+  "id": "cover-asymmetric-right",
+  "name": "Asymmetric Right Cover",
+  "icon": "📖",
+  "category": "cover",
+  "bindingTypes": ["folded"],
+  "description": "Empty left page, centered image and text on right page",
+  "slots": [
+    {
+      "x": 60,
+      "y": 30,
+      "width": 30,
+      "height": 50,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "right-title",
+      "content": "YOUR TITLE",
+      "x": 55,
+      "y": 15,
+      "width": 35,
+      "height": 12,
+      "style": {
+        "fontSize": 28,
+        "fontWeight": 900,
+        "textAlign": "center",
+        "color": "#000000",
+        "lineHeight": 0.9
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "right-subtitle",
+      "content": "Subtitle here",
+      "x": 58,
+      "y": 82,
+      "width": 30,
+      "height": 8,
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "textAlign": "center",
+        "color": "#666666",
+        "fontFamily": "Inter"
+      },
+      "zIndex": 2,
+      "locked": false
+    }
+  ]
+}

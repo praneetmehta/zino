@@ -1,10 +1,13 @@
 {
-    "id": "empty-page",
-    "name": "Empty Page",
-    "icon": "⬜",
-    "category": "basic",
-    "slots": [
-      
-    ]
-  }
-  
+  "id": "empty-page",
+  "name": "Empty Page",
+  "icon": "⬜",
+  "category": "basic",
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ],
+  "description": "Blank page with no content",
+  "slots": [],
+  "textElements": []
+}

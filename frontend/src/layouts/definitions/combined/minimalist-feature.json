@@ -53,7 +53,15 @@
   ],
   "metadata": {
     "author": "Zine Editor",
-    "tags": ["minimalist", "centered", "clean"],
+    "tags": [
+      "minimalist",
+      "centered",
+      "clean"
+    ],
     "description": "Minimalist layout with centered image and title/subtitle text"
-  }
+  },
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ]
 }

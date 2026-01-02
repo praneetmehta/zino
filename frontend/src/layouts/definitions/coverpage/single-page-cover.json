@@ -1,0 +1,53 @@
+{
+  "id": "cover-single-page",
+  "name": "Single Page Cover",
+  "icon": "📄",
+  "category": "cover",
+  "bindingTypes": ["flat"],
+  "description": "Classic single-page cover design",
+  "slots": [
+    {
+      "x": 15,
+      "y": 25,
+      "width": 70,
+      "height": 55,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "single-title",
+      "content": "YOUR TITLE",
+      "x": 10,
+      "y": 10,
+      "width": 80,
+      "height": 15,
+      "style": {
+        "fontSize": 36,
+        "fontWeight": 900,
+        "textAlign": "center",
+        "color": "#000000",
+        "lineHeight": 0.9
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "single-subtitle",
+      "content": "A collection of stories",
+      "x": 15,
+      "y": 85,
+      "width": 70,
+      "height": 8,
+      "style": {
+        "fontSize": 14,
+        "fontWeight": 400,
+        "textAlign": "center",
+        "color": "#666666",
+        "fontFamily": "Inter"
+      },
+      "zIndex": 2,
+      "locked": false
+    }
+  ]
+}

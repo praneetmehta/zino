@@ -55,7 +55,15 @@
   ],
   "metadata": {
     "author": "Zine Editor",
-    "tags": ["hero", "caption", "overlay"],
+    "tags": [
+      "hero",
+      "caption",
+      "overlay"
+    ],
     "description": "Full-page hero image with title and caption overlay at the bottom"
-  }
+  },
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ]
 }

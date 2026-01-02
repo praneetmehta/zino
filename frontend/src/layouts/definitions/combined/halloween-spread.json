@@ -92,7 +92,16 @@
   ],
   "metadata": {
     "author": "Zine Editor",
-    "tags": ["magazine", "editorial", "overlay", "creative"],
+    "tags": [
+      "magazine",
+      "editorial",
+      "overlay",
+      "creative"
+    ],
     "description": "Magazine-style layout with full background image and multiple text overlays including large number, title, vertical text, and body copy."
-  }
+  },
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ]
 }

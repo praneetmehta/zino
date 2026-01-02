@@ -71,7 +71,15 @@
   ],
   "metadata": {
     "author": "Zine Editor",
-    "tags": ["editorial", "magazine", "stacked"],
+    "tags": [
+      "editorial",
+      "magazine",
+      "stacked"
+    ],
     "description": "Editorial layout with hero image on top and stacked text elements below"
-  }
+  },
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ]
 }

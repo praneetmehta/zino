@@ -32,5 +32,9 @@
       "height": 50,
       "type": "image"
     }
+  ],
+  "bindingTypes": [
+    "flat",
+    "folded"
   ]
 }

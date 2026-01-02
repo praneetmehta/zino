@@ -3,6 +3,10 @@
   "name": "Full Page",
   "icon": "⬜",
   "category": "basic",
+  "bindingTypes": [
+    "flat",
+    "folded"
+  ],
   "slots": [
     {
       "x": 0,

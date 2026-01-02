@@ -46,6 +46,21 @@
         </div>
 
         <div class="control-section">
+          <label class="section-label">Binding Compatibility</label>
+          <p class="hint">Choose which binding types this layout works with</p>
+          <div class="toggle-group">
+            <label class="toggle-item">
+              <input type="checkbox" v-model="bindingTypes" value="flat" />
+              <span>Flat Binding (Single Pages)</span>
+            </label>
+            <label class="toggle-item">
+              <input type="checkbox" v-model="bindingTypes" value="folded" />
+              <span>Folded Binding (Spreads)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="control-section">
           <label class="section-label">Canvas Preview Size</label>
           <p class="hint">These dimensions are only for the builder preview. Your layout will work with any page size.</p>
           <div class="dimension-inputs">
@@ -335,6 +350,7 @@ const authStore = useAuthStore()
 
 const layoutName = ref('')
 const layoutCategory = ref('custom')
+const bindingTypes = ref(['flat', 'folded'])
 
 // Only admins can create layouts in non-custom categories
 const isAdmin = computed(() => authStore.isAdmin)
@@ -723,6 +739,7 @@ const saveLayout = () => {
     name: layoutName.value,
     icon: '⭐', // Custom layouts get star icon
     category: layoutCategory.value,
+    bindingTypes: bindingTypes.value, // Include binding type compatibility
     // Don't include width/height - layouts should work with any page size
     slots: imageSlots,
     textElements: textElements.length > 0 ? textElements : undefined // Only include if there are text elements

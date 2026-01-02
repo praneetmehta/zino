@@ -1,0 +1,69 @@
+{
+  "id": "cover-universal",
+  "name": "Universal Cover",
+  "icon": "📖",
+  "category": "cover",
+  "bindingTypes": ["flat", "folded"],
+  "description": "Flexible cover that adapts to any binding type",
+  "slots": [
+    {
+      "x": 25,
+      "y": 30,
+      "width": 50,
+      "height": 50,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "universal-title",
+      "content": "YOUR TITLE HERE",
+      "x": 10,
+      "y": 15,
+      "width": 80,
+      "height": 15,
+      "style": {
+        "fontSize": 32,
+        "fontWeight": 900,
+        "textAlign": "center",
+        "color": "#000000",
+        "lineHeight": 0.9
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "universal-subtitle",
+      "content": "Subtitle or tagline",
+      "x": 20,
+      "y": 85,
+      "width": 60,
+      "height": 8,
+      "style": {
+        "fontSize": 16,
+        "fontWeight": 400,
+        "textAlign": "center",
+        "color": "#666666",
+        "fontFamily": "Inter"
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "universal-author",
+      "content": "Author Name",
+      "x": 25,
+      "y": 93,
+      "width": 50,
+      "height": 5,
+      "style": {
+        "fontSize": 12,
+        "fontWeight": 500,
+        "textAlign": "center",
+        "color": "#999999"
+      },
+      "zIndex": 2,
+      "locked": false
+    }
+  ]
+}

@@ -110,8 +110,12 @@ export function validateLayout(layout) {
   if (!layout.id) errors.push('Layout must have an id')
   if (!layout.name) errors.push('Layout must have a name')
   if (!layout.icon) errors.push('Layout must have an icon')
-  if (!layout.slots || !Array.isArray(layout.slots) || layout.slots.length === 0) {
-    errors.push('Layout must have at least one slot')
+  if (!layout.category) errors.push('Layout must have a category')
+  if (!layout.bindingTypes || !Array.isArray(layout.bindingTypes) || layout.bindingTypes.length === 0) {
+    errors.push('Layout must have bindingTypes array')
+  }
+  if (!layout.slots || !Array.isArray(layout.slots)) {
+    errors.push('Layout must have slots array')
   }
   
   // Validate slots

@@ -1,0 +1,76 @@
+{
+  "id": "cover-spread-gatefold",
+  "name": "Gatefold Cover",
+  "icon": "📖",
+  "category": "cover",
+  "bindingTypes": ["folded"],
+  "description": "Dramatic gatefold cover spanning both pages",
+  "slots": [
+    {
+      "x": 10,
+      "y": 15,
+      "width": 35,
+      "height": 70,
+      "type": "image"
+    },
+    {
+      "x": 55,
+      "y": 15,
+      "width": 35,
+      "height": 70,
+      "type": "image"
+    }
+  ],
+  "textElements": [
+    {
+      "id": "spread-title",
+      "content": "YOUR TITLE SPANS ACROSS PAGES",
+      "x": 5,
+      "y": 15,
+      "width": 90,
+      "height": 25,
+      "style": {
+        "fontSize": 48,
+        "fontWeight": 900,
+        "textAlign": "center",
+        "color": "#000000",
+        "lineHeight": 0.9
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "spread-subtitle",
+      "content": "A collection of stories",
+      "x": 10,
+      "y": 45,
+      "width": 80,
+      "height": 15,
+      "style": {
+        "fontSize": 20,
+        "fontWeight": 300,
+        "textAlign": "center",
+        "color": "#666666",
+        "fontFamily": "Inter"
+      },
+      "zIndex": 2,
+      "locked": false
+    },
+    {
+      "id": "spread-year",
+      "content": "2024",
+      "x": 40,
+      "y": 70,
+      "width": 20,
+      "height": 10,
+      "style": {
+        "fontSize": 16,
+        "fontWeight": 500,
+        "textAlign": "center",
+        "color": "#999999"
+      },
+      "zIndex": 2,
+      "locked": false
+    }
+  ]
+}
