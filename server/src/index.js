@@ -106,6 +106,10 @@ app.use('/api/published', publishedRoutes)
 // Templates routes
 app.use('/api/templates', templateRoutes)
 
+// Admin routes
+const adminRoutes = require('../routes/admin')
+app.use('/api/admin', adminRoutes)
+
 // Serve frontend static files from /zino path
 const FRONTEND_DIST = path.join(__dirname, '..', '..', 'frontend', 'dist')
 

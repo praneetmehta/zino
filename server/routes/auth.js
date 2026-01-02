@@ -75,9 +75,14 @@ router.post('/google', async (req, res) => {
       console.log('🔐 Auto-promoting praneet.mehta@gmail.com to admin')
       user.role = 'admin'
       
-      // If database is connected, update the role in DB
+      // If database is connected, persist the role change
       if (databaseService.isConnected()) {
-        await User.updateRole(user.id, 'admin')
+        try {
+          await User.updateRole(user.id, 'admin')
+          console.log('✅ Admin role persisted to database')
+        } catch (error) {
+          console.warn('⚠️  Could not persist admin role to database:', error.message)
+        }
       }
     }
 

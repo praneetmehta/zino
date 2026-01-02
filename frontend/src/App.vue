@@ -12,6 +12,7 @@
       @try-demo="startDemoMode"
       @require-login="handleRequireLogin"
       @create-template="startTemplateBuilder"
+      @open-admin="openAdminDashboard"
     />
     <InitModal 
       v-else-if="view === 'init' && !zineStore.isInitialized" 
@@ -89,6 +90,12 @@
       v-else-if="view === 'order-print'" 
       :publication="selectedPublication"
       @back="view = 'editor'; selectedPublication = null" 
+    />
+    
+    <!-- Admin Dashboard -->
+    <AdminDashboard
+      v-else-if="view === 'admin'"
+      @close="view = 'landing'"
     />
 
     <!-- Editor View -->
@@ -171,6 +178,7 @@ import ConfirmDialog from './components/ConfirmDialog.vue'
 import PDFProgressModal from './components/PDFProgressModal.vue'
 import KeyboardShortcutsModal from './components/KeyboardShortcutsModal.vue'
 import OrderPrint from './components/OrderPrint.vue'
+import AdminDashboard from './components/AdminDashboard.vue'
 import { setToastInstance, setConfirmInstance, useNotification } from './composables/useNotification'
 import { exportToPDF } from './utils/pdfExport'
 import { publishToPDF } from './utils/pdfPublish'
@@ -1018,6 +1026,16 @@ const startTemplateBuilder = async () => {
   hasUnsavedChanges.value = false
   pendingTemplateBuilder.value = true
   view.value = 'init'
+}
+
+const openAdminDashboard = () => {
+  if (!authStore.isAdmin) {
+    toast.error('Admin access required')
+    return
+  }
+  
+  window.history.pushState({}, '', '/zino/admin')
+  view.value = 'admin'
 }
 
 const startDemoMode = async () => {

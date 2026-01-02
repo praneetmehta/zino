@@ -77,6 +77,10 @@
               <button v-if="authStore.isAdmin" class="btn btn-ghost" @click="$emit('create-template')" style="border: 2px solid var(--accent); color: var(--accent);">
                 ⚡ Template Builder
               </button>
+              <!-- Admin only: Dashboard -->
+              <button v-if="authStore.isAdmin" class="btn btn-ghost" @click="$emit('open-admin')" style="border: 2px solid var(--accent); color: var(--accent);">
+                📊 Admin Dashboard
+              </button>
             </template>
           </div>
           <div class="meta" v-if="lastSavedSummary">
@@ -210,7 +214,7 @@ const props = defineProps({
   lastSavedSummary: { type: String, default: '' },
 })
 
-const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login', 'create-template'])
+const emit = defineEmits(['create-new', 'load-book', 'open-layout-builder', 'open-docs', 'try-demo', 'require-login', 'create-template', 'open-admin'])
 
 const authStore = useAuthStore()
 const zineStore = useZineStore()

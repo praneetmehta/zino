@@ -110,6 +110,25 @@ class User {
   }
 
   /**
+   * Update user role
+   */
+  static async updateRole(id, role) {
+    const validRoles = ['user', 'admin']
+    if (!validRoles.includes(role)) {
+      throw new Error(`Invalid role: ${role}. Must be one of: ${validRoles.join(', ')}`)
+    }
+
+    const result = await databaseService.query(
+      `UPDATE users 
+       SET role = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING *`,
+      [role, id]
+    )
+    return result.rows[0]
+  }
+
+  /**
    * Delete user
    */
   static async delete(id) {
