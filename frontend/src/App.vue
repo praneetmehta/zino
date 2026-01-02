@@ -549,6 +549,16 @@ const generateThumbnail = async () => {
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
+      imageTimeout: 15000,
+      onclone: (clonedDoc) => {
+        // Add crossOrigin attribute to all images
+        const images = clonedDoc.images
+        for (let i = 0; i < images.length; i++) {
+          if (!images[i].src.startsWith('data:') && !images[i].crossOrigin) {
+            images[i].crossOrigin = 'anonymous'
+          }
+        }
+      }
     })
     
     // Restore guides
