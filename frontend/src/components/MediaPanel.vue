@@ -641,7 +641,7 @@ const deleteAsset = (id) => {
 }
 
 .media-panel.collapsed {
-  width: 48px;
+  width: 62px;
 }
 
 .panel-content {
@@ -749,7 +749,7 @@ const deleteAsset = (id) => {
   font-weight: 700;
   color: var(--text-muted);
   text-align: center;
-  padding: 4px 0;
+  padding: 10px 0;
   letter-spacing: 0.05em;
   margin-bottom: 6px;
 }
@@ -757,7 +757,7 @@ const deleteAsset = (id) => {
 .collapsed-item {
   width: 36px;
   height: 36px;
-  margin: 0 auto 6px;
+  margin: 0 auto 12px;
   border-radius: 6px;
   overflow: hidden;
   cursor: grab;

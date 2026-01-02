@@ -31,6 +31,11 @@ export const layoutCategories = {
     icon: '📄',
     layouts: []
   },
+  cover: {
+    name: 'Cover Page',
+    icon: '📄',
+    layouts: []
+  },
   editorial: {
     name: 'Editorial',
     icon: '📰',
@@ -59,10 +64,11 @@ export const layoutDefinitions = []
 for (const path in layoutModules) {
   const layout = layoutModules[path].default || layoutModules[path]
   layoutDefinitions.push(layout)
-  
+  console.log(layout)
   // Add to appropriate category
   const category = layout.category || 'basic'
   if (layoutCategories[category]) {
+    console.log("Pushed %s to %s", layout.id, category)
     layoutCategories[category].layouts.push(layout.id)
   }
 }

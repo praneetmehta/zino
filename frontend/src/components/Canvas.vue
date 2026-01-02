@@ -6,7 +6,7 @@
           <button 
             class="mode-tab" 
             :class="{ active: toolbarMode === 'layouts' }"
-            @click="toolbarMode = 'layouts'"
+            @click="toolbarMode = 'layouts'; toolbarCollapsed = false"
           >
             <span class="mode-icon">📐</span>
             <span>Page Layouts</span>
@@ -14,7 +14,7 @@
           <button 
             class="mode-tab" 
             :class="{ active: toolbarMode === 'settings' }"
-            @click="toolbarMode = 'settings'"
+            @click="toolbarMode = 'settings'; toolbarCollapsed = false"
           >
             <span class="mode-icon">⚙️</span>
             <span>Page Settings</span>
@@ -98,7 +98,7 @@
       </transition>
     </div>
 
-    <div class="canvas-workspace" :class="{ 'editing-text': isTextBeingEdited }">
+    <div class="canvas-workspace" :class="scaleClass" :style="{ '--scale-factor': scaleFactor }" :data-theme="zineStore.ui.theme">
       <div v-if="zineStore.pages.length === 0" class="empty-canvas">
         <div class="empty-message">
           <h3>👆 Select a layout above to create your first page</h3>
@@ -164,6 +164,7 @@
                       :style="getImageStyle(slot)"
                       :data-slot-id="`${page.id}-${index}`"
                       :data-fit="slot.fit"
+                      crossorigin="anonymous"
                       @load="handleImageLoad($event, slot)"
                       @mousedown.stop="slot.fit === 'cover' ? startImageDrag($event, page.id, index, slot) : null"
                       alt="Slot image"
@@ -248,11 +249,21 @@ const props = defineProps({
   }
 })
 
-// Computed scale class based on collapsed sidebars
+// Computed scale factor based on collapsed panels
+const scaleFactor = computed(() => {
+  const bothCollapsed = props.mediaPanelCollapsed && props.pagePanelCollapsed
+  const oneCollapsed = props.mediaPanelCollapsed || props.pagePanelCollapsed
+
+  if (bothCollapsed) return 1.3
+  if (oneCollapsed) return 1.2
+  return 1.1
+})
+
+// Scale class for CSS (for other styling)
 const scaleClass = computed(() => {
   const bothCollapsed = props.mediaPanelCollapsed && props.pagePanelCollapsed
   const oneCollapsed = props.mediaPanelCollapsed || props.pagePanelCollapsed
-  
+
   if (bothCollapsed) return 'scaled-both'
   if (oneCollapsed) return 'scaled-one'
   return ''
@@ -392,9 +403,13 @@ const pageStyle = computed(() => {
 
   const { widthPx, heightPx } = getScaledDimensions(config, 600)
 
+  // Apply scale factor to actual dimensions instead of using CSS transform
+  const scaledWidth = widthPx * scaleFactor.value
+  const scaledHeight = heightPx * scaleFactor.value
+
   return {
-    width: `${widthPx}px`,
-    height: `${heightPx}px`,
+    width: `${scaledWidth}px`,
+    height: `${scaledHeight}px`,
   }
 })
 
@@ -1594,8 +1609,8 @@ const handleSetPageMargin = (margin) => {
   flex-wrap: wrap;
   justify-content: center;
   align-items: flex-start; /* Align pages to top */
-  gap: 24px;
-  max-width: 1224px; /* Max 2 pages: (600px * 2) + 24px gap */
+  gap: calc(24px * var(--scale-factor, 1));
+  max-width: calc(2 * 600px * var(--scale-factor, 1) + 24px * var(--scale-factor, 1));
 }
 
 .pages-stack.spread-view .page-wrapper {
@@ -1996,30 +2011,13 @@ body.dragging-image .slot:hover {
   align-items: center;
   justify-content: center;
   margin-bottom: 40px;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: margin-bottom 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   /* Ensure children don't affect layout when positioned absolutely */
   isolation: isolate;
 }
 
 .page-wrapper:first-child {
   margin-top: 40px;
-}
-.page-wrapper.scaled-one {
-  transform: scale(1.1);
-  margin-bottom: 48px;
-}
-
-.page-wrapper.scaled-one:first-child {
-  margin-top: 48px;
-}
-
-.page-wrapper.scaled-both {
-  transform: scale(1.2);
-  margin-bottom: 56px;
-}
-
-.page-wrapper.scaled-both:first-child {
-  margin-top: 56px;
 }
 
 .add-text-pill {

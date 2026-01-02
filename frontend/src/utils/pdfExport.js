@@ -276,36 +276,51 @@ async function handleObjectPositionForExport(pageElement) {
       // Position based on object-position X
       cropX = (imgWidth - cropWidth) * xPercent
       cropY = 0
-    } else {
-      // Image is taller than container, width matches container
-      cropWidth = imgWidth
-      cropHeight = imgWidth / containerAspect
-      
-      // Position based on object-position Y
-      cropX = 0
-      cropY = (imgHeight - cropHeight) * yPercent
     }
+  }
+}
+
+// Handle object-position images by temporarily cropping them for export
+async function handleObjectPositionForExport(img) {
+  // Skip if image doesn't have custom positioning
+  if (img.style.objectPosition === '50% 50%' || !img.style.objectPosition) {
+    return
+  }
+  
+  const imgRect = img.getBoundingClientRect()
+  const cropX = 0
+  const cropY = 0
+  const cropWidth = img.naturalWidth
+  const cropHeight = img.naturalHeight
+  
+  const canvas = document.createElement('canvas')
+  canvas.width = imgRect.width * 4 // High DPI
+  canvas.height = imgRect.height * 4
+  const ctx = canvas.getContext('2d')
+  
+  // Draw the cropped portion
+  ctx.drawImage(
+    img,
+    cropX, cropY, cropWidth, cropHeight, // Source rectangle
+    0, 0, canvas.width, canvas.height     // destination rectangle
+  )
+  
+  try {
+    // Check if canvas is tainted before calling toDataURL
+    const testDataURL = canvas.toDataURL('image/png', 0.1) // Low quality test
     
-    // Create a canvas to crop the image
-    const canvas = document.createElement('canvas')
-    canvas.width = imgRect.width * 4 // High DPI
-    canvas.height = imgRect.height * 4
-    const ctx = canvas.getContext('2d')
-    
-    // Draw the cropped portion
-    ctx.drawImage(
-      img,
-      cropX, cropY, cropWidth, cropHeight, // Source rectangle
-      0, 0, canvas.width, canvas.height     // Destination rectangle
-    )
-    
-    // Replace the image src with the cropped version temporarily
+    // If we get here, canvas is not tainted, proceed with full quality
     const originalSrc = img.src
     img.dataset.originalSrc = originalSrc
     img.src = canvas.toDataURL('image/png')
     
     // Remove object-fit to prevent any interference
     img.style.objectFit = 'contain'
+    img.style.objectPosition = 'center'
+  } catch (error) {
+    // Canvas is tainted, skip cropping and log warning
+    console.warn('Skipping image cropping for export due to CORS restrictions:', error)
+    // Reset object-position to center to avoid layout issues
     img.style.objectPosition = 'center'
   }
 }
