@@ -81,6 +81,7 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useZineStore } from '../stores/zineStore'
 import html2canvas from 'html2canvas'
+import { handleObjectPositionForExport, restoreObjectPositionAfterExport } from '../utils/pdfExport'
 
 const emit = defineEmits(['close'])
 
@@ -292,6 +293,13 @@ const capturePage = async (pageId) => {
   
   try {
     pageElement.classList.add('export-mode')
+    
+    // Handle images with object-fit: cover and custom positioning
+    const images = pageElement.querySelectorAll('img')
+    for (const img of images) {
+      await handleObjectPositionForExport(img)
+    }
+    
     const guidesElement = pageElement.querySelector('.guides')
     const creaseElement = pageElement.querySelector('.page-crease')
     if (guidesElement) guidesElement.style.display = 'none'
@@ -309,6 +317,10 @@ const capturePage = async (pageId) => {
     
     if (guidesElement) guidesElement.style.display = ''
     if (creaseElement) creaseElement.style.display = ''
+    
+    // Restore image positioning
+    await restoreObjectPositionAfterExport(pageElement)
+    
     pageElement.classList.remove('export-mode')
     
     return canvas.toDataURL('image/png')

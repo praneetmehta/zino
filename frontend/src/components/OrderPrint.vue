@@ -73,7 +73,12 @@
       <div class="options-section">
         <!-- 3D Preview -->
         <div class="preview-3d-container">
-          <h3>📦 How Your Book Will Look</h3>
+          <div class="preview-header">
+            <h3>📦 How Your Book Will Look</h3>
+            <button class="btn btn-sm btn-outline" @click="showCoverDesigner = true">
+              🎨 Design Cover
+            </button>
+          </div>
           <p class="preview-hint">Hover to open the book</p>
           <div class="book-3d-preview">
             <Book3D
@@ -198,7 +203,17 @@
           <p class="order-note">🚚 Estimated delivery: 2-3 weeks</p>
         </div>
       </div>
-    </div>
+    </div>  
+    <!-- Book Cover Designer Modal -->
+    <BookCoverDesigner
+      v-if="showCoverDesigner"
+      :book-width="bookSizeMm.width"
+      :book-height="bookSizeMm.height"
+      :page-count="pageCount"
+      :spine-width="spineWidthMm"
+      @close="showCoverDesigner = false"
+      @save-designs="handleSaveCoverDesigns"
+    />
   </div>
 </template>
 
@@ -208,6 +223,7 @@ import { useZineStore } from '../stores/zineStore'
 import { useAuthStore } from '../stores/authStore'
 import { env } from '@/config/env'
 import Book3D from './Book3D.vue'
+import BookCoverDesigner from './BookCoverDesigner.vue'
 
 const props = defineProps({
   publication: { type: Object, required: true }
@@ -241,6 +257,25 @@ const margin = computed(() => {
 
 // PDF URL from publication
 const pdfUrl = ref(null)
+
+// Cover designer
+const showCoverDesigner = ref(false)
+
+// Book dimensions in mm
+const bookSizeMm = computed(() => {
+  const cfg = props.publication?.metadata?.config || zineStore.zineConfig
+  return cfg ? {
+    width: cfg.unit === 'in' ? cfg.width * 25.4 : cfg.width,
+    height: cfg.unit === 'in' ? cfg.height * 25.4 : cfg.height
+  } : { width: 210, height: 148 }
+})
+
+// Spine width calculation (rough estimate based on page count)
+const spineWidthMm = computed(() => {
+  const pages = pageCount.value
+  const paperThickness = 0.1 // mm per page
+  return Math.max(8, Math.min(pages * paperThickness, 20)) // 8-20mm range
+})
 
 onMounted(() => {
   // Use the direct PDF URL for preview (not the download endpoint)
@@ -407,6 +442,13 @@ const placeOrder = () => {
   alert('Order feature coming soon! 🎉')
 }
 
+const handleSaveCoverDesigns = (designs) => {
+  // TODO: Save the cover designs to the order
+  console.log('Cover designs saved:', designs)
+  showCoverDesigner.value = false
+  // Could store in local state or send to server
+}
+
 // Generate PDF on mount
 // TODO: Integrate with PDF generation
 </script>
@@ -465,6 +507,7 @@ const placeOrder = () => {
   padding: 32px;
   overflow-y: auto;
   border-right: 1px solid var(--border);
+  margin-bottom: 200px;
 }
 
 .section-header {
@@ -580,6 +623,17 @@ const placeOrder = () => {
   font-size: 16px;
   font-weight: 600;
   margin: 0 0 8px 0;
+}
+
+.preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.preview-header h3 {
+  margin: 0;
 }
 
 .preview-hint {
@@ -915,8 +969,9 @@ const placeOrder = () => {
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 
-.btn-order:hover {
-  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 14px;
 }
 
 .order-note {

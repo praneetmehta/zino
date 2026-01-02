@@ -1,12 +1,16 @@
 import jsPDF from 'jspdf'
 import html2canvas from 'html2canvas'
 
-export async function exportToPDF(zineStore, progressCallback = null) {
+/**
+ * Generate PDF from zine pages
+ * Core PDF generation logic used by both export and publish
+ */
+export async function generatePDF(zineStore, progressCallback = null, options = {}) {
   const { zineConfig, pages } = zineStore
   const isDarkMode = zineStore.ui.theme === 'dark'
 
   if (!zineConfig || pages.length === 0) {
-    throw new Error('No pages to export')
+    throw new Error('No pages to process')
   }
 
   document.body.classList.add('pdf-exporting')
@@ -56,8 +60,7 @@ export async function exportToPDF(zineStore, progressCallback = null) {
     const pageElements = document.querySelectorAll('.page-canvas')
 
     if (pageElements.length === 0) {
-      alert('No page elements found to export!')
-      return
+      throw new Error('No page elements found to process')
     }
 
     // Get scale factor from environment or use default
@@ -230,6 +233,19 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       }
     }
 
+    return pdf
+  } catch (error) {
+    console.error('[PDF Generation] Failed to generate PDF', error)
+    throw error
+  } finally {
+    document.body.classList.remove('pdf-exporting')
+  }
+}
+
+export async function exportToPDF(zineStore, progressCallback = null) {
+  try {
+    const pdf = await generatePDF(zineStore, progressCallback)
+
     if (progressCallback) {
       progressCallback(1, 100) // Saving step
     }
@@ -246,14 +262,12 @@ export async function exportToPDF(zineStore, progressCallback = null) {
   } catch (error) {
     console.error('[PDF Export] Failed to export PDF', error)
     throw error
-  } finally {
-    document.body.classList.remove('pdf-exporting')
   }
 }
 
 
 // Handle object-position images by temporarily cropping them for export
-async function handleObjectPositionForExport(img) {
+export async function handleObjectPositionForExport(img) {
   const computedStyle = getComputedStyle(img)
   const objectFit = computedStyle.objectFit
   const objectPosition = computedStyle.objectPosition
@@ -338,7 +352,7 @@ async function handleObjectPositionForExport(img) {
 }
 
 // Restore original image positioning after export
-async function restoreObjectPositionAfterExport(pageElement) {
+export async function restoreObjectPositionAfterExport(pageElement) {
   const images = pageElement.querySelectorAll('img[data-original-src]')
 
   for (const img of images) {
