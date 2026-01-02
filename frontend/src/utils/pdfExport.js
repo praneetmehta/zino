@@ -254,39 +254,79 @@ export async function exportToPDF(zineStore, progressCallback = null) {
 
 // Handle object-position images by temporarily cropping them for export
 async function handleObjectPositionForExport(img) {
-  // Skip if image doesn't have custom positioning
-  if (img.style.objectPosition === '50% 50%' || !img.style.objectPosition) {
+  const computedStyle = getComputedStyle(img)
+  const objectFit = computedStyle.objectFit
+  const objectPosition = computedStyle.objectPosition
+
+  // Only process cover images
+  if (objectFit !== 'cover') {
     return
   }
-  
+
   const imgRect = img.getBoundingClientRect()
-  const cropX = 0
-  const cropY = 0
-  const cropWidth = img.naturalWidth
-  const cropHeight = img.naturalHeight
-  
+  const imgWidth = img.naturalWidth
+  const imgHeight = img.naturalHeight
+
+  if (!imgWidth || !imgHeight) {
+    return // Image not loaded yet
+  }
+
+  // Parse object-position values (default to center if not set)
+  const [xStr = '50%', yStr = '50%'] = objectPosition.split(' ')
+  const xPercent = parseFloat(xStr) / 100
+  const yPercent = parseFloat(yStr) / 100
+
+  // Calculate which part of the image is visible for object-fit: cover
+  const aspectRatio = imgWidth / imgHeight
+  const containerAspect = imgRect.width / imgRect.height
+
+  let cropX, cropY, cropWidth, cropHeight
+
+  if (aspectRatio > containerAspect) {
+    // Image is wider than container, height matches container
+    cropHeight = imgHeight
+    cropWidth = imgHeight * containerAspect
+
+    // Position based on object-position X
+    cropX = (imgWidth - cropWidth) * xPercent
+    cropY = 0
+  } else {
+    // Image is taller than container, width matches container
+    cropWidth = imgWidth
+    cropHeight = imgWidth / containerAspect
+
+    // Position based on object-position Y
+    cropX = 0
+    cropY = (imgHeight - cropHeight) * yPercent
+  }
+
+  // Ensure crop coordinates are within bounds
+  cropX = Math.max(0, Math.min(cropX, imgWidth - cropWidth))
+  cropY = Math.max(0, Math.min(cropY, imgHeight - cropHeight))
+
   const canvas = document.createElement('canvas')
   canvas.width = imgRect.width * 4 // High DPI
   canvas.height = imgRect.height * 4
   const ctx = canvas.getContext('2d')
-  
+
   // Draw the cropped portion
   ctx.drawImage(
     img,
     cropX, cropY, cropWidth, cropHeight, // Source rectangle
     0, 0, canvas.width, canvas.height     // destination rectangle
   )
-  
+
   try {
     // Check if canvas is tainted before calling toDataURL
     const testDataURL = canvas.toDataURL('image/png', 0.1) // Low quality test
-    
+
     // If we get here, canvas is not tainted, proceed with full quality
     const originalSrc = img.src
     img.dataset.originalSrc = originalSrc
+    img.dataset.originalObjectFit = img.style.objectFit
+    img.dataset.originalObjectPosition = img.style.objectPosition
+
     img.src = canvas.toDataURL('image/png')
-    
-    // Remove object-fit to prevent any interference
     img.style.objectFit = 'contain'
     img.style.objectPosition = 'center'
   } catch (error) {
@@ -300,13 +340,22 @@ async function handleObjectPositionForExport(img) {
 // Restore original image positioning after export
 async function restoreObjectPositionAfterExport(pageElement) {
   const images = pageElement.querySelectorAll('img[data-original-src]')
-  
+
   for (const img of images) {
     if (img.dataset.originalSrc) {
       img.src = img.dataset.originalSrc
       delete img.dataset.originalSrc
     }
-    
-    // Restore object-fit and object-position will be reapplied by Vue reactivity
+
+    // Restore object-fit and object-position
+    if (img.dataset.originalObjectFit) {
+      img.style.objectFit = img.dataset.originalObjectFit
+      delete img.dataset.originalObjectFit
+    }
+
+    if (img.dataset.originalObjectPosition) {
+      img.style.objectPosition = img.dataset.originalObjectPosition
+      delete img.dataset.originalObjectPosition
+    }
   }
 }
