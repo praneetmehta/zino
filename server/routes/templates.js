@@ -58,13 +58,18 @@ router.get('/books/:id', optionalAuth, async (req, res) => {
     const data = await fs.readFile(filePath, 'utf-8')
     const template = JSON.parse(data)
     
-    // Load demo images
-    const demoImagesPath = path.join(__dirname, '../data/demo-images.json')
-    const demoImagesData = await fs.readFile(demoImagesPath, 'utf-8')
-    const demoImages = JSON.parse(demoImagesData)
-    
-    // Add demo images to template
-    template.demoImages = demoImages
+    // If template doesn't have demo images, load default ones
+    if (!template.demoImages || template.demoImages.length === 0) {
+      try {
+        const demoImagesPath = path.join(__dirname, '../data/demo-images.json')
+        const demoImagesData = await fs.readFile(demoImagesPath, 'utf-8')
+        const demoImages = JSON.parse(demoImagesData)
+        template.demoImages = demoImages
+      } catch (err) {
+        console.warn('Could not load default demo images:', err.message)
+        template.demoImages = []
+      }
+    }
     
     res.json({ template })
   } catch (error) {

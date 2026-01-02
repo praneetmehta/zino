@@ -72,7 +72,7 @@
               <span class="placeholder-icon">📖</span>
             </div>
             <div class="card-overlay">
-              <button class="use-btn">Use Template</button>
+              <button class="use-btn">Preview Template</button>
             </div>
           </div>
           

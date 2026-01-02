@@ -44,7 +44,7 @@
             </div>
             <div class="template-overlay">
               <button class="preview-btn">
-                {{ mode === 'book' ? 'Use Template' : 'Apply Cover' }}
+                {{ mode === 'book' ? 'Preview Template' : 'Apply Cover' }}
               </button>
             </div>
           </div>
