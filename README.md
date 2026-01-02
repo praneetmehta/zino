@@ -29,23 +29,19 @@ npm run dev:client    # Frontend only (port 5173)
 
 ## 📚 Documentation
 
-### Getting Started
-- **[Quick Start Guide](QUICK_START.md)** - Get running in 5 minutes
-- **[Production Setup](PRODUCTION_SETUP.md)** - Deploy to production
-- **[Deployment Checklist](DEPLOYMENT_CHECKLIST.md)** - Pre-deployment tasks
+**[📖 Complete Documentation](docs/README.md)** - Main documentation hub
 
-### Architecture & Design
-- **[Final Summary](FINAL_SUMMARY.md)** - Complete project overview
-- **[Architecture (Corrected)](ARCHITECTURE_CORRECTED.md)** - System architecture
-- **[Production Ready Summary](PRODUCTION_READY_SUMMARY.md)** - What's new in v2.0
+### Quick Links
+- **[Quick Start Guide](docs/getting-started/quick-start.md)** - Get running in 5 minutes
+- **[Deployment Guide](docs/getting-started/deployment.md)** - Deploy to Railway
+- **[OAuth Setup](docs/getting-started/oauth-setup.md)** - Configure Google OAuth
+- **[Architecture Overview](docs/architecture/overview.md)** - System design
+- **[API Reference](docs/api/overview.md)** - REST API documentation
 
-### Legacy Documentation
-- [Project Overview](docs/overview/README.md)
-- [Project Summary](docs/overview/PROJECT_SUMMARY.md)
-- [Layout Specification](docs/specs/LAYOUT_SPEC.md)
-- [Migration Guides](docs/migration/)
-- [Feature Guides](docs/features/)
-- [Fix Logs](docs/fixes/)
+### More Documentation
+- [Features](docs/features/) - Feature documentation
+- [Development](docs/development/) - Contributing guidelines
+- [Archive](docs/archive/) - Historical documentation
 
 ## 📂 Repository Structure
 
@@ -69,7 +65,12 @@ ziner/
 │   ├── middleware/             # Auth middleware
 │   └── data/                   # Data storage
 │
-├── docs/                        # Legacy documentation
+├── docs/                        # Documentation
+│   ├── getting-started/        # Setup guides
+│   ├── architecture/           # System design
+│   ├── features/               # Feature docs
+│   ├── api/                    # API reference
+│   └── archive/                # Historical docs
 └── package.json                 # Root scripts
 ```
 
@@ -132,19 +133,19 @@ See `.env.example` files in `frontend/` and `server/` directories.
 
 ## 🚀 Deployment
 
-**Quick Deploy:**
+**Quick Deploy to Railway:**
 1. Set up Google OAuth credentials
 2. Configure environment variables
-3. Deploy frontend to Vercel: `cd frontend && vercel --prod`
-4. Deploy backend to Railway: `cd server && railway up`
+3. Deploy: `railway up`
 
-**Full Guide:** See [DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
+**Full Guide:** See [Deployment Guide](docs/getting-started/deployment.md)
 
 ## 📖 Learn More
 
-- **Architecture**: How the system works - [ARCHITECTURE_CORRECTED.md](ARCHITECTURE_CORRECTED.md)
-- **Security**: Auth and permissions - [FINAL_SUMMARY.md](FINAL_SUMMARY.md)
-- **Storage**: Filesystem vs S3 - [server/services/storage/](server/services/storage/)
+- **Architecture**: [Architecture Overview](docs/architecture/overview.md)
+- **API Reference**: [API Documentation](docs/api/overview.md)
+- **Features**: [Feature Guides](docs/features/)
+- **Contributing**: [Development Guide](docs/development/)
 
 ## 🤝 Contributing
 
