@@ -12,7 +12,6 @@ export async function exportToPDF(zineStore, progressCallback = null) {
   document.body.classList.add('pdf-exporting')
 
   try {
-
     const rootStyle = getComputedStyle(document.documentElement)
     const appBackgroundColor =
       (rootStyle.getPropertyValue('--app-bg') || (isDarkMode ? '#0f1419' : '#ffffff')).trim() ||
@@ -21,7 +20,6 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       (rootStyle.getPropertyValue('--page-bg') || '#ffffff').trim() || '#ffffff'
 
     const updateProgress = (current, total) => {
-      // Report to progress callback if provided
       if (progressCallback) {
         const percent = Math.round((current / total) * 100)
         progressCallback(0, percent, `Page ${current} of ${total}`)
@@ -74,6 +72,10 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       }
 
       const pageElement = pageElements[i]
+      
+      // Handle images with object-fit: cover and custom positioning
+      await handleObjectPositionForExport(pageElement)
+
       const bodyElement = document.body
       const appElement = document.getElementById('app')
       const workspaceElement = document.querySelector('.canvas-workspace')
@@ -83,6 +85,7 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       const pagePanel = document.querySelector('.page-panel')
       const textToolbar = document.querySelector('.text-toolbar')
       const guidesElement = pageElement.querySelector('.guides')
+      const printGuidesElement = pageElement.querySelector('.print-guides')
 
       const originalBodyBackground = bodyElement.style.background
       const originalAppBackground = appElement ? appElement.style.background : null
@@ -93,11 +96,15 @@ export async function exportToPDF(zineStore, progressCallback = null) {
       const originalPagePanelDisplay = pagePanel ? pagePanel.style.display : null
       const originalTextToolbarDisplay = textToolbar ? textToolbar.style.display : null
       const originalGuidesDisplay = guidesElement ? guidesElement.style.display : null
+      const originalPrintGuidesDisplay = printGuidesElement ? printGuidesElement.style.display : null
 
       pageElement.classList.add('export-mode')
 
       if (guidesElement) {
         guidesElement.style.display = 'none'
+      }
+      if (printGuidesElement) {
+        printGuidesElement.style.display = 'none'
       }
 
       try {
@@ -162,6 +169,7 @@ export async function exportToPDF(zineStore, progressCallback = null) {
         const xOffset = gutterMm
         pdf.addImage(imgData, 'PNG', xOffset, 0, width, height)
       } finally {
+        // Restore original styles
         bodyElement.style.removeProperty('background')
         if (originalBodyBackground) {
           bodyElement.style.background = originalBodyBackground
@@ -199,7 +207,13 @@ export async function exportToPDF(zineStore, progressCallback = null) {
         if (guidesElement && originalGuidesDisplay !== null) {
           guidesElement.style.display = originalGuidesDisplay
         }
+        if (printGuidesElement && originalPrintGuidesDisplay !== null) {
+          printGuidesElement.style.display = originalPrintGuidesDisplay
+        }
         pageElement.classList.remove('export-mode')
+        
+        // Restore image positioning
+        await restoreObjectPositionAfterExport(pageElement)
       }
     }
 
@@ -221,5 +235,91 @@ export async function exportToPDF(zineStore, progressCallback = null) {
     throw error
   } finally {
     document.body.classList.remove('pdf-exporting')
+  }
+}
+
+// Handle object-position for images during PDF export
+async function handleObjectPositionForExport(pageElement) {
+  const images = pageElement.querySelectorAll('img')
+  
+  for (const img of images) {
+    const computedStyle = getComputedStyle(img)
+    const objectFit = computedStyle.objectFit
+    const objectPosition = computedStyle.objectPosition
+    
+    // Only process cover images
+    if (objectFit !== 'cover') {
+      continue
+    }
+    
+    // Get image dimensions
+    const imgRect = img.getBoundingClientRect()
+    const imgWidth = img.naturalWidth
+    const imgHeight = img.naturalHeight
+    
+    // Parse object-position values
+    const [xStr, yStr] = objectPosition.split(' ')
+    const xPercent = parseFloat(xStr) / 100
+    const yPercent = parseFloat(yStr) / 100
+    
+    // Calculate which part of the image is visible for object-fit: cover
+    const aspectRatio = imgWidth / imgHeight
+    const containerAspect = imgRect.width / imgRect.height
+    
+    let cropX, cropY, cropWidth, cropHeight
+    
+    if (aspectRatio > containerAspect) {
+      // Image is wider than container, height matches container
+      cropHeight = imgHeight
+      cropWidth = imgHeight * containerAspect
+      
+      // Position based on object-position X
+      cropX = (imgWidth - cropWidth) * xPercent
+      cropY = 0
+    } else {
+      // Image is taller than container, width matches container
+      cropWidth = imgWidth
+      cropHeight = imgWidth / containerAspect
+      
+      // Position based on object-position Y
+      cropX = 0
+      cropY = (imgHeight - cropHeight) * yPercent
+    }
+    
+    // Create a canvas to crop the image
+    const canvas = document.createElement('canvas')
+    canvas.width = imgRect.width * 4 // High DPI
+    canvas.height = imgRect.height * 4
+    const ctx = canvas.getContext('2d')
+    
+    // Draw the cropped portion
+    ctx.drawImage(
+      img,
+      cropX, cropY, cropWidth, cropHeight, // Source rectangle
+      0, 0, canvas.width, canvas.height     // Destination rectangle
+    )
+    
+    // Replace the image src with the cropped version temporarily
+    const originalSrc = img.src
+    img.dataset.originalSrc = originalSrc
+    img.src = canvas.toDataURL('image/png')
+    
+    // Remove object-fit to prevent any interference
+    img.style.objectFit = 'contain'
+    img.style.objectPosition = 'center'
+  }
+}
+
+// Restore original image positioning after export
+async function restoreObjectPositionAfterExport(pageElement) {
+  const images = pageElement.querySelectorAll('img[data-original-src]')
+  
+  for (const img of images) {
+    if (img.dataset.originalSrc) {
+      img.src = img.dataset.originalSrc
+      delete img.dataset.originalSrc
+    }
+    
+    // Restore object-fit and object-position will be reapplied by Vue reactivity
   }
 }

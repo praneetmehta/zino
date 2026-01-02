@@ -26,6 +26,7 @@ export const useZineStore = defineStore('zine', {
     ui: {
       theme: 'light', // 'light' | 'dark'
       showGuides: true,
+      showPrintGuides: false, // Additional guides for printing
     },
   }),
   
@@ -536,6 +537,10 @@ export const useZineStore = defineStore('zine', {
       this.ui.showGuides = !this.ui.showGuides
     },
 
+    togglePrintGuides() {
+      this.ui.showPrintGuides = !this.ui.showPrintGuides
+    },
+
     setProjectMeta(meta = {}) {
       this.projectMeta = {
         id: meta.id ?? this.projectMeta.id ?? null,
@@ -596,6 +601,9 @@ export const useZineStore = defineStore('zine', {
           assetId: s.assetId != null ? String(s.assetId) : null,
           fit: s.fit === 'contain' ? 'contain' : 'cover',
           innerMarginPx: s.innerMarginPx || s.innerMarginPercent || 0, // Support old format
+          backgroundColor: s.backgroundColor || null,
+          imageOffsetX: s.imageOffsetX !== undefined ? s.imageOffsetX : 50, // Default center for backward compatibility
+          imageOffsetY: s.imageOffsetY !== undefined ? s.imageOffsetY : 50, // Default center for backward compatibility
         })),
         textElements: p.textElements || [],
       }))

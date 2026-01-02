@@ -25,6 +25,10 @@
             <input type="checkbox" v-model="showGuides" />
             <span>Show Guides</span>
           </label>
+          <label class="toggle-guides">
+            <input type="checkbox" v-model="showPrintGuides" />
+            <span>Print Guides</span>
+          </label>
           <button class="collapse-btn" @click="toolbarCollapsed = !toolbarCollapsed" :title="toolbarCollapsed ? 'Expand' : 'Collapse'">
             {{ toolbarCollapsed ? '▼' : '▲' }}
           </button>
@@ -123,6 +127,12 @@
             <div v-if="zineStore.ui.showGuides" class="guides">
               <div class="guide guide-bleed" :style="bleedGuideStyle"></div>
               <div class="guide guide-fold"></div>
+            </div>
+            <div v-if="zineStore.ui.showPrintGuides" class="print-guides">
+              <div class="guide guide-gutter-top" :style="gutterGuideStyle('top')"></div>
+              <div class="guide guide-gutter-bottom" :style="gutterGuideStyle('bottom')"></div>
+              <div class="guide guide-gutter-left" :style="gutterGuideStyle('left')"></div>
+              <div class="guide guide-gutter-right" :style="gutterGuideStyle('right')"></div>
             </div>
             <!-- Center crease effect (only for folded binding) -->
             <div class="page-crease" v-if="zineStore.zineConfig?.bindingType === 'folded'"></div>
@@ -267,6 +277,11 @@ const selectedSlot = ref(null)
 const showGuides = computed({
   get: () => zineStore.ui.showGuides,
   set: (value) => { zineStore.ui.showGuides = value }
+})
+
+const showPrintGuides = computed({
+  get: () => zineStore.ui.showPrintGuides,
+  set: (value) => { zineStore.ui.showPrintGuides = value }
 })
 
 // Check if we should show spread view (2 pages per row)
@@ -460,6 +475,58 @@ const marginGuideStyle = computed(() => {
     left: `${leftInset}%`,
   }
 })
+
+const gutterGuideStyle = (side) => {
+  const cfg = zineStore.zineConfig
+  if (!cfg || !cfg.gutter) return {}
+  
+  // Get bleed values (can be different per side)
+  const bleedTop = cfg.bleedTop ?? cfg.bleed ?? 0
+  const bleedRight = cfg.bleedRight ?? cfg.bleed ?? 0
+  const bleedBottom = cfg.bleedBottom ?? cfg.bleed ?? 0
+  const bleedLeft = cfg.bleedLeft ?? cfg.bleed ?? 0
+  
+  // Gutter guides show binding allowance lines
+  // For printing, gutters are additional space for binding
+  const gutterPx = toScaledPx(cfg.gutter, cfg.unit, getScaledDimensions(cfg, 600).scale)
+  
+  switch (side) {
+    case 'top':
+      return {
+        position: 'absolute',
+        top: `${(bleedTop / cfg.height) * 100}%`,
+        left: 0,
+        right: 0,
+        height: `${(gutterPx / cfg.height) * 100}%`,
+      }
+    case 'bottom':
+      return {
+        position: 'absolute',
+        bottom: `${(bleedBottom / cfg.height) * 100}%`,
+        left: 0,
+        right: 0,
+        height: `${(gutterPx / cfg.height) * 100}%`,
+      }
+    case 'left':
+      return {
+        position: 'absolute',
+        left: `${(bleedLeft / cfg.width) * 100}%`,
+        top: 0,
+        bottom: 0,
+        width: `${(gutterPx / cfg.width) * 100}%`,
+      }
+    case 'right':
+      return {
+        position: 'absolute',
+        right: `${(bleedRight / cfg.width) * 100}%`,
+        top: 0,
+        bottom: 0,
+        width: `${(gutterPx / cfg.width) * 100}%`,
+      }
+  }
+  
+  return {}
+}
 
 const getSlotStyle = (slot, page) => {
   const cfg = zineStore.zineConfig
@@ -2027,6 +2094,30 @@ body.dragging-image .slot:hover {
   right: 0;
   height: 1px;
   transform: translateY(-0.5px);
+}
+
+.guide-gutter-top,
+.guide-gutter-bottom {
+  border: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(34, 197, 94, 0.3) 0px,
+    rgba(34, 197, 94, 0.3) 2px,
+    transparent 2px,
+    transparent 4px
+  );
+}
+
+.guide-gutter-left,
+.guide-gutter-right {
+  border: none;
+  background: repeating-linear-gradient(
+    to right,
+    rgba(34, 197, 94, 0.3) 0px,
+    rgba(34, 197, 94, 0.3) 2px,
+    transparent 2px,
+    transparent 4px
+  );
 }
 
 /* Page crease effect - simulates a deep fold in the center */

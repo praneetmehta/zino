@@ -55,7 +55,12 @@
             <div class="group-header">
               <label class="group-label">Bleed (Print Extension)</label>
               <label class="toggle-uniform">
-                <input type="checkbox" v-model="uniformBleed" @change="handleUniformBleedToggle" />
+                <input 
+                  type="checkbox" 
+                  v-model="uniformBleed"
+                  name="uniform-bleed"
+                  id="uniform-bleed-toggle"
+                />
                 <span>Same for all sides</span>
               </label>
             </div>
@@ -197,21 +202,23 @@ watch(() => zineStore.zineConfig, () => {
   initializeLocalConfig()
 }, { deep: true })
 
-const handleUniformBleedToggle = () => {
-  if (uniformBleed.value) {
-    // Set all sides to the average or the first non-zero value
-    const avg = (localConfig.value.bleedTop + localConfig.value.bleedRight + 
-                 localConfig.value.bleedBottom + localConfig.value.bleedLeft) / 4
+// Watch uniformBleed changes
+watch(uniformBleed, (newValue) => {
+  if (newValue) {
+    // Switching to uniform: average the individual values
+    const { bleedTop, bleedRight, bleedBottom, bleedLeft } = localConfig.value
+    const avg = (bleedTop + bleedRight + bleedBottom + bleedLeft) / 4
     localConfig.value.bleed = Math.round(avg * 10) / 10
   } else {
-    // Initialize individual bleeds from uniform value
-    localConfig.value.bleedTop = localConfig.value.bleed
-    localConfig.value.bleedRight = localConfig.value.bleed
-    localConfig.value.bleedBottom = localConfig.value.bleed
-    localConfig.value.bleedLeft = localConfig.value.bleed
+    // Switching to individual: set all sides to current uniform value
+    const uniformValue = localConfig.value.bleed
+    localConfig.value.bleedTop = uniformValue
+    localConfig.value.bleedRight = uniformValue
+    localConfig.value.bleedBottom = uniformValue
+    localConfig.value.bleedLeft = uniformValue
   }
   updateConfig()
-}
+})
 
 const updateConfig = () => {
   const config = {
