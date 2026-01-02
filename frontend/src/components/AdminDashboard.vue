@@ -444,7 +444,8 @@ const maxBooksPerDay = computed(() => {
 
 async function loadStats() {
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/stats`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -460,7 +461,8 @@ async function loadStats() {
 
 async function loadBooks() {
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/books`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -477,7 +479,8 @@ async function loadBooks() {
 
 async function loadTemplates() {
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/templates`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -494,7 +497,8 @@ async function loadTemplates() {
 
 async function loadUploads() {
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/uploads`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -511,7 +515,8 @@ async function loadUploads() {
 
 async function loadSystemInfo() {
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/system`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -529,7 +534,8 @@ async function deleteBook(id) {
   if (!confirm(`Delete book ${id}? This cannot be undone.`)) return
   
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/books/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -550,7 +556,8 @@ async function deleteTemplate(id) {
   if (!confirm(`Delete template ${id}? This cannot be undone.`)) return
   
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/templates/${id}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
@@ -571,7 +578,8 @@ async function deleteUpload(filename) {
   if (!confirm(`Delete ${filename}? This cannot be undone.`)) return
   
   try {
-    const token = localStorage.getItem('auth_token')
+    const authData = JSON.parse(localStorage.getItem('ziner_auth') || '{}')
+    const token = authData.token
     const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/uploads/${filename}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${token}` }
