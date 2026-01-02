@@ -63,12 +63,17 @@ export async function generatePDF(zineStore, progressCallback = null, options = 
       throw new Error('No page elements found to process')
     }
 
-    // Get scale factor from environment or use default
-    const scaleFactor = parseFloat(import.meta.env.VITE_PDF_SCALE_FACTOR) || 4
+    // Get scale factor from environment or use default (reduced for speed)
+    const scaleFactor = parseFloat(import.meta.env.VITE_PDF_SCALE_FACTOR) || 3
+    
+    // Pre-process all images in parallel for better performance
+    const allImages = Array.from(document.querySelectorAll('.page-canvas img'))
+    await Promise.all(allImages.map(img => handleObjectPositionForExport(img)))
 
     for (let i = 0; i < pageElements.length; i++) {
       updateProgress(i + 1, pageElements.length)
-      await new Promise(resolve => setTimeout(resolve, 50))
+      // Reduced delay for faster processing
+      await new Promise(resolve => setTimeout(resolve, 10))
 
       if (i > 0) {
         pdf.addPage([pdfWidth, pdfHeight])
@@ -76,11 +81,7 @@ export async function generatePDF(zineStore, progressCallback = null, options = 
 
       const pageElement = pageElements[i]
 
-      // Handle images with object-fit: cover and custom positioning
-      const images = pageElement.querySelectorAll('img')
-      for (const img of images) {
-        await handleObjectPositionForExport(img)
-      }
+      // Images already pre-processed, skip individual processing
 
       const bodyElement = document.body
       const appElement = document.getElementById('app')
@@ -137,15 +138,19 @@ export async function generatePDF(zineStore, progressCallback = null, options = 
           textToolbar.style.display = 'none'
         }
 
-        await new Promise(resolve => setTimeout(resolve, 100))
+        // Reduced delay for faster processing
+        await new Promise(resolve => setTimeout(resolve, 20))
 
         const canvas = await html2canvas(pageElement, {
           scale: scaleFactor,
           useCORS: true,
-          allowTaint: true,
+          allowTaint: false,
           backgroundColor: pageBackgroundColor,
           logging: false,
-          imageTimeout: 15000,
+          imageTimeout: 10000,
+          // Optimize rendering
+          removeContainer: false,
+          foreignObjectRendering: false,
           onclone: (clonedDoc) => {
             // Add crossOrigin attribute to all images
             const images = clonedDoc.images
@@ -178,12 +183,13 @@ export async function generatePDF(zineStore, progressCallback = null, options = 
           finalCanvas = flippedCanvas
         }
 
-        const imgData = finalCanvas.toDataURL('image/png', 1.0)
+        // Use JPEG with quality compression for faster processing and smaller file size
+        const imgData = finalCanvas.toDataURL('image/jpeg', 0.92)
         
         // For flat binding, offset content to the right by gutter amount
         // This creates the binding margin on the left edge
         const xOffset = gutterMm
-        pdf.addImage(imgData, 'PNG', xOffset, 0, width, height)
+        pdf.addImage(imgData, 'JPEG', xOffset, 0, width, height, undefined, 'FAST')
       } finally {
         // Restore original styles
         bodyElement.style.removeProperty('background')
@@ -319,9 +325,10 @@ export async function handleObjectPositionForExport(img) {
   cropY = Math.max(0, Math.min(cropY, imgHeight - cropHeight))
 
   const canvas = document.createElement('canvas')
-  canvas.width = imgRect.width * 4 // High DPI
-  canvas.height = imgRect.height * 4
-  const ctx = canvas.getContext('2d')
+  // Reduced DPI for faster processing (3x instead of 4x)
+  canvas.width = imgRect.width * 3
+  canvas.height = imgRect.height * 3
+  const ctx = canvas.getContext('2d', { alpha: false })
 
   // Draw the cropped portion
   ctx.drawImage(
@@ -331,16 +338,14 @@ export async function handleObjectPositionForExport(img) {
   )
 
   try {
-    // Check if canvas is tainted before calling toDataURL
-    const testDataURL = canvas.toDataURL('image/png', 0.1) // Low quality test
-
-    // If we get here, canvas is not tainted, proceed with full quality
+    // If we get here, canvas is not tainted, proceed with compression
     const originalSrc = img.src
     img.dataset.originalSrc = originalSrc
     img.dataset.originalObjectFit = img.style.objectFit
     img.dataset.originalObjectPosition = img.style.objectPosition
 
-    img.src = canvas.toDataURL('image/png')
+    // Use JPEG for faster processing
+    img.src = canvas.toDataURL('image/jpeg', 0.92)
     img.style.objectFit = 'contain'
     img.style.objectPosition = 'center'
   } catch (error) {

@@ -11,6 +11,7 @@ Welcome to the Zino documentation! This guide will help you understand, use, and
 
 ### Architecture
 - [System Overview](./architecture/overview.md) - High-level architecture
+- [Security](./architecture/security.md) - Authentication and authorization
 - [Frontend Architecture](./architecture/frontend.md) - Vue 3 + Pinia structure
 - [Backend Architecture](./architecture/backend.md) - Express API structure
 - [Database Schema](./architecture/database.md) - PostgreSQL schema
