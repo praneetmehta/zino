@@ -254,6 +254,104 @@
         </div>
       </div>
 
+      <!-- Image Analytics Tab -->
+      <div v-if="activeTab === 'images'" class="tab-content">
+        <h2>Image Analytics</h2>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon">🖼️</div>
+            <div class="stat-value">{{ imageStats.totalImages }}</div>
+            <div class="stat-label">Total Images</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📏</div>
+            <div class="stat-value">{{ imageStats.totalSize }}</div>
+            <div class="stat-label">Total Size</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-value">{{ imageStats.avgSize }}</div>
+            <div class="stat-label">Avg Image Size</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon">📚</div>
+            <div class="stat-value">{{ imageStats.booksWithImages }}</div>
+            <div class="stat-label">Books with Images</div>
+          </div>
+        </div>
+
+        <div class="charts-grid">
+          <div class="chart-card">
+            <h3>Images per Book</h3>
+            <div class="table-container">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Book Title</th>
+                    <th>Image Count</th>
+                    <th>Total Size</th>
+                    <th>Avg Size</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="book in imageStats.bookImageStats" :key="book.id">
+                    <td>{{ book.title }}</td>
+                    <td>{{ book.imageCount }}</td>
+                    <td>{{ book.totalSize }}</td>
+                    <td>{{ book.avgSize }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div class="chart-card">
+            <h3>Image Format Distribution</h3>
+            <div class="format-distribution">
+              <div 
+                v-for="(count, format) in imageStats.formatDistribution" 
+                :key="format"
+                class="format-item"
+              >
+                <span class="format-label">{{ format.toUpperCase() }}</span>
+                <div class="format-bar-container">
+                  <div 
+                    class="format-bar" 
+                    :style="{ width: `${(count / imageStats.totalImages) * 100}%` }"
+                  ></div>
+                </div>
+                <span class="format-count">{{ count }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card">
+          <h3>Largest Images</h3>
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Filename</th>
+                  <th>Size</th>
+                  <th>Format</th>
+                  <th>Used In</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="img in imageStats.largestImages" :key="img.filename">
+                  <td><code>{{ img.filename }}</code></td>
+                  <td>{{ img.size }}</td>
+                  <td><span class="badge">{{ img.format }}</span></td>
+                  <td>{{ img.usedIn }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- System Tab -->
       <div v-if="activeTab === 'system'" class="tab-content">
         <h2>System Information</h2>
@@ -320,12 +418,22 @@ const books = ref([])
 const templates = ref([])
 const uploads = ref([])
 const systemInfo = ref({})
+const imageStats = ref({
+  totalImages: 0,
+  totalSize: '0 MB',
+  avgSize: '0 KB',
+  booksWithImages: 0,
+  bookImageStats: [],
+  formatDistribution: {},
+  largestImages: []
+})
 
 const tabs = [
   { id: 'overview', label: 'Overview', icon: '📊' },
   { id: 'books', label: 'Books', icon: '📚' },
   { id: 'templates', label: 'Templates', icon: '📄' },
   { id: 'uploads', label: 'Uploads', icon: '🖼️' },
+  { id: 'images', label: 'Image Analytics', icon: '📸' },
   { id: 'system', label: 'System', icon: '⚙️' }
 ]
 
@@ -504,11 +612,116 @@ function formatUptime(seconds) {
   return `${hours}h ${minutes}m`
 }
 
+function computeImageStats() {
+  if (books.value.length === 0 || uploads.value.length === 0) {
+    return
+  }
+
+  // Create a map of uploads by filename
+  const uploadMap = {}
+  uploads.value.forEach(upload => {
+    uploadMap[upload.name] = upload
+  })
+
+  let totalImages = 0
+  let totalSizeBytes = 0
+  const formatCount = {}
+  const bookStats = []
+  const imageUsage = {} // Track which books use which images
+
+  // Analyze each book
+  books.value.forEach(book => {
+    let bookImageCount = 0
+    let bookSizeBytes = 0
+    const bookImages = new Set()
+
+    // Check all pages for images
+    if (book.pages) {
+      book.pages.forEach(page => {
+        if (page.slots) {
+          page.slots.forEach(slot => {
+            if (slot.assetId) {
+              const upload = uploadMap[slot.assetId]
+              if (upload) {
+                bookImages.add(slot.assetId)
+                bookImageCount++
+                bookSizeBytes += upload.sizeBytes || 0
+                
+                // Track format
+                const ext = slot.assetId.split('.').pop().toLowerCase()
+                formatCount[ext] = (formatCount[ext] || 0) + 1
+
+                // Track usage
+                if (!imageUsage[slot.assetId]) {
+                  imageUsage[slot.assetId] = []
+                }
+                imageUsage[slot.assetId].push(book.title)
+              }
+            }
+          })
+        }
+      })
+    }
+
+    if (bookImageCount > 0) {
+      totalImages += bookImageCount
+      totalSizeBytes += bookSizeBytes
+      
+      bookStats.push({
+        id: book.id,
+        title: book.title,
+        imageCount: bookImageCount,
+        totalSize: formatBytes(bookSizeBytes),
+        avgSize: formatBytes(bookSizeBytes / bookImageCount)
+      })
+    }
+  })
+
+  // Find largest images
+  const largestImages = uploads.value
+    .filter(u => {
+      const ext = u.name.split('.').pop().toLowerCase()
+      return ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)
+    })
+    .sort((a, b) => (b.sizeBytes || 0) - (a.sizeBytes || 0))
+    .slice(0, 10)
+    .map(img => ({
+      filename: img.name,
+      size: img.size,
+      format: img.name.split('.').pop().toUpperCase(),
+      usedIn: imageUsage[img.name] ? imageUsage[img.name].length + ' books' : 'Unused'
+    }))
+
+  // Sort book stats by image count
+  bookStats.sort((a, b) => b.imageCount - a.imageCount)
+
+  imageStats.value = {
+    totalImages,
+    totalSize: formatBytes(totalSizeBytes),
+    avgSize: totalImages > 0 ? formatBytes(totalSizeBytes / totalImages) : '0 KB',
+    booksWithImages: bookStats.length,
+    bookImageStats: bookStats,
+    formatDistribution: formatCount,
+    largestImages
+  }
+}
+
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 Bytes'
+  const k = 1024
+  const sizes = ['Bytes', 'KB', 'MB', 'GB']
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+}
+
 onMounted(() => {
   loadStats()
-  loadBooks()
+  loadBooks().then(() => {
+    loadUploads().then(() => {
+      computeImageStats()
+    })
+  })
   loadTemplates()
-  loadUploads()
   loadSystemInfo()
 })
 </script>
@@ -871,5 +1084,47 @@ onMounted(() => {
   background: var(--muted);
   padding: 4px 8px;
   border-radius: 4px;
+}
+
+/* Image Analytics Styles */
+.format-distribution {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 0;
+}
+
+.format-item {
+  display: grid;
+  grid-template-columns: 80px 1fr 60px;
+  align-items: center;
+  gap: 16px;
+}
+
+.format-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.format-bar-container {
+  height: 24px;
+  background: var(--muted);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.format-bar {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent) 0%, var(--accent-strong) 100%);
+  border-radius: 12px;
+  transition: width 0.3s ease;
+}
+
+.format-count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
 }
 </style>
