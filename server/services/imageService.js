@@ -111,7 +111,7 @@ class ImageService {
 
     try {
       console.log(`📸 Processing image: ${file.originalname}, type: ${file.mimetype}, size: ${buffer.length} bytes`)
-      
+
       // Check if file is HEIF and convert to JPEG
       if (this.isHEIF(buffer)) {
         console.log('🔍 HEIF file detected, converting to JPEG...')
@@ -119,21 +119,32 @@ class ImageService {
         // Update mimetype after conversion
         file.mimetype = 'image/jpeg'
       }
-      
-      // Get image metadata
-      const image = sharp(buffer, { 
+
+      // Get image metadata (with auto-orientation applied)
+      const image = sharp(buffer, {
         failOnError: false,
         unlimited: true
       })
-      const imageMetadata = await image.metadata()
-      
-      console.log(`✅ Image metadata: ${imageMetadata.format}, ${imageMetadata.width}x${imageMetadata.height}`)
 
-      // Generate all variants
+      // First, auto-orient the image to correct EXIF rotation
+      const orientedBuffer = await image
+        .rotate() // Auto-rotate based on EXIF orientation
+        .toBuffer()
+
+      // Now get metadata from the oriented image
+      const orientedImage = sharp(orientedBuffer, {
+        failOnError: false,
+        unlimited: true
+      })
+      const imageMetadata = await orientedImage.metadata()
+
+      console.log(`✅ Image metadata: ${imageMetadata.format}, ${imageMetadata.width}x${imageMetadata.height} (oriented)`)
+
+      // Generate all variants using the oriented buffer
       const variants = {}
 
       // 1. Original (JPEG for print compatibility)
-      const originalBuffer = await this.resizeImage(buffer, this.sizes.original)
+      const originalBuffer = await this.resizeImage(orientedBuffer, this.sizes.original)
       const originalResult = await storageService.uploadFile(originalBuffer, {
         filename: `${imageId}_original.jpg`,
         originalName: file.originalname,
@@ -151,7 +162,7 @@ class ImageService {
       }
 
       // 2. Display (WebP for better compression)
-      const displayBuffer = await this.resizeImage(buffer, this.sizes.display)
+      const displayBuffer = await this.resizeImage(orientedBuffer, this.sizes.display)
       const displayResult = await storageService.uploadFile(displayBuffer, {
         filename: `${imageId}_display.webp`,
         originalName: file.originalname,
@@ -170,7 +181,7 @@ class ImageService {
       }
 
       // 3. Thumbnail (WebP for smallest size)
-      const thumbnailBuffer = await this.resizeImage(buffer, this.sizes.thumbnail)
+      const thumbnailBuffer = await this.resizeImage(orientedBuffer, this.sizes.thumbnail)
       const thumbnailResult = await storageService.uploadFile(thumbnailBuffer, {
         filename: `${imageId}_thumb.webp`,
         originalName: file.originalname,
