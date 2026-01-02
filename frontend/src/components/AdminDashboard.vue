@@ -310,9 +310,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useToast } from '../composables/useToast'
+import { useNotification } from '../composables/useNotification'
 
-const { toast } = useToast()
+const { toast } = useNotification()
 
 const activeTab = ref('overview')
 const stats = ref({})
