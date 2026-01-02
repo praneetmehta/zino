@@ -6,9 +6,16 @@ const { authenticateJWT } = require('../middleware/auth')
 
 // Middleware to check admin role
 const requireAdmin = (req, res, next) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' })
+  console.log('🔍 Admin check - User:', req.user)
+  if (!req.user) {
+    console.log('❌ No user in request')
+    return res.status(401).json({ error: 'Authentication required' })
   }
+  if (req.user.role !== 'admin') {
+    console.log(`❌ User role is '${req.user.role}', expected 'admin'`)
+    return res.status(403).json({ error: 'Admin access required', userRole: req.user.role })
+  }
+  console.log('✅ Admin access granted')
   next()
 }
 

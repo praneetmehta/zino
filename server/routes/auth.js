@@ -70,26 +70,33 @@ router.post('/google', async (req, res) => {
       }
     }
 
-    // Auto-promote specific email to admin
-    if (user.email === 'praneet.mehta@gmail.com' && user.role !== 'admin') {
-      console.log('🔐 Auto-promoting praneet.mehta@gmail.com to admin')
-      user.role = 'admin'
-      
-      // If database is connected, persist the role change
-      if (databaseService.isConnected()) {
-        try {
-          await User.updateRole(user.id, 'admin')
-          console.log('✅ Admin role persisted to database')
-        } catch (error) {
-          console.warn('⚠️  Could not persist admin role to database:', error.message)
+    // Auto-promote specific email to admin (always force it)
+    console.log(`🔍 Checking admin promotion for: ${user.email}, current role: ${user.role}`)
+    if (user.email === 'praneet.mehta@gmail.com') {
+      if (user.role !== 'admin') {
+        console.log('🔐 Auto-promoting praneet.mehta@gmail.com to admin')
+        user.role = 'admin'
+        
+        // If database is connected, persist the role change
+        if (databaseService.isConnected()) {
+          try {
+            await User.updateRole(user.id, 'admin')
+            console.log('✅ Admin role persisted to database')
+          } catch (error) {
+            console.warn('⚠️  Could not persist admin role to database:', error.message)
+          }
         }
+      } else {
+        console.log('✅ User already has admin role')
       }
     }
+    console.log(`✅ Final user role before token generation: ${user.role}`)
 
     // Generate JWT token
     const token = generateToken(user, '24h')
     const expiresIn = 24 * 60 * 60 * 1000 // 24 hours in milliseconds
 
+    console.log('📤 Sending auth response with user:', { id: user.id, email: user.email, role: user.role })
     res.json({
       user,
       token,

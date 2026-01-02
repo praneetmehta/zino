@@ -13,12 +13,12 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production'
  * Adds req.user with decoded token data
  */
 function authenticateJWT(req, res, next) {
-  // Skip auth in development if configured
-  if (process.env.SKIP_AUTH === 'true' || process.env.NODE_ENV === 'development') {
+  // Skip auth only if explicitly configured (not just in development)
+  if (process.env.SKIP_AUTH === 'true') {
     req.user = {
       id: 'temp-user',
       email: 'temp@local.dev',
-      role: 'user',
+      role: 'admin', // Admin role for development
       isTemp: true,
     }
     return next()

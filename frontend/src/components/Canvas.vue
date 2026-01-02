@@ -274,7 +274,7 @@ const props = defineProps({
 const scaleFactor = computed(() => {
   const bothCollapsed = props.mediaPanelCollapsed && props.pagePanelCollapsed
   const oneCollapsed = props.mediaPanelCollapsed || props.pagePanelCollapsed
-  const isFlat = zineStore.zineConfig.bindingType === 'flat'
+  const isFlat = zineStore.zineConfig?.bindingType === 'flat'
 
   // For flat (no fold) binding, use smaller scale factors
   if (isFlat) {

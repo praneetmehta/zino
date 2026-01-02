@@ -142,7 +142,7 @@ const updatePageTag = (pageId, newTag) => {
 }
 
 const getDefaultTag = (index) => {
-  if (zineStore.zineConfig.bindingType === 'flat') {
+  if (zineStore.zineConfig?.bindingType === 'flat') {
     // Flat/no-fold: each page is separate (1-left, 2-right, 3-left, etc.)
     const pageNum = index + 1
     const side = pageNum % 2 === 1 ? 'left' : 'right'
