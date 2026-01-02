@@ -18,29 +18,64 @@
         </div>
 
         <div class="form-group">
-          <label>Page Dimensions (Full Spread)</label>
-          <div class="dimension-inputs">
-            <input
-              v-model.number="config.width"
-              type="number"
-              placeholder="Width"
-              required
-              min="1"
-            />
-            <span>×</span>
-            <input
-              v-model.number="config.height"
-              type="number"
-              placeholder="Height"
-              required
-              min="1"
-            />
-            <select v-model="config.unit">
-              <option value="mm">mm</option>
-              <option value="px">px</option>
-            </select>
+          <label>Aspect Ratio</label>
+          <div class="ratio-presets">
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'square' }"
+              @click="selectRatio('square')"
+            >
+              <div class="ratio-preview square"></div>
+              <span>Square (1:1)</span>
+            </button>
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'portrait-4-5' }"
+              @click="selectRatio('portrait-4-5')"
+            >
+              <div class="ratio-preview portrait-4-5"></div>
+              <span>Portrait (4:5)</span>
+            </button>
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'portrait-3-4' }"
+              @click="selectRatio('portrait-3-4')"
+            >
+              <div class="ratio-preview portrait-3-4"></div>
+              <span>Portrait (3:4)</span>
+            </button>
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'landscape-4-3' }"
+              @click="selectRatio('landscape-4-3')"
+            >
+              <div class="ratio-preview landscape-4-3"></div>
+              <span>Landscape (4:3)</span>
+            </button>
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'landscape-16-9' }"
+              @click="selectRatio('landscape-16-9')"
+            >
+              <div class="ratio-preview landscape-16-9"></div>
+              <span>Widescreen (16:9)</span>
+            </button>
+            <button 
+              type="button" 
+              class="ratio-btn"
+              :class="{ active: selectedRatio === 'golden' }"
+              @click="selectRatio('golden')"
+            >
+              <div class="ratio-preview golden"></div>
+              <span>Golden Ratio (1:1.618)</span>
+            </button>
           </div>
-          <small class="info-text">💡 For folded zines, enter the <strong>full spread size</strong> (both pages side-by-side), not individual page size.</small>
+          <small>How your zine pages will look. All layouts scale to fit any ratio.</small>
         </div>
 
         <div class="form-group">
@@ -113,12 +148,16 @@
           <!-- Dimensions info -->
           <div class="preview-info">
             <div class="info-item">
-              <span class="label">Full Spread:</span>
-              <span class="value">{{ config.width }} × {{ config.height }} {{ config.unit }}</span>
+              <span class="label">Aspect Ratio:</span>
+              <span class="value">{{ aspectRatios[selectedRatio]?.name }}</span>
+            </div>
+            <div class="info-item">
+              <span class="label">Dimensions:</span>
+              <span class="value">{{ Math.round(config.width) }} × {{ Math.round(config.height) }} {{ config.unit }}</span>
             </div>
             <div class="info-item">
               <span class="label">Single Page:</span>
-              <span class="value">{{ config.width / 2 }} × {{ config.height }} {{ config.unit }}</span>
+              <span class="value">{{ Math.round(config.width / 2) }} × {{ Math.round(config.height) }} {{ config.unit }}</span>
             </div>
             <div class="info-item" v-if="config.bleed > 0">
               <span class="label">Bleed:</span>
@@ -147,44 +186,20 @@
           <small>How pages are bound together. Folded shows a center crease.</small>
         </div>
 
-        <!-- Size Presets -->
-        <div class="form-group">
-          <label>Size Presets</label>
-          <div class="preset-buttons">
-            <button type="button" class="btn btn-outline" @click="applyPreset('postcard')">
-              Postcard (148×100mm)
-            </button>
-            <button type="button" class="btn btn-outline" @click="applyPreset('a4')">
-              A4 Portrait (210×297mm)
-            </button>
-            <button type="button" class="btn btn-outline" @click="applyPreset('a4landscape')">
-              A4 Landscape (297×210mm)
-            </button>
-            <button type="button" class="btn btn-outline" @click="applyPreset('a5')">
-              A5 (148×210mm)
-            </button>
-            <button type="button" class="btn btn-outline" @click="applyPreset('letter')">
-              Letter (216×279mm)
-            </button>
-            <button type="button" class="btn btn-outline" @click="applyPreset('square')">
-              Square (200×200mm)
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, ref } from 'vue'
 
 const emit = defineEmits(['initialize'])
 
 const config = reactive({
   title: '',
-  width: 148,
-  height: 100,
+  width: 283,  // 200mm * (4/√(4²+3²)) for 4:3, but let's start with square
+  height: 283, // Will be calculated based on aspect ratio
   unit: 'mm',
   bleed: 3,
   margin: 2,
@@ -192,18 +207,37 @@ const config = reactive({
   bindingType: 'folded',
 })
 
-const presets = {
-  postcard: { width: 148, height: 100, unit: 'mm' },
-  a4: { width: 210, height: 297, unit: 'mm' },
-  a4landscape: { width: 297, height: 210, unit: 'mm' },
-  a5: { width: 148, height: 210, unit: 'mm' },
-  letter: { width: 216, height: 279, unit: 'mm' },
-  square: { width: 200, height: 200, unit: 'mm' },
+const selectedRatio = ref('square')
+
+const aspectRatios = {
+  'square': { ratio: 1, name: 'Square (1:1)' },
+  'portrait-4-5': { ratio: 4/5, name: 'Portrait (4:5)' },
+  'portrait-3-4': { ratio: 3/4, name: 'Portrait (3:4)' },
+  'landscape-4-3': { ratio: 4/3, name: 'Landscape (4:3)' },
+  'landscape-16-9': { ratio: 16/9, name: 'Widescreen (16:9)' },
+  'golden': { ratio: 1/1.618, name: 'Golden Ratio (1:1.618)' },
 }
 
-const applyPreset = (preset) => {
-  Object.assign(config, presets[preset])
+const selectRatio = (ratioKey) => {
+  selectedRatio.value = ratioKey
+  const ratio = aspectRatios[ratioKey].ratio
+  
+  // Always set smaller dimension to 200mm baseline
+  const BASELINE = 200
+  
+  if (ratio >= 1) {
+    // Landscape or square: width is larger
+    config.width = BASELINE * ratio
+    config.height = BASELINE
+  } else {
+    // Portrait: height is larger
+    config.width = BASELINE
+    config.height = BASELINE / ratio
+  }
 }
+
+// Initialize with square ratio
+selectRatio('square')
 
 const handleSubmit = () => {
   emit('initialize', { ...config })
@@ -382,23 +416,77 @@ const marginPercentage = computed(() => {
   font-weight: 600;
 }
 
-.dimension-inputs {
+.ratio-presets {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.ratio-btn {
   display: flex;
+  flex-direction: column;
   align-items: center;
   gap: 8px;
-}
-
-.dimension-inputs input {
-  flex: 1;
-}
-
-.dimension-inputs select {
-  width: 80px;
-}
-
-.dimension-inputs span {
-  color: #6b7280;
+  padding: 16px 12px;
+  background: var(--muted);
+  border: 2px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 13px;
   font-weight: 500;
+  color: var(--text);
+}
+
+.ratio-btn:hover {
+  border-color: var(--accent);
+  background: var(--panel-bg);
+  transform: translateY(-1px);
+}
+
+.ratio-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.ratio-preview {
+  width: 60px;
+  height: 40px;
+  border-radius: 4px;
+  background: rgba(99, 102, 241, 0.2);
+  border: 2px solid rgba(99, 102, 241, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.ratio-preview.square {
+  aspect-ratio: 1;
+}
+
+.ratio-preview.portrait-4-5 {
+  aspect-ratio: 4/5;
+}
+
+.ratio-preview.portrait-3-4 {
+  aspect-ratio: 3/4;
+}
+
+.ratio-preview.landscape-4-3 {
+  aspect-ratio: 4/3;
+}
+
+.ratio-preview.landscape-16-9 {
+  aspect-ratio: 16/9;
+}
+
+.ratio-preview.golden {
+  aspect-ratio: 1.618;
+}
+
+.ratio-btn.active .ratio-preview {
+  background: rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.6);
 }
 
 .radio-group {
@@ -440,23 +528,6 @@ const marginPercentage = computed(() => {
   font-size: 14px;
 }
 
-.preset-buttons {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-.modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-}
-
-.modal-actions .btn {
-  padding: 14px 32px;
-  font-size: 15px;
-  font-weight: 600;
-}
 
 /* Preview Panel */
 .preview-panel {
@@ -485,11 +556,6 @@ const marginPercentage = computed(() => {
 .preview-panel small {
   font-size: 11px;
   margin-top: 4px;
-}
-
-.preview-panel .btn-outline {
-  padding: 8px 12px;
-  font-size: 12px;
 }
 
 .preview-panel h3 {
@@ -570,17 +636,6 @@ const marginPercentage = computed(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 13px;
-}
-
-.info-item .label {
-  color: var(--text-muted);
-  font-weight: 500;
-}
-
-.info-item .value {
-  color: var(--text);
-  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 

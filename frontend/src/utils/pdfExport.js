@@ -238,47 +238,6 @@ export async function exportToPDF(zineStore, progressCallback = null) {
   }
 }
 
-// Handle object-position for images during PDF export
-async function handleObjectPositionForExport(pageElement) {
-  const images = pageElement.querySelectorAll('img')
-  
-  for (const img of images) {
-    const computedStyle = getComputedStyle(img)
-    const objectFit = computedStyle.objectFit
-    const objectPosition = computedStyle.objectPosition
-    
-    // Only process cover images
-    if (objectFit !== 'cover') {
-      continue
-    }
-    
-    // Get image dimensions
-    const imgRect = img.getBoundingClientRect()
-    const imgWidth = img.naturalWidth
-    const imgHeight = img.naturalHeight
-    
-    // Parse object-position values
-    const [xStr, yStr] = objectPosition.split(' ')
-    const xPercent = parseFloat(xStr) / 100
-    const yPercent = parseFloat(yStr) / 100
-    
-    // Calculate which part of the image is visible for object-fit: cover
-    const aspectRatio = imgWidth / imgHeight
-    const containerAspect = imgRect.width / imgRect.height
-    
-    let cropX, cropY, cropWidth, cropHeight
-    
-    if (aspectRatio > containerAspect) {
-      // Image is wider than container, height matches container
-      cropHeight = imgHeight
-      cropWidth = imgHeight * containerAspect
-      
-      // Position based on object-position X
-      cropX = (imgWidth - cropWidth) * xPercent
-      cropY = 0
-    }
-  }
-}
 
 // Handle object-position images by temporarily cropping them for export
 async function handleObjectPositionForExport(img) {
