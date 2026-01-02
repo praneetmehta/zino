@@ -7,7 +7,7 @@ const fs = require('fs/promises')
 const path = require('path')
 
 // Import middleware and routes
-const { authenticateJWT, optionalAuth } = require('../middleware/auth')
+const { authenticateJWT, optionalAuth, requireOwnership } = require('../middleware/auth')
 const authRoutes = require('../routes/auth')
 const imageRoutes = require('../routes/images')
 const publishedRoutes = require('../routes/published')
@@ -160,7 +160,7 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 })
 
-app.get('/books', optionalAuth, async (req, res) => {
+app.get('/books', authenticateJWT, async (req, res) => {
   try {
     await ensureDataDir()
     const files = await fs.readdir(DATA_DIR)
@@ -209,7 +209,11 @@ app.get('/books', optionalAuth, async (req, res) => {
   }
 })
 
-app.get('/books/:id', optionalAuth, async (req, res) => {
+app.get('/books/:id', authenticateJWT, requireOwnership(async (req) => {
+  const filePath = getBookPath(req.params.id)
+  const book = await readBookFile(filePath)
+  return book.userId
+}), async (req, res) => {
   try {
     await ensureDataDir()
     const filePath = getBookPath(req.params.id)
@@ -219,12 +223,6 @@ app.get('/books/:id', optionalAuth, async (req, res) => {
     }
 
     const book = await readBookFile(filePath)
-    
-    // Check ownership in production (skip in dev mode)
-    if (req.user && book.userId && book.userId !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({ error: 'Access denied' })
-    }
-    
     res.json(book)
   } catch (error) {
     console.error(`[GET /books/${req.params.id}] error:`, error)
@@ -232,7 +230,7 @@ app.get('/books/:id', optionalAuth, async (req, res) => {
   }
 })
 
-app.post('/books', optionalAuth, async (req, res) => {
+app.post('/books', authenticateJWT, async (req, res) => {
   try {
     await ensureDataDir()
     const { id, title, data, metadata, thumbnail } = req.body || {}
@@ -247,7 +245,7 @@ app.post('/books', optionalAuth, async (req, res) => {
     const filePath = getBookPath(id)
     const now = new Date().toISOString()
     let createdAt = now
-    let userId = req.user?.id || null
+    let userId = req.user.id
     let existingThumbnail = null
 
     const existing = await fs.stat(filePath).catch(() => null)
@@ -255,13 +253,13 @@ app.post('/books', optionalAuth, async (req, res) => {
       try {
         const current = await readBookFile(filePath)
         createdAt = current.createdAt || now
-        userId = current.userId || userId
         existingThumbnail = current.thumbnail || null
         
         // Check ownership for updates
-        if (req.user && current.userId && current.userId !== req.user.id && req.user.role !== 'admin') {
+        if (current.userId && current.userId !== req.user.id && req.user.role !== 'admin') {
           return res.status(403).json({ error: 'Access denied' })
         }
+        userId = current.userId || userId
       } catch (err) {
         console.warn('Failed to read existing book for createdAt preservation:', err)
       }
@@ -287,7 +285,11 @@ app.post('/books', optionalAuth, async (req, res) => {
   }
 })
 
-app.delete('/books/:id', optionalAuth, async (req, res) => {
+app.delete('/books/:id', authenticateJWT, requireOwnership(async (req) => {
+  const filePath = getBookPath(req.params.id)
+  const book = await readBookFile(filePath)
+  return book.userId
+}), async (req, res) => {
   try {
     await ensureDataDir()
     const filePath = getBookPath(req.params.id)
@@ -313,7 +315,7 @@ app.delete('/books/:id', optionalAuth, async (req, res) => {
 })
 
 // Custom Layouts API
-app.get('/layouts/custom', optionalAuth, async (req, res) => {
+app.get('/layouts/custom', authenticateJWT, async (req, res) => {
   try {
     await ensureLayoutsDir()
     const files = await fs.readdir(LAYOUTS_DIR)
@@ -349,7 +351,7 @@ app.get('/layouts/custom', optionalAuth, async (req, res) => {
   }
 })
 
-app.post('/layouts/custom', optionalAuth, async (req, res) => {
+app.post('/layouts/custom', authenticateJWT, async (req, res) => {
   try {
     await ensureLayoutsDir()
     const layout = req.body
@@ -412,7 +414,12 @@ app.post('/layouts/custom', optionalAuth, async (req, res) => {
   }
 })
 
-app.delete('/layouts/custom/:id', optionalAuth, async (req, res) => {
+app.delete('/layouts/custom/:id', authenticateJWT, requireOwnership(async (req) => {
+  const filename = `${req.params.id}.json`
+  const filePath = path.join(LAYOUTS_DIR, filename)
+  const layout = JSON.parse(await fs.readFile(filePath, 'utf8'))
+  return layout.userId
+}), async (req, res) => {
   try {
     await ensureLayoutsDir()
     const filename = `${req.params.id}.json`

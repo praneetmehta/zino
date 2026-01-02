@@ -93,6 +93,63 @@ function optionalAuth(req, res, next) {
 }
 
 /**
+ * Require ownership of a resource
+ * Checks if req.user.id matches the resource's userId
+ */
+function requireOwnership(getUserIdFromResource) {
+  return async (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    // Admin can access everything
+    if (req.user.role === 'admin') {
+      return next()
+    }
+
+    try {
+      const resourceUserId = await getUserIdFromResource(req)
+      
+      if (!resourceUserId) {
+        return res.status(404).json({ error: 'Resource not found' })
+      }
+
+      if (resourceUserId !== req.user.id) {
+        return res.status(403).json({ error: 'Access denied' })
+      }
+
+      next()
+    } catch (error) {
+      console.error('Ownership check error:', error)
+      return res.status(500).json({ error: 'Failed to verify ownership' })
+    }
+  }
+}
+
+/**
+ * Require user to access only their own data
+ * Checks if req.params.userId or req.body.userId matches req.user.id
+ */
+function requireSelf(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ error: 'Authentication required' })
+  }
+
+  // Admin can access any user's data
+  if (req.user.role === 'admin') {
+    return next()
+  }
+
+  const targetUserId = req.params.userId || req.body.userId
+  
+  if (targetUserId && targetUserId !== req.user.id) {
+    return res.status(403).json({ error: 'Access denied' })
+  }
+
+  next()
+}
+
+/**
  * Generate JWT token
  */
 function generateToken(user, expiresIn = '24h') {
@@ -111,6 +168,8 @@ module.exports = {
   authenticateJWT,
   requireAdmin,
   optionalAuth,
+  requireOwnership,
+  requireSelf,
   generateToken,
   JWT_SECRET,
 }
