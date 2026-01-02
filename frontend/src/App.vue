@@ -678,6 +678,32 @@ const handleLoadFromLibrary = (book) => {
     hasUnsavedChanges.value = false // Loaded project starts as saved
     view.value = 'editor'
     showLibrary.value = false
+    
+    // Apply proper image styling for backward compatibility
+    nextTick(() => {
+      // Import the styling function from Canvas component
+      import('./components/Canvas.vue').then(module => {
+        // We need to get the applyImageStyling function from the Canvas component
+        // For now, we'll use a direct DOM approach
+        const allImages = document.querySelectorAll('img[data-slot-id]')
+        allImages.forEach(img => {
+          const slotId = img.getAttribute('data-slot-id')
+          if (slotId) {
+            const [pageId, slotIndex] = slotId.split('-')
+            const page = zineStore.pages.find(p => p.id === pageId)
+            const slot = page?.slots[parseInt(slotIndex)]
+            if (slot && slot.assetId) {
+              // Apply default cover styling for backward compatibility
+              img.style.objectFit = slot.fit === 'cover' ? 'cover' : 'contain'
+              img.style.width = '100%'
+              img.style.height = '100%'
+              img.style.objectPosition = '50% 50%'
+            }
+          }
+        })
+      })
+    })
+    
     toast.success(`Loaded "${book.title || book.id}"`)
   } catch (error) {
     console.error('Failed to import book:', error)
@@ -706,6 +732,27 @@ const handleTemplateSelected = (result) => {
       hasUnsavedChanges.value = false
       view.value = 'editor'
       showTemplateGallery.value = false
+      
+      // Apply proper image styling for backward compatibility
+      nextTick(() => {
+        const allImages = document.querySelectorAll('img[data-slot-id]')
+        allImages.forEach(img => {
+          const slotId = img.getAttribute('data-slot-id')
+          if (slotId) {
+            const [pageId, slotIndex] = slotId.split('-')
+            const page = zineStore.pages.find(p => p.id === pageId)
+            const slot = page?.slots[parseInt(slotIndex)]
+            if (slot && slot.assetId) {
+              // Apply default cover styling for backward compatibility
+              img.style.objectFit = slot.fit === 'cover' ? 'cover' : 'contain'
+              img.style.width = '100%'
+              img.style.height = '100%'
+              img.style.objectPosition = '50% 50%'
+            }
+          }
+        })
+      })
+      
       toast.success(`Loaded "${result.data.title || result.data.name}"`)
     } catch (error) {
       console.error('Failed to load template:', error)
