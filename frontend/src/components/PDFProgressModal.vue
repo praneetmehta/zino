@@ -66,6 +66,12 @@
                 <span class="info-value">{{ formatFileSize(fileSize) }}</span>
               </div>
             </div>
+
+            <!-- Waiting for download dialog -->
+            <div v-if="isComplete && !downloadStarted" class="download-waiting">
+              <div class="waiting-icon">⏳</div>
+              <div class="waiting-text">Waiting for system download dialog...</div>
+            </div>
           </div>
 
           <!-- Actions -->
@@ -102,6 +108,7 @@ const steps = ref([])
 const isComplete = ref(false)
 const fileSize = ref(0)
 const pageCount = ref(0)
+const downloadStarted = ref(false)
 
 function setSteps(newSteps) {
   steps.value = newSteps
@@ -133,6 +140,12 @@ function complete(size = 0, pages = 0) {
   currentStepIndex.value = steps.value.length // Move past all steps
   fileSize.value = size
   pageCount.value = pages
+  downloadStarted.value = false
+  
+  // Auto-hide the waiting message after 3 seconds
+  setTimeout(() => {
+    downloadStarted.value = true
+  }, 3000)
 }
 
 function reset() {
@@ -143,6 +156,7 @@ function reset() {
   steps.value = []
   fileSize.value = 0
   pageCount.value = 0
+  downloadStarted.value = false
 }
 
 function formatFileSize(bytes) {
@@ -378,6 +392,38 @@ defineExpose({
   font-weight: 600;
   color: var(--text);
   font-variant-numeric: tabular-nums;
+}
+
+.download-waiting {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: color-mix(in srgb, var(--accent) 8%, var(--muted));
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: 10px;
+  margin-top: 12px;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.waiting-icon {
+  font-size: 20px;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  to { transform: rotate(360deg); }
+}
+
+.waiting-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
 }
 
 .progress-actions {

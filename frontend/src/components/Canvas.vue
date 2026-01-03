@@ -279,7 +279,7 @@ const scaleFactor = computed(() => {
   // For flat (no fold) binding, use smaller scale factors
   if (isFlat) {
     if (bothCollapsed) return 1.2
-    if (oneCollapsed) return 1.1
+    if (oneCollapsed) return 1.0
     return 1.0
   }
 
@@ -463,9 +463,13 @@ const optimalMaxWidth = computed(() => {
     // Flat: need to fit exactly 2 pages side by side with gap
     // Account for gap between pages (24px * scaleFactor)
     const gapWidth = 24 * scaleFactor.value
-    const widthForTwoPages = availableWidth - gapWidth - 40 // Extra padding
+    const widthForTwoPages = availableWidth - gapWidth - 60 // Extra padding for safety
     // Each page gets half the available width
-    return widthForTwoPages / 2
+    const maxWidthPerPage = widthForTwoPages / 2
+    
+    // Ensure we don't exceed reasonable limits even on large screens
+    // This prevents pages from becoming too large on ultra-wide monitors
+    return Math.min(maxWidthPerPage, 500)
   }
 })
 
