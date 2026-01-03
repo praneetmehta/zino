@@ -39,7 +39,7 @@
           
           <!-- Editor pages (starting from index 1) -->
           <div
-            v-for="(page, index) in zineStore.pages"
+            v-for="(page, index) in flipbookPages"
             :key="page.id"
             class="page-right"
             :class="{ 
@@ -67,9 +67,9 @@
           ← Previous
         </button>
         <span class="page-indicator">
-          {{ currentPageIndex === 0 ? 'Front Cover' : currentPageIndex > zineStore.pages.length ? 'Back Cover' : `Page ${currentPageIndex} / ${zineStore.pages.length}` }}
+          {{ currentPageIndex === 0 ? 'Front Cover' : currentPageIndex > flipbookPages.length ? 'Back Cover' : `Page ${currentPageIndex} / ${flipbookPages.length}` }}
         </span>
-        <button class="nav-btn" @click="nextPage" :disabled="currentPageIndex > zineStore.pages.length">
+        <button class="nav-btn" @click="nextPage" :disabled="currentPageIndex > flipbookPages.length">
           Next →
         </button>
       </div>
@@ -91,7 +91,14 @@ const isLoading = ref(true)
 const loadingProgress = ref('')
 
 // Total pages including front cover and editor pages (back cover is on the back of last page)
-const totalPages = computed(() => zineStore.pages.length + 1)
+const totalPages = computed(() => {
+  if (isFoldedMode.value) {
+    return zineStore.pages.length + 1
+  } else {
+    // Flat mode: count only the flipbook pages we're rendering
+    return Math.ceil(zineStore.pages.length / 2) + 1
+  }
+})
 
 // Store for rendered page images
 const pageImages = ref({})
@@ -104,39 +111,60 @@ const bookContainerStyle = computed(() => {
   
   if (!cfg) return {}
   
-  // Editor page dimensions (e.g., 148mm x 100mm with crease at 74mm)
-  // This represents the FULL spread when opened
-  const fullWidth = cfg.width  // 148mm
-  const height = cfg.height     // 100mm
+  const folded = isFoldedMode.value
   
-  // Closed book: show half width (one page = 74mm x 100mm)
-  // Open book: show full width (two pages = 148mm x 100mm)
-  const displayWidth = pageIdx === 0 ? fullWidth / 2 : fullWidth
+  // Editor page dimensions
+  // Folded: cfg.width is the FULL SPREAD (e.g., 148mm), each page is width/2 (74mm)
+  // Flat: cfg.width is ONE PAGE (e.g., 100mm), full spread would be width*2 (200mm)
+  const editorPageWidth = cfg.width
+  const height = cfg.height
+  
+  // Calculate actual book dimensions
+  let fullSpreadWidth, singlePageWidth
+  if (folded) {
+    // Folded: editor width IS the full spread, single page is half
+    fullSpreadWidth = editorPageWidth  // 148mm
+    singlePageWidth = editorPageWidth / 2  // 74mm
+  } else {
+    // Flat: editor width IS a single page, spread is double
+    singlePageWidth = editorPageWidth  // 100mm
+    fullSpreadWidth = editorPageWidth * 2  // 200mm
+  }
   
   // Calculate display dimensions
   // Scale to fit nicely on screen while maintaining aspect ratio
-  const maxDisplayWidth = 600 // Max width for open book
-  const scale = maxDisplayWidth / fullWidth
+  // Flat mode gets 1.5x larger display since pages are bigger
+  const maxDisplayWidth = folded ? 800 : 1200 // Max width for open book spread
+  const scale = maxDisplayWidth / fullSpreadWidth
   
-  // Always use full open width for container
-  const openWidthPx = fullWidth * scale  // 600px
+  // Display dimensions
+  const openWidthPx = fullSpreadWidth * scale  // 600px for spread
+  const closedWidthPx = singlePageWidth * scale  // 300px for single page
   const displayHeightPx = height * scale
   
-  // Handle closed states and translation
-  const closedWidthPx = (fullWidth / 2) * scale  // 300px
-  const isBackCover = pageIdx > zineStore.pages.length
+  // Check if we're on back cover (beyond all flipbook pages)
+  const isBackCover = pageIdx > flipbookPages.value.length
   
   let translateX, clipPath
   if (pageIdx === 0) {
-    // Front cover: clip left half, show right half centered
-    translateX = -closedWidthPx / 2  // -150px
-    clipPath = `inset(0 0 0 50%)`  // Hide left half
+    // Front cover: book is closed, spine should be on left edge
+    // Move book left by a page width so spine aligns with left edge
+    if (folded) {
+      // Folded: clip left half, move spine to left edge
+      translateX = -closedWidthPx/2
+      clipPath = `inset(0 0 0 50%)`  // Hide left half
+    } else {
+      // Flat: move spine to left edge
+      translateX = -closedWidthPx/2
+      clipPath = 'none'
+    }
   } else if (isBackCover) {
-    // Back cover: shift left to center the left half
-    translateX = closedWidthPx / 2  // -150px to center left half
+    // Back cover: book is closed, spine should be on right edge
+    // Move book right by a page width so spine aligns with right edge
+    translateX = closedWidthPx/2
     clipPath = 'none'
   } else {
-    // Open book: show both halves
+    // Open book: spine in center, no translation
     translateX = 0
     clipPath = 'none'
   }
@@ -147,10 +175,13 @@ const bookContainerStyle = computed(() => {
     position: 'relative',
     transform: `translateX(${translateX}px)`,
     clipPath,
+    // Smooth transition for transform (centering) and clip-path
     // Delay clip-path when closing to front cover to let page flip complete
     transition: pageIdx === 0 
-      ? 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), clip-path 0.01s 0.8s'
-      : 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), clip-path 0.01s',
+      ? 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, clip-path 0.01s 0.8s'
+      : isBackCover
+        ? 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1) 0.3s, clip-path 0.01s'
+        : 'transform 0.8s cubic-bezier(0.4, 0, 0.2, 1), clip-path 0.01s',
   }
 })
 
@@ -205,10 +236,36 @@ const leftPageContent = computed(() => {
   return '<div class="page-preview"><div class="page-number">Left</div></div>'
 })
 
+// Check if we're in folded mode (pages are split in half)
+const isFoldedMode = computed(() => {
+  return zineStore.zineConfig?.bindingType === 'folded'
+})
+
+// Get pages to render in flipbook
+// Folded: all pages (each split into left/right)
+// Flat: only even-indexed pages (pages are paired), plus dummy for odd count
+const flipbookPages = computed(() => {
+  if (isFoldedMode.value) {
+    return zineStore.pages
+  } else {
+    // Flat mode: only render pages that have rightPageContents
+    const pages = zineStore.pages.filter(page => rightPageContents.value[page.id])
+    
+    // Add dummy page for odd number of pages
+    if (zineStore.pages.length % 2 === 1) {
+      const lastPage = zineStore.pages[zineStore.pages.length - 1]
+      pages.push({ id: 'empty-page-' + lastPage.id, isEmpty: true })
+    }
+    
+    return pages
+  }
+})
+
 // Generate right page contents for all pages
 const generatePageContents = () => {
   const rightContents = {}
   const backContents = {}
+  const folded = isFoldedMode.value
   
   // Add front cover as page 0 (not from editor)
   const coverPageId = 'cover-page'
@@ -224,60 +281,157 @@ const generatePageContents = () => {
     </div>
   `
   
-  // Back of cover shows left half of first editor page
+  // Back of cover shows left half of first editor page (folded) or first full page (flat)
   if (zineStore.pages.length > 0) {
     const firstPage = zineStore.pages[0]
     const firstImgData = pageImages.value[firstPage.id]
     if (firstImgData) {
-      backContents[coverPageId] = `
-        <div class="page-preview-with-image">
-          <img src="${firstImgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 0% 0%;" />
-        </div>
-      `
+      if (folded) {
+        // Folded: show left half of first page
+        backContents[coverPageId] = `
+          <div class="page-preview-with-image">
+            <img src="${firstImgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 0% 0%;" />
+          </div>
+        `
+      } else {
+        // Flat: show full first page
+        backContents[coverPageId] = `
+          <div class="page-preview-with-image">
+            <img src="${firstImgData}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />
+          </div>
+        `
+      }
     }
   }
   
   // Map editor pages starting from index 0
-  zineStore.pages.forEach((page, index) => {
-    const imgData = pageImages.value[page.id]
-    
-    // Right page shows the RIGHT HALF of the editor page
-    if (imgData) {
-      rightContents[page.id] = `
-        <div class="page-preview-with-image">
-          <img src="${imgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 100% 0%; margin-left: -100%;" />
-        </div>
-      `
-    } else {
-      rightContents[page.id] = '<div class="page-preview"><div class="page-number">Page ' + (index + 1) + '</div></div>'
-    }
-    
-    // Back of this page shows the LEFT HALF of the NEXT editor page
-    const nextIndex = index + 1
-    if (nextIndex >= zineStore.pages.length) {
-      // Last editor page: back shows back cover
-      backContents[page.id] = `
-        <div class="cover-page back-cover">
-          <div class="cover-content">
-            <div class="cover-title">The End</div>
-            <div class="cover-meta">Created with Zino</div>
-          </div>
-        </div>
-      `
-    } else {
-      const nextPage = zineStore.pages[nextIndex]
-      const nextImgData = pageImages.value[nextPage.id]
-      if (nextImgData) {
-        backContents[page.id] = `
+  if (folded) {
+    // FOLDED MODE: Each editor page is split into left/right halves
+    zineStore.pages.forEach((page, index) => {
+      const imgData = pageImages.value[page.id]
+      
+      // Right page shows the RIGHT HALF
+      if (imgData) {
+        rightContents[page.id] = `
           <div class="page-preview-with-image">
-            <img src="${nextImgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 0% 0%;" />
+            <img src="${imgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 100% 0%; margin-left: -100%;" />
           </div>
         `
       } else {
-        backContents[page.id] = '<div class="page-preview"><div class="page-number">Page ' + (nextIndex + 1) + '</div></div>'
+        rightContents[page.id] = '<div class="page-preview"><div class="page-number">Page ' + (index + 1) + '</div></div>'
+      }
+      
+      // Back of this page shows the LEFT HALF of NEXT page
+      const nextIndex = index + 1
+      if (nextIndex >= zineStore.pages.length) {
+        // Last editor page: back shows back cover
+        backContents[page.id] = `
+          <div class="cover-page back-cover">
+            <div class="cover-content">
+              <div class="cover-title">The End</div>
+              <div class="cover-meta">Created with Zino</div>
+            </div>
+          </div>
+        `
+      } else {
+        const nextPage = zineStore.pages[nextIndex]
+        const nextImgData = pageImages.value[nextPage.id]
+        if (nextImgData) {
+          backContents[page.id] = `
+            <div class="page-preview-with-image">
+              <img src="${nextImgData}" style="width: 200%; height: 100%; object-fit: cover; object-position: 0% 0%;" />
+            </div>
+          `
+        } else {
+          backContents[page.id] = '<div class="page-preview"><div class="page-number">Page ' + (nextIndex + 1) + '</div></div>'
+        }
+      }
+    })
+  } else {
+    // FLAT MODE: Each editor page is a full page
+    // Pages are paired: [1-left, 2-right], [3-left, 4-right], etc.
+    // We iterate by pairs and only create flipbook pages for even-numbered pages
+    for (let i = 0; i < zineStore.pages.length; i += 2) {
+      const leftPageIndex = i      // Page 1, 3, 5... (index 0, 2, 4...)
+      const rightPageIndex = i + 1 // Page 2, 4, 6... (index 1, 3, 5...)
+      
+      const leftPage = zineStore.pages[leftPageIndex]
+      const rightPage = zineStore.pages[rightPageIndex]
+      
+      // We use the RIGHT page as the key for the flipbook page
+      // because it's the one that flips
+      if (rightPage) {
+        const rightImgData = pageImages.value[rightPage.id]
+        
+        // Right side shows the right page
+        if (rightImgData) {
+          rightContents[rightPage.id] = `
+            <div class="page-preview-with-image">
+              <img src="${rightImgData}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />
+            </div>
+          `
+        } else {
+          rightContents[rightPage.id] = '<div class="page-preview"><div class="page-number">Page ' + (rightPageIndex + 1) + '</div></div>'
+        }
+        
+        // Back shows the NEXT left page OR back cover
+        const nextLeftPageIndex = i + 2
+        const nextLeftPage = zineStore.pages[nextLeftPageIndex]
+        
+        if (nextLeftPage) {
+          const nextLeftImgData = pageImages.value[nextLeftPage.id]
+          if (nextLeftImgData) {
+            backContents[rightPage.id] = `
+              <div class="page-preview-with-image">
+                <img src="${nextLeftImgData}" style="width: 100%; height: 100%; object-fit: cover; object-position: center;" />
+              </div>
+            `
+          } else {
+            backContents[rightPage.id] = '<div class="page-preview"><div class="page-number">Page ' + (nextLeftPageIndex + 1) + '</div></div>'
+          }
+        } else {
+          // No more pages - show back cover
+          backContents[rightPage.id] = `
+            <div class="cover-page back-cover">
+              <div class="cover-content">
+                <div class="cover-title">The End</div>
+                <div class="cover-meta">Created with Zino</div>
+              </div>
+            </div>
+          `
+        }
+      }
+      
+      // Handle odd number of pages - add an extra flipbook page
+      if (zineStore.pages.length % 2 === 1) {
+        const lastPage = zineStore.pages[zineStore.pages.length - 1]
+        const lastImgData = pageImages.value[lastPage.id]
+        
+        // Create a dummy page ID for the empty page spread
+        const emptyPageId = 'empty-page-' + lastPage.id
+        
+        // Right side shows empty page
+        rightContents[emptyPageId] = `
+          <div class="page-preview">
+            <div class="empty-page">Empty Page</div>
+          </div>
+        `
+        
+        // Back shows back cover
+        backContents[emptyPageId] = `
+          <div class="cover-page back-cover">
+            <div class="cover-content">
+              <div class="cover-title">The End</div>
+              <div class="cover-meta">Created with Zino</div>
+            </div>
+          </div>
+        `
+        
+        // Add this to the pages list (we'll need to track it)
+        // Actually, we need to add a dummy page object
       }
     }
-  })
+  }
   
   // Back cover is shown on the back of the last editor page, no separate page needed
   
@@ -330,29 +484,42 @@ const capturePage = async (pageId) => {
   }
 }
 
-// Render all pages
+// Render all pages in parallel for faster loading
 const renderPages = async () => {
   isLoading.value = true
   loadingProgress.value = ''
   pageImages.value = {}
   
   const totalPages = zineStore.pages.length
-  for (let i = 0; i < totalPages; i++) {
-    const page = zineStore.pages[i]
-    loadingProgress.value = `Page ${i + 1} of ${totalPages}`
-    const imgData = await capturePage(page.id)
-    if (imgData) {
-      pageImages.value[page.id] = imgData
-    }
+  
+  // Render pages in parallel with concurrency limit to avoid overwhelming browser
+  const concurrency = 3 // Render 3 pages at a time
+  const results = {}
+  
+  for (let i = 0; i < totalPages; i += concurrency) {
+    const batch = zineStore.pages.slice(i, i + concurrency)
+    loadingProgress.value = `Rendering pages ${i + 1}-${Math.min(i + concurrency, totalPages)} of ${totalPages}`
+    
+    // Render batch in parallel
+    const batchPromises = batch.map(page => capturePage(page.id))
+    const batchResults = await Promise.all(batchPromises)
+    
+    // Store results
+    batch.forEach((page, index) => {
+      if (batchResults[index]) {
+        results[page.id] = batchResults[index]
+      }
+    })
   }
   
+  pageImages.value = results
   generatePageContents()
   isLoading.value = false
 }
 
 const nextPage = () => {
-  // Allow going one past pages.length to show back cover
-  if (currentPageIndex.value <= zineStore.pages.length) {
+  // Allow going one past flipbookPages.length to show back cover
+  if (currentPageIndex.value <= flipbookPages.value.length) {
     currentPageIndex.value++
   }
 }
@@ -364,7 +531,7 @@ const previousPage = () => {
 }
 
 const flipToPage = (index) => {
-  if (index >= 0 && index < zineStore.pages.length) {
+  if (index >= 0 && index < flipbookPages.value.length) {
     currentPageIndex.value = index
   }
 }
