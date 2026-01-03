@@ -116,7 +116,7 @@
             v-for="(page, index) in zineStore.pages"
             :key="page.id"
             class="page-wrapper"
-            :class="scaleClass"
+            :class="[scaleClass, { 'first-row-flat': index < 2 && isSpreadView }]"
           >
             <!-- Page number chips (not printed) -->
             <div v-if="showPageNumbers" class="page-numbers no-print">
@@ -443,11 +443,37 @@ const selectedSlotIndex = computed(() => {
 })
 let contextMenuTransitionTimeout = null
 
+// Calculate optimal max width based on binding type and available space
+const optimalMaxWidth = computed(() => {
+  const config = zineStore.zineConfig
+  if (!config) return 600
+  
+  // Calculate available workspace width based on collapsed panels
+  // Media panel: ~320px, Page panel: ~280px, Toolbar: ~60px, Padding: ~40px
+  let sidebarWidth = 60 + 40 // Toolbar + padding
+  if (!props.mediaPanelCollapsed) sidebarWidth += 320
+  if (!props.pagePanelCollapsed) sidebarWidth += 280
+  
+  const availableWidth = window.innerWidth - sidebarWidth
+  
+  if (config.bindingType === 'folded') {
+    // Folded: single page width, use most of available space
+    return availableWidth * 0.9
+  } else {
+    // Flat: need to fit exactly 2 pages side by side with gap
+    // Account for gap between pages (24px * scaleFactor)
+    const gapWidth = 24 * scaleFactor.value
+    const widthForTwoPages = availableWidth - gapWidth - 40 // Extra padding
+    // Each page gets half the available width
+    return widthForTwoPages / 2
+  }
+})
+
 const pageStyle = computed(() => {
   const config = zineStore.zineConfig
   if (!config) return {}
 
-  const { widthPx, heightPx } = getScaledDimensions(config, 600)
+  const { widthPx, heightPx } = getScaledDimensions(config, optimalMaxWidth.value)
 
   // Apply scale factor to actual dimensions instead of using CSS transform
   const scaledWidth = widthPx * scaleFactor.value
@@ -549,7 +575,7 @@ const gutterGuideStyle = (side) => {
   
   // Gutter guides show binding allowance lines
   // For printing, gutters are additional space for binding
-  const gutterPx = toScaledPx(cfg.gutter, cfg.unit, getScaledDimensions(cfg, 600).scale)
+  const gutterPx = toScaledPx(cfg.gutter, cfg.unit, getScaledDimensions(cfg, optimalMaxWidth.value).scale)
   
   switch (side) {
     case 'top':
@@ -610,7 +636,7 @@ const getSlotStyle = (slot, page) => {
   }
   
   // Get scaled dimensions to calculate margin in pixels
-  const { scale } = getScaledDimensions(cfg, 600)
+  const { scale } = getScaledDimensions(cfg, optimalMaxWidth.value)
   const marginPx = toScaledPx(effectiveMargin, cfg.unit, scale)
   
   // Apply margin to each slot individually
@@ -1656,7 +1682,7 @@ const handleSetPageMargin = (margin) => {
   justify-content: center;
   align-items: flex-start; /* Align pages to top */
   gap: calc(24px * var(--scale-factor, 1));
-  max-width: calc(2 * 600px * var(--scale-factor, 1) + 24px * var(--scale-factor, 1));
+  /* No max-width - pages size themselves based on optimalMaxWidth */
 }
 
 .pages-stack.spread-view .page-wrapper {
@@ -1667,6 +1693,11 @@ const handleSetPageMargin = (margin) => {
 /* Remove extra margins in spread view */
 .pages-stack.spread-view .page-wrapper:first-child {
   margin-top: 0;
+}
+
+/* Add extra padding to first row (first 2 pages) in flat mode */
+.page-wrapper.first-row-flat {
+  padding-top: 40px;
 }
 
 .page {

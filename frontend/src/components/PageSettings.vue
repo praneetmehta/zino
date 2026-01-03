@@ -4,27 +4,35 @@
     <div class="setting-group">
             <label class="group-label">Page Dimensions</label>
             <div class="dimension-row">
-              <div class="input-field">
+              <div class="input-field" :class="{ 'has-error': widthError }">
                 <label>Width</label>
                 <input 
                   type="number" 
                   v-model.number="localConfig.width" 
+                  @input="validateDimension('width')"
                   @change="updateConfig"
                   min="10"
+                  :max="localConfig.unit === 'mm' ? 400 : 1512"
                   step="1"
+                  :title="localConfig.unit === 'mm' ? 'Maximum 400mm' : 'Maximum 1512px (~400mm)'"
                 />
                 <span class="unit">{{ localConfig.unit }}</span>
+                <span v-if="widthError" class="error-hint">Max: {{ localConfig.unit === 'mm' ? '400mm' : '1512px' }}</span>
               </div>
-              <div class="input-field">
+              <div class="input-field" :class="{ 'has-error': heightError }">
                 <label>Height</label>
                 <input 
                   type="number" 
                   v-model.number="localConfig.height" 
+                  @input="validateDimension('height')"
                   @change="updateConfig"
                   min="10"
+                  :max="localConfig.unit === 'mm' ? 400 : 1512"
                   step="1"
+                  :title="localConfig.unit === 'mm' ? 'Maximum 400mm' : 'Maximum 1512px (~400mm)'"
                 />
                 <span class="unit">{{ localConfig.unit }}</span>
+                <span v-if="heightError" class="error-hint">Max: {{ localConfig.unit === 'mm' ? '400mm' : '1512px' }}</span>
               </div>
             </div>
           </div>
@@ -159,6 +167,10 @@ import { useZineStore } from '../stores/zineStore'
 const zineStore = useZineStore()
 const uniformBleed = ref(true)
 
+// Validation errors
+const widthError = ref(false)
+const heightError = ref(false)
+
 // Local config that syncs with store
 const localConfig = ref({
   width: 0,
@@ -172,6 +184,35 @@ const localConfig = ref({
   bleedLeft: 0,
   bindingType: 'folded'
 })
+
+// Validate dimension (max 400mm or 1512px)
+const validateDimension = (dimension) => {
+  const maxMm = 400
+  const maxPx = 1512 // ~400mm at 96 DPI
+  const value = localConfig.value[dimension]
+  const unit = localConfig.value.unit
+  
+  const max = unit === 'mm' ? maxMm : maxPx
+  
+  if (value > max) {
+    if (dimension === 'width') {
+      widthError.value = true
+      localConfig.value.width = max
+    } else {
+      heightError.value = true
+      localConfig.value.height = max
+    }
+    
+    // Clear error after 3 seconds
+    setTimeout(() => {
+      if (dimension === 'width') widthError.value = false
+      else heightError.value = false
+    }, 3000)
+  } else {
+    if (dimension === 'width') widthError.value = false
+    else heightError.value = false
+  }
+}
 
 // Initialize local config from store
 const initializeLocalConfig = () => {
@@ -340,6 +381,32 @@ const updateConfig = () => {
   font-weight: 600;
   color: var(--text-muted);
   pointer-events: none;
+}
+
+.input-field.has-error input[type="number"] {
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.input-field.has-error input[type="number"]:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-hint {
+  position: absolute;
+  bottom: -20px;
+  left: 0;
+  font-size: 11px;
+  color: #ef4444;
+  font-weight: 600;
+  animation: shake 0.3s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
 }
 
 .bleed-grid {
