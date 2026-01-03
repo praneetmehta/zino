@@ -205,7 +205,7 @@
                 :pageId="page.id"
                 :pageWidth="pageWidthPx"
                 :pageHeight="pageHeightPx"
-                :scaleFactor="scaleFactor"
+                :scaleFactor="actualPageScale"
                 @update="(updates) => updateTextElement(page.id, textEl.id, updates)"
                 @edit="selectTextElement(page.id, textEl.id)"
                 @delete="deleteTextElement(page.id, textEl.id)"
@@ -474,11 +474,25 @@ const optimalMaxWidth = computed(() => {
   }
 })
 
+// Calculate scaled dimensions once (performance optimization)
+const scaledDimensions = computed(() => {
+  const config = zineStore.zineConfig
+  if (!config) return { widthPx: 0, heightPx: 0, scale: 1 }
+  
+  return getScaledDimensions(config, optimalMaxWidth.value)
+})
+
+// Calculate the actual scale being applied to pages
+const actualPageScale = computed(() => {
+  // Multiply dimension scale by CSS scaleFactor to get total scale
+  return scaledDimensions.value.scale * scaleFactor.value
+})
+
 const pageStyle = computed(() => {
   const config = zineStore.zineConfig
   if (!config) return {}
 
-  const { widthPx, heightPx } = getScaledDimensions(config, optimalMaxWidth.value)
+  const { widthPx, heightPx } = scaledDimensions.value
 
   // Apply scale factor to actual dimensions instead of using CSS transform
   const scaledWidth = widthPx * scaleFactor.value
@@ -580,7 +594,7 @@ const gutterGuideStyle = (side) => {
   
   // Gutter guides show binding allowance lines
   // For printing, gutters are additional space for binding
-  const gutterPx = toScaledPx(cfg.gutter, cfg.unit, getScaledDimensions(cfg, optimalMaxWidth.value).scale)
+  const gutterPx = toScaledPx(cfg.gutter, cfg.unit, scaledDimensions.value.scale)
   
   switch (side) {
     case 'top':
@@ -641,8 +655,7 @@ const getSlotStyle = (slot, page) => {
   }
   
   // Get scaled dimensions to calculate margin in pixels
-  const { scale } = getScaledDimensions(cfg, optimalMaxWidth.value)
-  const marginPx = toScaledPx(effectiveMargin, cfg.unit, scale)
+  const marginPx = toScaledPx(effectiveMargin, cfg.unit, scaledDimensions.value.scale)
   
   // Apply margin to each slot individually
   // Each slot gets margin on all sides, creating gaps between adjacent slots
