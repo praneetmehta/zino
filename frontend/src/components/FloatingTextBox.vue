@@ -44,6 +44,7 @@ const props = defineProps({
   pageId: String,
   pageWidth: Number,
   pageHeight: Number,
+  scaleFactor: { type: Number, default: 1 },
 })
 
 const emit = defineEmits(['update', 'edit', 'delete', 'editing-change'])
@@ -64,15 +65,22 @@ const boxStyle = computed(() => ({
 
 const textStyle = computed(() => {
   const style = props.element?.style || {}
+  
+  // Apply scale factor to font size and padding to maintain WYSIWYG
+  const baseFontSize = style.fontSize || DEFAULT_TEXT_STYLE.fontSize
+  const basePadding = style.padding || DEFAULT_TEXT_STYLE.padding
+  const scaledFontSize = baseFontSize * props.scaleFactor
+  const scaledPadding = basePadding * props.scaleFactor
+  
   const baseStyle = {
     fontFamily: style.fontFamily ? `"${style.fontFamily}", ${FONT_STACK}` : FONT_STACK,
-    fontSize: `${style.fontSize || DEFAULT_TEXT_STYLE.fontSize}px`,
+    fontSize: `${scaledFontSize}px`,
     fontWeight: Number(style.fontWeight) || DEFAULT_TEXT_STYLE.fontWeight,
     lineHeight: Number(style.lineHeight) || DEFAULT_TEXT_STYLE.lineHeight,
     textAlign: style.textAlign || DEFAULT_TEXT_STYLE.textAlign,
     color: style.color || DEFAULT_TEXT_STYLE.color,
     backgroundColor: style.backgroundColor || DEFAULT_TEXT_STYLE.backgroundColor,
-    padding: style.padding || `${DEFAULT_TEXT_STYLE.padding}px`,
+    padding: `${scaledPadding}px`,
   }
   
   // Add optional properties if present

@@ -205,6 +205,7 @@
                 :pageId="page.id"
                 :pageWidth="pageWidthPx"
                 :pageHeight="pageHeightPx"
+                :scaleFactor="scaleFactor"
                 @update="(updates) => updateTextElement(page.id, textEl.id, updates)"
                 @edit="selectTextElement(page.id, textEl.id)"
                 @delete="deleteTextElement(page.id, textEl.id)"
